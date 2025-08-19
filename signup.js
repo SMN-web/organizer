@@ -37,7 +37,7 @@ export function initSignup(container, auth) {
       <button type="submit" id="submitBtn">Sign Up</button>
       <span id="formError" class="feedback-red"></span>
     </form>
-  `;
+  `; 
 
   const usernameInput = container.querySelector("#username");
   const usernameStatus = container.querySelector("#usernameStatus");
