@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>SPA Auth</title>
-  <link rel="stylesheet" href="./style.css"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SPA Auth App</title>
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
   <div id="app"></div>
+
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
     import { getAuth } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
@@ -24,8 +25,6 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-
-    window.firebaseApp = app;
     window.firebaseAuth = auth;
 
     import('./main.js');
