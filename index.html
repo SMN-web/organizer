@@ -1,1 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>SPA Auth App</title>
+  <link rel="stylesheet" href="./css/style.css"/>
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+    import { getAuth } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDtZnYYDb5TR01G6zsCtrF0HBR6pnQ2Beg",
+    authDomain: "general-68ca7.firebaseapp.com",
+    projectId: "general-68ca7",
+    storageBucket: "general-68ca7.firebasestorage.app",
+    messagingSenderId: "674522865143",
+    appId: "1:674522865143:web:c4ec47f2e370c33c3ca2f2",
+    measurementId: "G-6L0DXHGCBE"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    window.firebaseApp = app;
+    window.firebaseAuth = auth;
+
+    import('./js/main.js');
+  </script>
+</body>
+</html>
 
