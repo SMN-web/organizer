@@ -6,7 +6,7 @@ export function initSignup(container, auth) {
         <input type="text" id="username" required autocomplete="off" />
         <span id="usernameStatus" class="status"></span>
       </label><br/>
-
+ 
       <label>Full Name:<br/>
         <input type="text" id="name" required />
         <span id="nameError" class="feedback-red"></span>
