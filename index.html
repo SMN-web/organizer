@@ -3,11 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SPA Auth App</title>
-  <link rel="stylesheet" href="./style.css" />
+  <title>Firebase SDK Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+      text-align: center;
+    }
+    #message {
+      margin-top: 50px;
+      font-size: 22px;
+      color: #27ae60;
+    }
+  </style>
 </head>
 <body>
-  <div id="app"></div>
+  <h1>Firebase SDK Initialization Test</h1>
+  <div id="message">Loading Firebase SDK...</div>
 
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
@@ -23,11 +36,19 @@
   measurementId: "G-R9GMNJ5Q7T"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    window.firebaseAuth = auth;
+    const messageDiv = document.getElementById('message');
 
-    import('./main.js');
+    try {
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+
+      window.firebaseAuth = auth;
+      messageDiv.textContent = "Firebase SDK loaded and initialized successfully!";
+      messageDiv.style.color = "#27ae60";
+    } catch (e) {
+      messageDiv.textContent = "Firebase SDK failed to initialize: " + e.message;
+      messageDiv.style.color = "#e74c3c";
+    }
   </script>
 </body>
 </html>
