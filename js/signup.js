@@ -121,7 +121,7 @@ export function initSignup(container, auth) {
       }
       usernameStatus.innerHTML = '<span class="loader"></span>';
       try {
-        const res = await fetch("https://signup-worker-subdomain.workers.dev/api/check-unique", {
+        const res = await fetch("https://holy-fog-231f.nafil-8895-s.workers.dev/api/check-unique", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username }),
