@@ -41,7 +41,7 @@ export function showResendVerification(container) {
       if (!methods || methods.length === 0) {
         // Privacy: always show generic response
         msgEl.style.color = "#27ae60";
-        msgEl.textContent = "If your email is registered, a verification link was sent.";
+        msgEl.textContent = "If your email is registered, a verification link was sent. If you've just requested a verification link, it may take a few minutes to arrive. Please check your inbox and spam folders. If you didn't receive it, try again in a few minutes. ";
         return;
       }
       // Try to sign in silently to send verification (if password enabled)
@@ -49,7 +49,7 @@ export function showResendVerification(container) {
         // No password required for resend; Firebase currently doesn’t support direct send unless logged in,
         // so we'll show the generic message to be privacy-respecting.
         msgEl.style.color = "#27ae60";
-        msgEl.textContent = "If your email is registered and unverified, a verification link was sent.";
+        msgEl.textContent = "If your email is registered and unverified, a verification link was sent. If you've just requested a verification link, it may take a few minutes to arrive. Please check your inbox and spam folders. If you didn't receive it, try again in a few minutes. ";
         return;
       }
       // For social login etc., same (show generic)
