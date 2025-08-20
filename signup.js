@@ -38,4 +38,4 @@ export function initSignup(container, auth) {
 
   // You can add your full validation code from previous examples here.
   // Start by checking if the panel renders, then add the rest.
-}
+} 
