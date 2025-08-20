@@ -1,4 +1,18 @@
-const appDiv = document.getElementById('app');
-appDiv.innerHTML = '<h2>Main.js loaded!</h2>';
 import { initSignup } from './signup.js';
-initSignup(appDiv, window.firebaseAuth);
+import { initTerms } from './terms.js';
+
+const appDiv = document.getElementById('app');
+
+function router() {
+  const hash = window.location.hash || '#signup';
+  if (hash === '#signup') {
+    initSignup(appDiv);
+  } else if (hash === '#terms') {
+    initTerms(appDiv);
+  } else {
+    appDiv.innerHTML = "<h2>Page not found</h2>";
+  }
+}
+
+window.addEventListener('hashchange', router);
+window.addEventListener('load', router);
