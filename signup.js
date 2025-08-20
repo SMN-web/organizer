@@ -21,7 +21,9 @@ export function initSignup(container, auth) {
         Password:<br/>
         <div style="display:flex; gap:8px;">
           <input type="password" id="password" required autocomplete="off" placeholder="Password" style="flex:1;">
-          <button type="button" id="togglePassword" style="padding: 0 12px;">Show</button>
+          <button type="button" id="togglePassword" style="background:none;border:none;cursor:pointer;">
+            <span id="eyeIconPassword"></span>
+          </button>
         </div>
       </label><br/>
 
@@ -29,14 +31,16 @@ export function initSignup(container, auth) {
         Confirm Password:<br/>
         <div style="display:flex; gap:8px;">
           <input type="password" id="confirmPassword" required autocomplete="off" placeholder="Confirm password" style="flex:1;">
-          <button type="button" id="toggleConfirmPassword" style="padding: 0 12px;">Show</button>
+          <button type="button" id="toggleConfirmPassword" style="background:none;border:none;cursor:pointer;">
+            <span id="eyeIconConfirm"></span>
+          </button>
         </div>
       </label><br/>
 
-      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+      <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
         <input type="checkbox" id="terms" required style="margin:0;">
         <span>
-          I accept the 
+          I accept the
           <a href="#terms" id="termsLink">terms and conditions</a>
         </span>
       </div>
@@ -45,24 +49,33 @@ export function initSignup(container, auth) {
     </form>
   `;
 
-  // Password toggle logic
+  // SVG Icons for eye (open/closed)
+  const eyeOpenSVG = `<svg width="24" height="24" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="5" stroke="#333" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2.5" fill="#333"/></svg>`;
+  const eyeClosedSVG = `<svg width="24" height="24" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="5" stroke="#333" stroke-width="2" fill="none"/><line x1="5" y1="19" x2="19" y2="5" stroke="#333" stroke-width="2"/></svg>`;
+
   const passwordInput = container.querySelector('#password');
   const togglePasswordBtn = container.querySelector('#togglePassword');
+  const eyeIconPassword = container.querySelector('#eyeIconPassword');
+  eyeIconPassword.innerHTML = eyeClosedSVG;
+
   togglePasswordBtn.addEventListener('click', () => {
-    const type = passwordInput.type === 'password' ? 'text' : 'password';
-    passwordInput.type = type;
-    togglePasswordBtn.textContent = type === 'password' ? 'Show' : 'Hide';
+    const isHidden = passwordInput.type === 'password';
+    passwordInput.type = isHidden ? 'text' : 'password';
+    eyeIconPassword.innerHTML = isHidden ? eyeOpenSVG : eyeClosedSVG;
   });
 
   const confirmPasswordInput = container.querySelector('#confirmPassword');
   const toggleConfirmPasswordBtn = container.querySelector('#toggleConfirmPassword');
+  const eyeIconConfirm = container.querySelector('#eyeIconConfirm');
+  eyeIconConfirm.innerHTML = eyeClosedSVG;
+
   toggleConfirmPasswordBtn.addEventListener('click', () => {
-    const type = confirmPasswordInput.type === 'password' ? 'text' : 'password';
-    confirmPasswordInput.type = type;
-    toggleConfirmPasswordBtn.textContent = type === 'password' ? 'Show' : 'Hide';
+    const isHidden = confirmPasswordInput.type === 'password';
+    confirmPasswordInput.type = isHidden ? 'text' : 'password';
+    eyeIconConfirm.innerHTML = isHidden ? eyeOpenSVG : eyeClosedSVG;
   });
 
-  // Redirect terms link (pure SPA): changes hash to #terms for SPA router
+  // SPA style: redirect/hash change for terms
   const termsLink = container.querySelector('#termsLink');
   termsLink.addEventListener('click', (e) => {
     e.preventDefault();
