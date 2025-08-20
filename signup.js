@@ -53,6 +53,12 @@ export function showSignup(container) {
       </div>
       <button type="submit" id="signupBtn" class="signup-btn" tabindex="7">Sign Up</button>
       <div id="formError" style="color:#e74c3c;margin-top:10px"></div>
+      <div style="margin-top:18px;text-align:center;">
+  <a href="#resend" style="font-size:0.98em;color:#3498db;cursor:pointer;">
+    Didn't get your verification email? Resend
+  </a>
+</div>
+
     </form>
   `;
 
