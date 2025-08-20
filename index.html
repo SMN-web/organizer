@@ -8,11 +8,11 @@
 </head>
 <body>
   <div id="app"></div>
-
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
     import { getAuth } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
+    // Replace with your real config
     const firebaseConfig = {
       apiKey: "AIzaSyAWphaG1_4n1i3F9kY_TrMdvjVQomu7OtQ",
   authDomain: "organizer-359e3.firebaseapp.com",
@@ -26,6 +26,9 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     window.firebaseAuth = auth;
+
+    // Immediate visual feedback
+    document.getElementById('app').innerHTML = '<h2>Firebase SDK loaded ✓</h2><p>JavaScript is running!</p>';
 
     import('./main.js');
   </script>
