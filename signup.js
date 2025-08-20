@@ -7,5 +7,5 @@ export function initSignup(container, auth) {
       <button type="submit">Sign Up</button>
       <span id="formError"></span>
     </form>
-  `;
+  `; 
 }
