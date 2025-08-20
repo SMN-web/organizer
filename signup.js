@@ -1,3 +1,5 @@
+import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
 export function showSignup(container) {
   container.innerHTML = `
     <h2>Sign Up</h2>
@@ -41,18 +43,6 @@ export function showSignup(container) {
       <div id="formError" style="color:#e74c3c;margin-top:10px"></div>
     </form>
   `;
-
-  // Add to CSS:
-  /*
-  .form-group { margin-bottom: 14px; }
-  .input-error { font-size: 0.98em; min-height: 1.1em; }
-  input.error { border-color: #e74c3c !important; background: #fff9f9 !important; }
-  .signup-btn { background:#3498db; color:#fff; border:none; border-radius:6px; padding:0.7em 1.4em; margin-top:1em; font-size:1em; cursor:pointer; transition:background 0.2s;}
-  .signup-btn:disabled { background: #b2bec3; cursor: not-allowed; }
-  .spinner { width: 22px; height: 22px; border: 3px solid #fff; border-top: 3px solid #3498db; border-radius: 50%; display: inline-block; vertical-align: middle; animation: spin 0.8s linear infinite; margin-right:0.5em;}
-  @keyframes spin { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
-  .signup-btn.loading { position: relative; pointer-events:none; opacity:0.9; }
-  */
 
   // SVG icons
   const eyeOpenSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="5" stroke="#333" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2.5" fill="#333"/></svg>`;
@@ -167,8 +157,6 @@ export function showSignup(container) {
     emailErrBox.style.color = emailErr ? "#e74c3c" : "#888";
     passErrBox.style.color = passwordErr ? "#e74c3c" : "#888";
     confErrBox.style.color = confirmErr ? "#e74c3c" : "#888";
-
-    // Signup button remains enabled
     signupBtn.disabled = false;
   }
 
@@ -178,25 +166,30 @@ export function showSignup(container) {
     input.addEventListener('blur', () => updateValidation());
   });
 
-  // Signup with spinner animation
+  // Signup with spinner animation and correct modular Firebase function
   const signupForm = container.querySelector('#signupForm');
   signupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     updateValidation(true);
-    const terms = container.querySelector('#terms').checked;
-    const formError = container.querySelector('#formError');
-    formError.style.color = "#e74c3c";
-    formError.textContent = "";
-
-    // Check mandatory fields
     const usernameVal = usernameInput.value.trim();
     const nameVal = nameInput.value.trim();
     const emailVal = emailInput.value.trim();
     const passwordVal = passwordInput.value.trim();
     const confirmVal = confirmPasswordInput.value.trim();
+    const terms = container.querySelector('#terms').checked;
+    const formError = container.querySelector('#formError');
+    formError.style.color = "#e74c3c";
+    formError.textContent = "";
 
+    // Check terms first, show targeted message if not accepted
+    if (!terms) {
+      formError.textContent = "Please accept terms and conditions.";
+      return;
+    }
+
+    // Check field errors
     if (
-      !usernameVal || !nameVal || !emailVal || !passwordVal || !confirmVal || !terms ||
+      !usernameVal || !nameVal || !emailVal || !passwordVal || !confirmVal ||
       validateUsername(usernameVal) ||
       validateName(nameVal) ||
       validateEmail(emailVal) ||
@@ -215,7 +208,7 @@ export function showSignup(container) {
 
     try {
       const auth = window.firebaseAuth;
-      await auth.createUserWithEmailAndPassword(auth, emailVal, passwordVal);
+      await createUserWithEmailAndPassword(auth, emailVal, passwordVal);
       formError.style.color = "#27ae60";
       formError.textContent = "Signup successful!";
       signupForm.reset();
