@@ -57,7 +57,7 @@ export function showResendVerification(container) {
       msgEl.textContent = "If your email is registered and unverified, a verification link was sent.";
     } catch (error) {
       msgEl.style.color = "#27ae60";
-      msgEl.textContent = "If your email is registered and unverified, a verification link was sent.";
+      msgEl.textContent = "If your email is registered and unverified, a verification link was sent. If you've just requested a verification link, it may take a few minutes to arrive. Please check your inbox and spam folders. If you didn't receive it, try again in a few minutes.";
     }
   };
 }
