@@ -2,9 +2,12 @@ export function showSignup(container) {
   container.innerHTML = `
     <h2>Sign Up</h2>
     <form id="signupForm" novalidate>
-      <input type="email" id="email" required placeholder="Email">
-      <input type="password" id="password" required placeholder="Password">
-      <div style="margin-bottom:16px;">
+      <input type="text" id="username" required placeholder="Username" autocomplete="off">
+      <input type="text" id="name" required placeholder="Full name" autocomplete="off">
+      <input type="email" id="email" required placeholder="Email" autocomplete="off">
+      <input type="password" id="password" required placeholder="Password" autocomplete="off">
+      <input type="password" id="confirmPassword" required placeholder="Confirm password" autocomplete="off">
+      <div style="margin-bottom:16px;display:flex;align-items:center;gap:8px;">
         <input type="checkbox" id="terms" required>
         <label for="terms">I accept the <a href="#terms" id="termsLink">terms and conditions</a></label>
       </div>
@@ -23,13 +26,22 @@ export function showSignup(container) {
   const signupForm = container.querySelector('#signupForm');
   signupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const username = container.querySelector('#username').value.trim();
+    const name = container.querySelector('#name').value.trim();
     const email = container.querySelector('#email').value.trim();
     const password = container.querySelector('#password').value.trim();
+    const confirmPassword = container.querySelector('#confirmPassword').value.trim();
     const terms = container.querySelector('#terms').checked;
     const formError = container.querySelector('#formError');
     formError.textContent = "";
-    if (!email || !password || !terms) {
+
+    // Validate required fields
+    if (!username || !name || !email || !password || !confirmPassword || !terms) {
       formError.textContent = "All fields must be filled and terms accepted!";
+      return;
+    }
+    if (password !== confirmPassword) {
+      formError.textContent = "Passwords do not match!";
       return;
     }
     try {
