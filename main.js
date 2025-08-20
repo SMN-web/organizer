@@ -8,4 +8,11 @@ function router() {
   if (hash === '#signup') {
     initSignup(appDiv);
   } else if (hash === '#terms') {
-    initTerms
+    initTerms(appDiv); // <<-- This calls the function!
+  } else {
+    appDiv.innerHTML = "<h2>Page not found</h2>";
+  }
+}
+
+window.addEventListener('hashchange', router);
+window.addEventListener('load', router);
