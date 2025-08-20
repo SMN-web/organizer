@@ -98,3 +98,11 @@ input[type="text"], input[type="email"], input[type="password"] {
   pointer-events: none;
   opacity: 0.9;
 }
+  .form-group { margin-bottom: 14px; }
+  .input-error { font-size: 0.98em; min-height: 1.1em; }
+  input.error { border-color: #e74c3c !important; background: #fff9f9 !important; }
+  .signup-btn { background:#3498db; color:#fff; border:none; border-radius:6px; padding:0.7em 1.4em; margin-top:1em; font-size:1em; cursor:pointer; transition:background 0.2s;}
+  .signup-btn:disabled { background: #b2bec3; cursor: not-allowed; }
+  .spinner { width: 22px; height: 22px; border: 3px solid #fff; border-top: 3px solid #3498db; border-radius: 50%; display: inline-block; vertical-align: middle; animation: spin 0.8s linear infinite; margin-right:0.5em;}
+  @keyframes spin { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+  .signup-btn.loading { position: relative; pointer-events:none; opacity:0.9; }
