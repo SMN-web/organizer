@@ -1,4 +1,4 @@
-export function initSignup(container, auth) {
+export function initSignup(container) {
   container.innerHTML = `
     <h2>Sign Up</h2>
     <form id="signupForm" novalidate>
@@ -41,7 +41,7 @@ export function initSignup(container, auth) {
         <input type="checkbox" id="terms" required style="margin:0;">
         <span>
           I accept the
-          <a href="#terms" id="termsLink">terms and conditions</a>
+          <a href="#" id="termsLink">terms and conditions</a>
         </span>
       </div>
 
@@ -75,10 +75,10 @@ export function initSignup(container, auth) {
     eyeIconConfirm.innerHTML = isHidden ? eyeOpenSVG : eyeClosedSVG;
   });
 
-  // SPA style: redirect/hash change for terms
+  // Disable terms redirect—show alert or do nothing
   const termsLink = container.querySelector('#termsLink');
   termsLink.addEventListener('click', (e) => {
     e.preventDefault();
-    window.location.hash = '#terms';
+    alert('Terms and conditions will be available soon.');
   });
 }
