@@ -2,27 +2,32 @@ export function showSignup(container) {
   container.innerHTML = `
     <h2>Sign Up</h2>
     <form id="signupForm" novalidate>
-      <div style="position:relative;margin-bottom:12px;">
-        <input type="text" id="username" required placeholder="Username" autocomplete="off">
+      <div class="form-group">
+        <label for="username">Username <span style="color:#e74c3c">*</span></label>
+        <input type="text" id="username" autocomplete="off">
         <div class="input-error" id="usernameError"></div>
       </div>
-      <div style="position:relative;margin-bottom:12px;">
-        <input type="text" id="name" required placeholder="Full name" autocomplete="off">
+      <div class="form-group">
+        <label for="name">Full name <span style="color:#e74c3c">*</span></label>
+        <input type="text" id="name" autocomplete="off">
         <div class="input-error" id="nameError"></div>
       </div>
-      <div style="position:relative;margin-bottom:12px;">
-        <input type="email" id="email" required placeholder="Email" autocomplete="off">
+      <div class="form-group">
+        <label for="email">Email <span style="color:#e74c3c">*</span></label>
+        <input type="email" id="email" autocomplete="off">
         <div class="input-error" id="emailError"></div>
       </div>
-      <div style="position:relative;margin-bottom:12px;">
-        <input type="password" id="password" required placeholder="Password" autocomplete="off" style="width:100%;padding-right:42px;">
+      <div class="form-group" style="position:relative;">
+        <label for="password">Password <span style="color:#e74c3c">*</span></label>
+        <input type="password" id="password" autocomplete="off" style="width:100%;padding-right:42px;">
         <button type="button" id="togglePassword" class="toggle-btn" aria-label="Show Password">
           <span id="eyeIconPassword"></span>
         </button>
         <div class="input-error" id="passwordError"></div>
       </div>
-      <div style="position:relative;margin-bottom:12px;">
-        <input type="password" id="confirmPassword" required placeholder="Confirm password" autocomplete="off" style="width:100%;padding-right:42px;">
+      <div class="form-group" style="position:relative;">
+        <label for="confirmPassword">Confirm password <span style="color:#e74c3c">*</span></label>
+        <input type="password" id="confirmPassword" autocomplete="off" style="width:100%;padding-right:42px;">
         <button type="button" id="toggleConfirmPassword" class="toggle-btn" aria-label="Show Confirm Password">
           <span id="eyeIconConfirm"></span>
         </button>
@@ -32,12 +37,21 @@ export function showSignup(container) {
         <input type="checkbox" id="terms" required>
         <label for="terms" style="margin:0;">I accept the <a href="#terms" id="termsLink">terms and conditions</a></label>
       </div>
-      <button type="submit" id="signupBtn" style="background:#3498db;color:#fff;border:none;border-radius:6px;padding:0.7em 1.4em;margin-top:1em;font-size:1em;cursor:pointer;transition:background 0.2s;">Sign Up</button>
+      <button type="submit" id="signupBtn" class="signup-btn">Sign Up</button>
       <div id="formError" style="color:#e74c3c;margin-top:10px"></div>
     </form>
   `;
 
-  // SVG icons (open and closed eye)
+  // Styles for error highlighting and mobile fit -- add to your CSS file:
+  /*
+  .form-group { margin-bottom: 14px; }
+  .input-error { font-size: 0.98em; color: #e74c3c; min-height: 1.1em; }
+  input.error { border-color: #e74c3c !important; background: #fff9f9 !important; }
+  .signup-btn { background:#3498db; color:#fff; border:none; border-radius:6px; padding:0.7em 1.4em; margin-top:1em; font-size:1em; cursor:pointer; transition:background 0.2s;}
+  .signup-btn:disabled { background: #b2bec3; cursor: not-allowed; }
+  */
+
+  // SVG icons
   const eyeOpenSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="5" stroke="#333" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2.5" fill="#333"/></svg>`;
   const eyeClosedSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="5" stroke="#333" stroke-width="2" fill="none"/><line x1="5" y1="19" x2="19" y2="5" stroke="#333" stroke-width="2"/></svg>`;
 
@@ -71,82 +85,107 @@ export function showSignup(container) {
 
   // Live validation helpers
   function validateUsername(val) {
-    if (!val) return "Required";
-    if (!/^[a-zA-Z0-9]+$/.test(val)) return "Only letters and numbers, no spaces";
+    if (!val) return "Mandatory";
+    if (!/^[a-zA-Z0-9]+$/.test(val)) return "Use only letters (a-z) and numbers (0-9).";
     return "";
   }
   function validateName(val) {
-    if (!val) return "Required";
-    if (!/^[a-zA-Z ]+$/.test(val)) return "Only letters and spaces";
+    if (!val) return "Mandatory";
+    if (!/^[a-zA-Z ]+$/.test(val)) return "Only letters and spaces allowed.";
     return "";
   }
   function validateEmail(val) {
-    if (!val) return "Required";
-    // Simple RFC2822 regex for demo
-    if (!/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]+$/.test(val)) return "Invalid email format";
+    if (!val) return "Mandatory";
+    if (!/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z]+$/.test(val)) return "Invalid email format.";
     return "";
   }
   function validatePassword(val) {
-    if (!val) return "Required";
-    if (val.length < 8) return "Min 8 characters";
-    if (!/[a-zA-Z]/.test(val) || !/\d/.test(val)) return "Must have letter and number";
+    if (!val) return "Mandatory";
+    if (val.length < 8) return "Min 8 characters.";
+    if (!/[a-zA-Z]/.test(val) || !/\\d/.test(val)) return "One letter and one number required.";
     return "";
   }
   function validateConfirm(val, passVal) {
-    if (!val) return "Required";
-    if (val !== passVal) return "Passwords do not match";
+    if (!val) return "Mandatory";
+    if (val !== passVal) return "Passwords do not match.";
     return "";
   }
 
-  // Live validation on blur and input events
+  // Helper for error class toggling
+  function setErrorHighlight(input, error) {
+    if (error) {
+      input.classList.add('error');
+    } else {
+      input.classList.remove('error');
+    }
+  }
+
+  // Live validation
   const usernameInput = container.querySelector('#username');
   const nameInput = container.querySelector('#name');
   const emailInput = container.querySelector('#email');
   const signupBtn = container.querySelector('#signupBtn');
 
-  function updateValidation() {
+  function updateValidation(showAll = false) {
     const usernameErr = validateUsername(usernameInput.value.trim());
     const nameErr = validateName(nameInput.value.trim());
     const emailErr = validateEmail(emailInput.value.trim());
     const passwordErr = validatePassword(passwordInput.value.trim());
     const confirmErr = validateConfirm(confirmPasswordInput.value.trim(), passwordInput.value.trim());
 
-    container.querySelector('#usernameError').textContent = usernameErr;
-    container.querySelector('#nameError').textContent = nameErr;
-    container.querySelector('#emailError').textContent = emailErr;
-    container.querySelector('#passwordError').textContent = passwordErr;
-    container.querySelector('#confirmPasswordError').textContent = confirmErr;
+    const userErrBox = container.querySelector('#usernameError');
+    const nameErrBox = container.querySelector('#nameError');
+    const emailErrBox = container.querySelector('#emailError');
+    const passErrBox = container.querySelector('#passwordError');
+    const confErrBox = container.querySelector('#confirmPasswordError');
+
+    userErrBox.textContent = usernameErr;
+    nameErrBox.textContent = nameErr;
+    emailErrBox.textContent = emailErr;
+    passErrBox.textContent = passwordErr;
+    confErrBox.textContent = confirmErr;
+
+    setErrorHighlight(usernameInput, usernameErr);
+    setErrorHighlight(nameInput, nameErr);
+    setErrorHighlight(emailInput, emailErr);
+    setErrorHighlight(passwordInput, passwordErr);
+    setErrorHighlight(confirmPasswordInput, confirmErr);
+
+    // If submitting, highlight all errors in red
+    if (showAll) {
+      userErrBox.style.color = usernameErr ? "#e74c3c" : "";
+      nameErrBox.style.color = nameErr ? "#e74c3c" : "";
+      emailErrBox.style.color = emailErr ? "#e74c3c" : "";
+      passErrBox.style.color = passwordErr ? "#e74c3c" : "";
+      confErrBox.style.color = confirmErr ? "#e74c3c" : "";
+    } else {
+      userErrBox.style.color = usernameErr ? "#e74c3c" : "#888";
+      nameErrBox.style.color = nameErr ? "#e74c3c" : "#888";
+      emailErrBox.style.color = emailErr ? "#e74c3c" : "#888";
+      passErrBox.style.color = passwordErr ? "#e74c3c" : "#888";
+      confErrBox.style.color = confirmErr ? "#e74c3c" : "#888";
+    }
 
     // Disable signup if any error
     signupBtn.disabled = !!(usernameErr || nameErr || emailErr || passwordErr || confirmErr);
   }
 
-  usernameInput.addEventListener('blur', updateValidation);
-  nameInput.addEventListener('blur', updateValidation);
-  emailInput.addEventListener('blur', updateValidation);
-  passwordInput.addEventListener('blur', updateValidation);
-  confirmPasswordInput.addEventListener('blur', updateValidation);
-
-  // Also update on typing for good UX
-  usernameInput.addEventListener('input', updateValidation);
-  nameInput.addEventListener('input', updateValidation);
-  emailInput.addEventListener('input', updateValidation);
-  passwordInput.addEventListener('input', updateValidation);
-  confirmPasswordInput.addEventListener('input', updateValidation);
+  [usernameInput, nameInput, emailInput, passwordInput, confirmPasswordInput].forEach((input) => {
+    input.addEventListener('blur', () => updateValidation());
+    input.addEventListener('input', () => updateValidation());
+  });
 
   // Firebase sign up logic
   const signupForm = container.querySelector('#signupForm');
   signupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // One last check before submit
-    updateValidation();
-    if (signupBtn.disabled) return;
-    const username = usernameInput.value.trim();
-    const name = nameInput.value.trim();
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
-    const confirmPassword = confirmPasswordInput.value.trim();
+    // Show all missing/invalid fields
+    updateValidation(true);
+    if (signupBtn.disabled) {
+      container.querySelector('#formError').textContent = "Fill required fields correctly.";
+      return;
+    }
     const terms = container.querySelector('#terms').checked;
     const formError = container.querySelector('#formError');
     formError.style.color = "#e74c3c";
@@ -159,7 +198,7 @@ export function showSignup(container) {
 
     try {
       const auth = window.firebaseAuth;
-      await auth.createUserWithEmailAndPassword(auth, email, password);
+      await auth.createUserWithEmailAndPassword(auth, emailInput.value.trim(), passwordInput.value.trim());
       formError.style.color = "#27ae60";
       formError.textContent = "Signup successful!";
       signupForm.reset();
