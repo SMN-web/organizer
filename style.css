@@ -76,3 +76,25 @@ input[type="text"], input[type="email"], input[type="password"] {
     width: 22px;
   }
 }
+/* Spinner styles */
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid #fff;
+  border-top: 3px solid #3498db;
+  border-radius: 50%;
+  display: inline-block;
+  vertical-align: middle;
+  animation: spin 0.8s linear infinite;
+  margin-right: 0.5em;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg);}
+  100% { transform: rotate(360deg);}
+}
+.signup-btn.loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.9;
+}
