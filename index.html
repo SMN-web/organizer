@@ -2,14 +2,32 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>SPA Test</title>
+  <title>SPA Firebase Signup</title>
   <style>
     body { background: #f7f7f7; font-family: sans-serif; }
     #app { margin: 2em auto; max-width: 400px; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #ddd; min-height: 300px; padding: 2em; }
   </style>
+  <!-- Firebase v9 Modular CDN -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAWphaG1_4n1i3F9kY_TrMdvjVQomu7OtQ",
+  authDomain: "organizer-359e3.firebaseapp.com",
+  projectId: "organizer-359e3",
+  storageBucket: "organizer-359e3.firebasestorage.app",
+  messagingSenderId: "223125946708",
+  appId: "1:223125946708:web:17850e13399725533288c1",
+  measurementId: "G-R9GMNJ5Q7T"
+    };
+    const app = initializeApp(firebaseConfig);
+    window.firebaseAuth = getAuth(app);
+
+    import('./main.js');
+  </script>
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="./main.js"></script>
 </body>
 </html>
