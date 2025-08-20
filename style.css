@@ -7,11 +7,11 @@ body {
 
 #app {
   background-color: white;
-  max-width: 400px;
+  max-width: 420px;
   margin: 30px auto;
-  padding: 20px;
-  border-radius: 6px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.06);
 }
 
 input {
@@ -19,8 +19,7 @@ input {
   padding: 10px;
   margin-top: 4px;
   margin-bottom: 12px;
-  box-sizing: border-box;
-  font-size: 16px;
+  font-size: 15px;
   border: 1px solid #ccc;
   border-radius: 3px;
 }
@@ -28,7 +27,6 @@ input {
 input.error {
   border-color: #e74c3c;
 }
-
 input.valid {
   border-color: #27ae60;
 }
@@ -39,51 +37,16 @@ button {
   color: white;
   border: none;
   cursor: pointer;
-  font-size: 16px;
   border-radius: 3px;
+  font-size: 16px;
 }
-
 button:disabled {
-  background-color: #7f8c8d;
+  background-color: #999;
   cursor: not-allowed;
 }
 
-.status {
-  font-size: 14px;
-  margin-left: 6px;
-}
+.status { font-size: 13px; margin-left: 6px; }
+.feedback-red { color: #e74c3c; font-size: 13px; }
 
-.feedback-red {
-  color: #e74c3c;
-  font-size: 13px;
-}
-
-.feedback-green {
-  color: #27ae60;
-  font-size: 13px;
-}
-
-.loader {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid #ccc;
-  border-top-color: #3498db;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  vertical-align: middle;
-  margin-left: 6px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-label a {
-  color: #2980b9;
-  text-decoration: none;
-}
-
-label a:hover {
-  text-decoration: underline;
-}
+label a { color: #2980b9; }
+label a:hover { text-decoration: underline; }
