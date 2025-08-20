@@ -19,20 +19,53 @@ export function initSignup(container, auth) {
 
       <label>
         Password:<br/>
-        <input type="password" id="password" required autocomplete="off" placeholder="Password">
+        <div style="display:flex; gap:8px;">
+          <input type="password" id="password" required autocomplete="off" placeholder="Password" style="flex:1;">
+          <button type="button" id="togglePassword" style="padding: 0 12px;">Show</button>
+        </div>
       </label><br/>
 
       <label>
         Confirm Password:<br/>
-        <input type="password" id="confirmPassword" required autocomplete="off" placeholder="Confirm password">
+        <div style="display:flex; gap:8px;">
+          <input type="password" id="confirmPassword" required autocomplete="off" placeholder="Confirm password" style="flex:1;">
+          <button type="button" id="toggleConfirmPassword" style="padding: 0 12px;">Show</button>
+        </div>
       </label><br/>
 
-      <label>
-        <input type="checkbox" id="terms" required>
-        I accept the <a href="#" target="_blank">terms and conditions</a>
-      </label><br/><br/>
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+        <input type="checkbox" id="terms" required style="margin:0;">
+        <span>
+          I accept the 
+          <a href="#terms" id="termsLink">terms and conditions</a>
+        </span>
+      </div>
 
       <button type="submit">Sign Up</button>
     </form>
   `;
+
+  // Password toggle logic
+  const passwordInput = container.querySelector('#password');
+  const togglePasswordBtn = container.querySelector('#togglePassword');
+  togglePasswordBtn.addEventListener('click', () => {
+    const type = passwordInput.type === 'password' ? 'text' : 'password';
+    passwordInput.type = type;
+    togglePasswordBtn.textContent = type === 'password' ? 'Show' : 'Hide';
+  });
+
+  const confirmPasswordInput = container.querySelector('#confirmPassword');
+  const toggleConfirmPasswordBtn = container.querySelector('#toggleConfirmPassword');
+  toggleConfirmPasswordBtn.addEventListener('click', () => {
+    const type = confirmPasswordInput.type === 'password' ? 'text' : 'password';
+    confirmPasswordInput.type = type;
+    toggleConfirmPasswordBtn.textContent = type === 'password' ? 'Show' : 'Hide';
+  });
+
+  // Redirect terms link (pure SPA): changes hash to #terms for SPA router
+  const termsLink = container.querySelector('#termsLink');
+  termsLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.location.hash = '#terms';
+  });
 }
