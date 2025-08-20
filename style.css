@@ -1,33 +1,78 @@
-body { background: #f7f7f7; font-family: sans-serif; }
+body {
+  background: #f7f7f7;
+  font-family: sans-serif;
+  margin: 0;
+  padding: 0;
+}
 #app {
   margin: 2em auto;
-  max-width: 400px;
+  max-width: 420px;
+  min-width: 0;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 8px #ddd;
   min-height: 300px;
-  padding: 2em;
+  padding: 1.2em 1em;
 }
-button {
-  background: #3498db;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 0.7em 1.4em;
-  margin-top: 1em;
-  font-size: 1em;
-  cursor: pointer;
-  transition: background 0.2s;
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-button:hover {
-  background: #217dbb;
-}
+
+/* Make inputs large and mobile-friendly */
 input[type="text"], input[type="email"], input[type="password"] {
   width: 100%;
-  padding: 0.8em;
-  margin-bottom: 12px;
+  padding: 0.9em 42px 0.9em 1em; /* right padding for toggle icon */
+  margin: 0;
   border: 1px solid #ddd;
   border-radius: 6px;
-  font-size: 1em;
+  font-size: 1.1em;
   box-sizing: border-box;
+}
+
+/* Position and size for toggle icon button */
+.toggle-btn {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  height: 32px;
+  width: 32px;
+  cursor: pointer;
+}
+
+/* Center SVG inside the button and scale it up */
+.toggle-btn svg {
+  height: 26px;
+  width: 26px;
+  display: block;
+}
+
+/* Responsive: fit #app container to small screens */
+@media (max-width: 600px) {
+  #app {
+    max-width: 95vw;
+    padding: 1em 0.4em;
+  }
+  input[type="text"], input[type="email"], input[type="password"] {
+    font-size: 1em;
+    padding: 0.8em 38px 0.8em 1em;
+  }
+  .toggle-btn {
+    height: 28px;
+    width: 28px;
+    right: 4px;
+  }
+  .toggle-btn svg {
+    height: 22px;
+    width: 22px;
+  }
 }
