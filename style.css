@@ -1,52 +1,33 @@
-body {
-  font-family: Arial, sans-serif;
-  background-color: #f5f5f5;
-  margin: 0;
-  padding: 20px;
-}
-
+body { background: #f7f7f7; font-family: sans-serif; }
 #app {
-  background-color: white;
-  max-width: 420px;
-  margin: 30px auto;
-  padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.06);
+  margin: 2em auto;
+  max-width: 400px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #ddd;
+  min-height: 300px;
+  padding: 2em;
 }
-
-input {
-  width: 100%;
-  padding: 10px;
-  margin-top: 4px;
-  margin-bottom: 12px;
-  font-size: 15px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-}
-
-input.error {
-  border-color: #e74c3c;
-}
-input.valid {
-  border-color: #27ae60;
-}
-
 button {
-  padding: 10px 16px;
-  background-color: #3498db;
-  color: white;
+  background: #3498db;
+  color: #fff;
   border: none;
+  border-radius: 6px;
+  padding: 0.7em 1.4em;
+  margin-top: 1em;
+  font-size: 1em;
   cursor: pointer;
-  border-radius: 3px;
-  font-size: 16px;
+  transition: background 0.2s;
 }
-button:disabled {
-  background-color: #999;
-  cursor: not-allowed;
+button:hover {
+  background: #217dbb;
 }
-
-.status { font-size: 13px; margin-left: 6px; }
-.feedback-red { color: #e74c3c; font-size: 13px; }
-
-label a { color: #2980b9; }
-label a:hover { text-decoration: underline; }
+input[type="text"], input[type="email"], input[type="password"] {
+  width: 100%;
+  padding: 0.8em;
+  margin-bottom: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1em;
+  box-sizing: border-box;
+}
