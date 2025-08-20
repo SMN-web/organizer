@@ -42,7 +42,7 @@ export function showSignup(container) {
     </form>
   `;
 
-  // Add to your CSS:
+  // Add to CSS:
   /*
   .form-group { margin-bottom: 14px; }
   .input-error { font-size: 0.98em; min-height: 1.1em; }
@@ -88,28 +88,28 @@ export function showSignup(container) {
 
   // Validation helpers
   function validateUsername(val) {
-    if (!val) return "Mandatory";
+    if (!val) return "";
     if (!/^[a-zA-Z0-9]+$/.test(val)) return "Use only letters (a-z) and numbers (0-9).";
     return "";
   }
   function validateName(val) {
-    if (!val) return "Mandatory";
+    if (!val) return "";
     if (!/^[a-zA-Z ]+$/.test(val)) return "Only letters and spaces allowed.";
     return "";
   }
   function validateEmail(val) {
-    if (!val) return "Mandatory";
-    if (!/^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z]+$/.test(val)) return "Invalid email format.";
+    if (!val) return "";
+    if (!/^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$/.test(val)) return "Enter a valid email address.";
     return "";
   }
   function validatePassword(val) {
-    if (!val) return "Mandatory";
+    if (!val) return "";
     if (val.length < 8) return "Min 8 characters.";
     if (!/[a-zA-Z]/.test(val) || !/\d/.test(val)) return "One letter and one number required.";
     return "";
   }
   function validateConfirm(val, passVal) {
-    if (!val) return "Mandatory";
+    if (!val) return "";
     if (val !== passVal) return "Passwords do not match.";
     return "";
   }
@@ -119,6 +119,11 @@ export function showSignup(container) {
     else { input.classList.remove('error'); }
   }
 
+  // State for checking whether user interacted with input
+  let touched = {
+    username: false, name: false, email: false, password: false, confirmPassword: false
+  };
+
   // Live validation
   const usernameInput = container.querySelector('#username');
   const nameInput = container.querySelector('#name');
@@ -126,11 +131,18 @@ export function showSignup(container) {
   const signupBtn = container.querySelector('#signupBtn');
 
   function updateValidation(showAll = false) {
-    const usernameErr = validateUsername(usernameInput.value.trim());
-    const nameErr = validateName(nameInput.value.trim());
-    const emailErr = validateEmail(emailInput.value.trim());
-    const passwordErr = validatePassword(passwordInput.value.trim());
-    const confirmErr = validateConfirm(confirmPasswordInput.value.trim(), passwordInput.value.trim());
+    // Only validate fields if touched or submitting
+    const usernameVal = usernameInput.value.trim();
+    const nameVal = nameInput.value.trim();
+    const emailVal = emailInput.value.trim();
+    const passwordVal = passwordInput.value.trim();
+    const confirmVal = confirmPasswordInput.value.trim();
+
+    const usernameErr = (touched.username || showAll) ? validateUsername(usernameVal) : "";
+    const nameErr = (touched.name || showAll) ? validateName(nameVal) : "";
+    const emailErr = (touched.email || showAll) ? validateEmail(emailVal) : "";
+    const passwordErr = (touched.password || showAll) ? validatePassword(passwordVal) : "";
+    const confirmErr = (touched.confirmPassword || showAll) ? validateConfirm(confirmVal, passwordVal) : "";
 
     const userErrBox = container.querySelector('#usernameError');
     const nameErrBox = container.querySelector('#nameError');
@@ -156,12 +168,14 @@ export function showSignup(container) {
     passErrBox.style.color = passwordErr ? "#e74c3c" : "#888";
     confErrBox.style.color = confirmErr ? "#e74c3c" : "#888";
 
-    signupBtn.disabled = !!(usernameErr || nameErr || emailErr || passwordErr || confirmErr);
+    // Signup button remains enabled
+    signupBtn.disabled = false;
   }
 
   [usernameInput, nameInput, emailInput, passwordInput, confirmPasswordInput].forEach((input) => {
-    input.addEventListener('blur', () => updateValidation());
+    input.addEventListener('focus', (e) => { touched[e.target.id] = true; });
     input.addEventListener('input', () => updateValidation());
+    input.addEventListener('blur', () => updateValidation());
   });
 
   // Signup with spinner animation
@@ -169,17 +183,28 @@ export function showSignup(container) {
   signupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     updateValidation(true);
-    if (signupBtn.disabled) {
-      container.querySelector('#formError').textContent = "Fill required fields correctly.";
-      return;
-    }
     const terms = container.querySelector('#terms').checked;
     const formError = container.querySelector('#formError');
     formError.style.color = "#e74c3c";
     formError.textContent = "";
 
-    if (!terms) {
-      formError.textContent = "You must accept terms!";
+    // Check mandatory fields
+    const usernameVal = usernameInput.value.trim();
+    const nameVal = nameInput.value.trim();
+    const emailVal = emailInput.value.trim();
+    const passwordVal = passwordInput.value.trim();
+    const confirmVal = confirmPasswordInput.value.trim();
+
+    if (
+      !usernameVal || !nameVal || !emailVal || !passwordVal || !confirmVal || !terms ||
+      validateUsername(usernameVal) ||
+      validateName(nameVal) ||
+      validateEmail(emailVal) ||
+      validatePassword(passwordVal) ||
+      validateConfirm(confirmVal, passwordVal)
+    ) {
+      formError.textContent = "Please fill all the required fields.";
+      updateValidation(true);
       return;
     }
 
@@ -190,7 +215,7 @@ export function showSignup(container) {
 
     try {
       const auth = window.firebaseAuth;
-      await auth.createUserWithEmailAndPassword(auth, emailInput.value.trim(), passwordInput.value.trim());
+      await auth.createUserWithEmailAndPassword(auth, emailVal, passwordVal);
       formError.style.color = "#27ae60";
       formError.textContent = "Signup successful!";
       signupForm.reset();
@@ -198,6 +223,7 @@ export function showSignup(container) {
       eyeIconConfirm.innerHTML = eyeClosedSVG;
       passwordInput.type = "password";
       confirmPasswordInput.type = "password";
+      Object.keys(touched).forEach(k => touched[k] = false);
       updateValidation();
     } catch (err) {
       formError.style.color = "#e74c3c";
