@@ -42,13 +42,16 @@ export function showSignup(container) {
     </form>
   `;
 
-  // Styles for error highlighting and mobile fit -- add to your CSS file:
+  // Add to your CSS:
   /*
   .form-group { margin-bottom: 14px; }
-  .input-error { font-size: 0.98em; color: #e74c3c; min-height: 1.1em; }
+  .input-error { font-size: 0.98em; min-height: 1.1em; }
   input.error { border-color: #e74c3c !important; background: #fff9f9 !important; }
   .signup-btn { background:#3498db; color:#fff; border:none; border-radius:6px; padding:0.7em 1.4em; margin-top:1em; font-size:1em; cursor:pointer; transition:background 0.2s;}
   .signup-btn:disabled { background: #b2bec3; cursor: not-allowed; }
+  .spinner { width: 22px; height: 22px; border: 3px solid #fff; border-top: 3px solid #3498db; border-radius: 50%; display: inline-block; vertical-align: middle; animation: spin 0.8s linear infinite; margin-right:0.5em;}
+  @keyframes spin { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+  .signup-btn.loading { position: relative; pointer-events:none; opacity:0.9; }
   */
 
   // SVG icons
@@ -77,13 +80,13 @@ export function showSignup(container) {
     eyeIconConfirm.innerHTML = isHidden ? eyeOpenSVG : eyeClosedSVG;
   });
 
-  // Terms navigation (SPA)
+  // Terms SPA navigation
   container.querySelector('#termsLink').onclick = function(e) {
     e.preventDefault();
     window.location.hash = '#terms';
   };
 
-  // Live validation helpers
+  // Validation helpers
   function validateUsername(val) {
     if (!val) return "Mandatory";
     if (!/^[a-zA-Z0-9]+$/.test(val)) return "Use only letters (a-z) and numbers (0-9).";
@@ -102,7 +105,7 @@ export function showSignup(container) {
   function validatePassword(val) {
     if (!val) return "Mandatory";
     if (val.length < 8) return "Min 8 characters.";
-    if (!/[a-zA-Z]/.test(val) || !/\\d/.test(val)) return "One letter and one number required.";
+    if (!/[a-zA-Z]/.test(val) || !/\d/.test(val)) return "One letter and one number required.";
     return "";
   }
   function validateConfirm(val, passVal) {
@@ -111,13 +114,9 @@ export function showSignup(container) {
     return "";
   }
 
-  // Helper for error class toggling
   function setErrorHighlight(input, error) {
-    if (error) {
-      input.classList.add('error');
-    } else {
-      input.classList.remove('error');
-    }
+    if (error) { input.classList.add('error'); }
+    else { input.classList.remove('error'); }
   }
 
   // Live validation
@@ -151,22 +150,12 @@ export function showSignup(container) {
     setErrorHighlight(passwordInput, passwordErr);
     setErrorHighlight(confirmPasswordInput, confirmErr);
 
-    // If submitting, highlight all errors in red
-    if (showAll) {
-      userErrBox.style.color = usernameErr ? "#e74c3c" : "";
-      nameErrBox.style.color = nameErr ? "#e74c3c" : "";
-      emailErrBox.style.color = emailErr ? "#e74c3c" : "";
-      passErrBox.style.color = passwordErr ? "#e74c3c" : "";
-      confErrBox.style.color = confirmErr ? "#e74c3c" : "";
-    } else {
-      userErrBox.style.color = usernameErr ? "#e74c3c" : "#888";
-      nameErrBox.style.color = nameErr ? "#e74c3c" : "#888";
-      emailErrBox.style.color = emailErr ? "#e74c3c" : "#888";
-      passErrBox.style.color = passwordErr ? "#e74c3c" : "#888";
-      confErrBox.style.color = confirmErr ? "#e74c3c" : "#888";
-    }
+    userErrBox.style.color = usernameErr ? "#e74c3c" : "#888";
+    nameErrBox.style.color = nameErr ? "#e74c3c" : "#888";
+    emailErrBox.style.color = emailErr ? "#e74c3c" : "#888";
+    passErrBox.style.color = passwordErr ? "#e74c3c" : "#888";
+    confErrBox.style.color = confirmErr ? "#e74c3c" : "#888";
 
-    // Disable signup if any error
     signupBtn.disabled = !!(usernameErr || nameErr || emailErr || passwordErr || confirmErr);
   }
 
@@ -175,12 +164,10 @@ export function showSignup(container) {
     input.addEventListener('input', () => updateValidation());
   });
 
-  // Firebase sign up logic
+  // Signup with spinner animation
   const signupForm = container.querySelector('#signupForm');
   signupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-
-    // Show all missing/invalid fields
     updateValidation(true);
     if (signupBtn.disabled) {
       container.querySelector('#formError').textContent = "Fill required fields correctly.";
@@ -195,6 +182,11 @@ export function showSignup(container) {
       formError.textContent = "You must accept terms!";
       return;
     }
+
+    // Show spinner
+    signupBtn.classList.add('loading');
+    const origText = signupBtn.innerHTML;
+    signupBtn.innerHTML = `<span class="spinner"></span>Signing up...`;
 
     try {
       const auth = window.firebaseAuth;
@@ -211,8 +203,9 @@ export function showSignup(container) {
       formError.style.color = "#e74c3c";
       formError.textContent = err.message;
     }
+    signupBtn.classList.remove('loading');
+    signupBtn.innerHTML = "Sign Up";
   });
 
-  // Initial validation state
   updateValidation();
 }
