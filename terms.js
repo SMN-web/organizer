@@ -4,4 +4,4 @@ export function initTerms(container) {
     <p>This is a sample Terms and Conditions page for your app.</p>
     <p>Please review all terms carefully before accepting.</p>
   `;
-}
+} 
