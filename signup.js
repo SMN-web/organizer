@@ -322,6 +322,8 @@ export function showSignup(container) {
       usernameDuplicateError = "";
       emailDuplicateError = "";
       Object.keys(touched).forEach(k => touched[k] = false);
+      passwordStrengthEl.textContent = "";
+      passwordStrengthEl.style.color = "#888";
       updateValidation();
     } catch (err) {
       formError.style.color = "#e74c3c";
