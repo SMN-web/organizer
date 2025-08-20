@@ -24,7 +24,7 @@ function showTerms(container) {
   };
 }
 
-// SPA Router function with error display for debugging
+// SPA Router function with error display
 function router() {
   try {
     const hash = window.location.hash || '#signup';
