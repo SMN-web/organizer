@@ -1,6 +1,11 @@
 import { initSignup } from './signup.js';
+import { initTerms } from './terms.js';
 
 const appDiv = document.getElementById('app');
-appDiv.innerHTML = '<h2>Main.js loaded!</h2>';
 
-initSignup(appDiv, window.firebaseAuth);
+function router() {
+  const hash = window.location.hash || '#signup';
+  if (hash === '#signup') {
+    initSignup(appDiv);
+  } else if (hash === '#terms') {
+    initTerms
