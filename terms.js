@@ -1,15 +1,10 @@
-export function initTerms(container) {
+export function showTerms(container) {
   container.innerHTML = `
     <h2>Terms and Conditions</h2>
-    <p>This is a sample Terms and Conditions page for your app.</p>
-    <p>Please review all terms carefully before accepting registration.</p>
-    <a href="#" id="backToSignup">← Back to Sign Up</a>
+    <p>This is a sample Terms and Conditions screen.</p>
+    <button id="backSignup">Back to Sign Up</button>
   `;
-
-  // Back to sign up link
-  const backToSignup = container.querySelector('#backToSignup');
-  backToSignup.addEventListener('click', (e) => {
-    e.preventDefault();
+  document.getElementById('backSignup').onclick = () => {
     window.location.hash = '#signup';
-  });
+  };
 }
