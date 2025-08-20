@@ -3,14 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <title>SPA Firebase Signup</title>
-  <style>
-    body { background: #f7f7f7; font-family: sans-serif; }
-    #app { margin: 2em auto; max-width: 400px; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #ddd; min-height: 300px; padding: 2em; }
-  </style>
+  <link rel="stylesheet" href="style.css">
   <!-- Firebase v9 Modular CDN -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAWphaG1_4n1i3F9kY_TrMdvjVQomu7OtQ",
