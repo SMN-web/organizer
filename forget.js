@@ -10,7 +10,7 @@ export function showForgot(container) {
       <h2 style="text-align:center;">Reset Your Password</h2>
       <form id="forgotForm" novalidate style="margin-top:1.8em;">
         <input type="email" id="fpEmail" required placeholder="Enter your email"
-          autocomplete="email" style="width:100%;padding:0.8em;font-size:1.07em;margin-bottom:8px;"/>
+          autocomplete="email" style="width:100%;padding:0.8em;font-size:1.07em;margin-bottom:8px;" />
         <button type="submit" style="background:#3498db;color:#fff;border:none;border-radius:6px;padding:0.65em 1.3em;cursor:pointer;width:100%;font-size:1em;">
           Send Reset Link
         </button>
@@ -18,7 +18,7 @@ export function showForgot(container) {
       </form>
     </div>
   `;
- 
+
   const form = container.querySelector('#forgotForm');
   const emailInput = container.querySelector('#fpEmail');
   const msgEl = container.querySelector('#fpMsg');
@@ -27,7 +27,8 @@ export function showForgot(container) {
     e.preventDefault();
     msgEl.style.color = "#666";
     msgEl.textContent = "Sending reset link...";
-    const email = emailInput.value.trim();
+    // Always lowercase the email for max reliability!
+    const email = emailInput.value.trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$/.test(email)) {
       msgEl.style.color = "#e74c3c";
       msgEl.textContent = "Please enter a valid email address.";
@@ -35,19 +36,19 @@ export function showForgot(container) {
     }
     try {
       const auth = window.firebaseAuth || getAuth();
-      // Optionally check: avoid error for unregistered email
       const methods = await fetchSignInMethodsForEmail(auth, email);
       if (!methods || methods.length === 0) {
-        throw new Error("No user found for this email");
+        // For testing, show error (remove/change message for production privacy)
+        msgEl.style.color = "#e74c3c";
+        msgEl.textContent = "Error: No user found for this email. Email case or typo?";
+        return;
       }
       await sendPasswordResetEmail(auth, email);
       msgEl.style.color = "#27ae60";
-      msgEl.textContent = "If your email is registered, a reset link has been sent. Please check your inbox and spam folders.";
+      msgEl.textContent = "Reset link sent! Check your inbox and spam folders.";
     } catch (error) {
       msgEl.style.color = "#e74c3c";
-      // Display full error info for debugging/testing ONLY!
-      msgEl.textContent =
-        "Error: " + (error.code || error.message || error.toString());
+      msgEl.textContent = "Firebase error: " + (error.code || error.message || error.toString());
     }
   };
 }
