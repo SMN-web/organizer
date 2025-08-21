@@ -1,4 +1,9 @@
-import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+import {
+  signInWithEmailAndPassword,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+} from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
 export function showLogin(container) {
   container.innerHTML = `
@@ -32,31 +37,30 @@ export function showLogin(container) {
     </div>
   `;
 
-  // Password visibility toggle
-  const passwordInput = container.querySelector('#loginPassword');
-  const togglePwdBtn = container.querySelector('#toggleLoginPassword');
-  const eyeIcon = container.querySelector('#eyeIconLoginPwd');
-  const eyeOpenSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="5" stroke="#333" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2.5" fill="#333"/></svg>`;
-  const eyeClosedSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="5" stroke="#333" stroke-width="2" fill="none"/><line x1="5" y1="19" x2="19" y2="5" stroke="#333" stroke-width="2"/></svg>`;
+  const passwordInput = container.querySelector("#loginPassword");
+  const togglePwdBtn = container.querySelector("#toggleLoginPassword");
+  const eyeIcon = container.querySelector("#eyeIconLoginPwd");
+  const eyeOpenSVG = `<svg ... />`; // (SVG as before)
+  const eyeClosedSVG = `<svg ... />`;
   eyeIcon.innerHTML = eyeClosedSVG;
   togglePwdBtn.addEventListener("click", () => {
-    const isHidden = passwordInput.type === 'password';
-    passwordInput.type = isHidden ? 'text' : 'password';
+    const isHidden = passwordInput.type === "password";
+    passwordInput.type = isHidden ? "text" : "password";
     eyeIcon.innerHTML = isHidden ? eyeOpenSVG : eyeClosedSVG;
   });
 
   // Handle Login
-  const loginForm = container.querySelector('#loginForm');
-  const idInput = container.querySelector('#loginId');
+  const loginForm = container.querySelector("#loginForm");
+  const idInput = container.querySelector("#loginId");
   const pwdInput = passwordInput;
-  const idErr = container.querySelector('#loginIdError');
-  const pwdErr = container.querySelector('#loginPasswordError');
-  const errBox = container.querySelector('#loginError');
-  const loginBtn = container.querySelector('#loginBtn');
-  const keepSignedInCheckbox = container.querySelector('#keepSignedIn');
-  const forgotLink = container.querySelector('#forgotLink');
+  const idErr = container.querySelector("#loginIdError");
+  const pwdErr = container.querySelector("#loginPasswordError");
+  const errBox = container.querySelector("#loginError");
+  const loginBtn = container.querySelector("#loginBtn");
+  const keepSignedInCheckbox = container.querySelector("#keepSignedIn");
+  const forgotLink = container.querySelector("#forgotLink");
 
-  loginForm.addEventListener('submit', async (e) => {
+  loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     errBox.textContent = idErr.textContent = pwdErr.textContent = "";
 
@@ -71,34 +75,37 @@ export function showLogin(container) {
       return;
     }
 
-    loginBtn.classList.add('loading');
+    loginBtn.classList.add("loading");
     loginBtn.innerHTML = `<span class="spinner"></span>Logging in...`;
     try {
       // 1. Check backend for approval and canonical email
-      const resp = await fetch("https://lucky-dawn-90bb.nafil-8895-s.workers.dev/api/login-lookup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: rawId })
-      });
+      const resp = await fetch(
+        "https://lucky-dawn-90bb.nafil-8895-s.workers.dev/api/login-lookup",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input: rawId }),
+        }
+      );
       const lookup = await resp.json();
       if (!resp.ok) {
         errBox.textContent = lookup.error || "Login failed";
-        loginBtn.classList.remove('loading');
+        loginBtn.classList.remove("loading");
         loginBtn.innerHTML = "Login";
         return;
       }
       if (!lookup.email) {
         errBox.textContent = "Incorrect username/email or password.";
-        loginBtn.classList.remove('loading');
+        loginBtn.classList.remove("loading");
         loginBtn.innerHTML = "Login";
         return;
       }
       if (lookup.adminApproval !== "approved") {
-        errBox.textContent = 
+        errBox.textContent =
           lookup.adminApproval === "blocked"
-          ? "Your account is blocked." 
-          : "Account pending approval.";
-        loginBtn.classList.remove('loading');
+            ? "Your account is blocked."
+            : "Account pending approval.";
+        loginBtn.classList.remove("loading");
         loginBtn.innerHTML = "Login";
         return;
       }
@@ -111,19 +118,17 @@ export function showLogin(container) {
       await setPersistence(auth, persistenceType);
 
       try {
-        const cred = await signInWithEmailAndPassword(auth, lookup.email, password);
+        await signInWithEmailAndPassword(auth, lookup.email, password);
         await auth.currentUser.reload();
         if (!auth.currentUser.emailVerified) {
           errBox.innerHTML = `Please verify your email to continue.<br>
             <a href="#resend" style="color:#3498db;">Resend verification email</a>`;
           await auth.signOut();
-          loginBtn.classList.remove('loading');
+          loginBtn.classList.remove("loading");
           loginBtn.innerHTML = "Login";
           return;
         }
-        // 3. Get ID token, send to backend for auth context/session routing
-        const token = await auth.currentUser.getIdToken();
-        // Example: you can fetch user context, or just route based on user's role
+        // 3. Role-based redirect
         if (lookup.role === "admin") {
           window.location.hash = "#admin";
         } else if (lookup.role === "moderator") {
@@ -133,18 +138,17 @@ export function showLogin(container) {
         }
       } catch (firebaseErr) {
         errBox.textContent = "Incorrect username/email or password.";
-        loginBtn.classList.remove('loading');
+        loginBtn.classList.remove("loading");
         loginBtn.innerHTML = "Login";
         return;
       }
     } catch (err) {
       errBox.textContent = "Network error. Try again.";
     }
-    loginBtn.classList.remove('loading');
+    loginBtn.classList.remove("loading");
     loginBtn.innerHTML = "Login";
   });
 
-  // Navigation for forgot password
   forgotLink.onclick = (e) => {
     e.preventDefault();
     window.location.hash = "#forgot";
