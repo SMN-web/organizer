@@ -78,7 +78,7 @@ export function showAdminPanel(container) {
       sel.onchange = async e => {
         const username = e.target.getAttribute('data-username');
         const newRole = e.target.value;
-        await fetch('/api/user/change-role', {
+        await fetch('https://ad-api.nafil-8895-s.workers.dev/api/user/change-role', {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
           body: JSON.stringify({ username, newRole })
