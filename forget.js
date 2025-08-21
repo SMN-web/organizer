@@ -18,7 +18,7 @@ export function showForgot(container) {
       </form>
     </div>
   `;
-
+ 
   const form = container.querySelector('#forgotForm');
   const emailInput = container.querySelector('#fpEmail');
   const msgEl = container.querySelector('#fpMsg');
