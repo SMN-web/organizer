@@ -8,7 +8,7 @@ import { showAdminPanel } from './adminPanel.js';
 import { showModeratorPanel } from './moderatorPanel.js';
 import { showForgot } from './forget.js';
 
-window.firebaseAuth = getAuth();
+window.firebaseAuth = getAuth(); 
 const appDiv = document.getElementById('app');
 
 async function getSessionStatus(auth) {
