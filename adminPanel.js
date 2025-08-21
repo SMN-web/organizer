@@ -1,41 +1,5 @@
 // adminPanel.js
 
-export function startAdminApp(container) {
-  // Renders the login form
-  function showLoginForm() {
-    container.innerHTML = `
-      <h2>Admin Login</h2>
-      <form id="loginForm" autocomplete="on" style="margin:2em 0;">
-        <label>Email:<br><input type="email" id="loginEmail" required autocomplete="username"></label><br><br>
-        <label>Password:<br><input type="password" id="loginPassword" required autocomplete="current-password"></label><br><br>
-        <button type="submit">Sign In</button>
-      </form>
-      <div class="error" id="loginError"></div>
-    `;
-    document.getElementById('loginForm').onsubmit = async function(e) {
-      e.preventDefault();
-      document.getElementById('loginError').textContent = "";
-      const email = document.getElementById('loginEmail').value.trim();
-      const password = document.getElementById('loginPassword').value;
-      try {
-        await firebase.auth().signInWithEmailAndPassword(email, password);
-        // Will auto-advance via onAuthStateChanged
-      } catch (err) {
-        document.getElementById('loginError').textContent = err.message;
-      }
-    };
-  }
-
-  // Error display for all backend or token errors
-  function showErrorPage(msg) {
-    container.innerHTML = `
-      <div style="margin:4em auto;max-width:450px;text-align:center;">
-        <h2>Access Error</h2>
-        <div style="color:#b71c1c">${msg}</div>
-        <button onclick="firebase.auth().signOut()">Logout</button>
-      </div>
-    `;
-  }
 
   // Main admin UI renderer (only after login)
   function showAdminPanel() {
