@@ -4,7 +4,7 @@
 const main = document.getElementById('main') || document.body;
 
 // Function to get and show current user token
-async function showCurrentToken() {
+export function showCurrentToken() {
   let content = `<h2>Firebase Auth Token Debug</h2>`;
   try {
     if (!firebase.auth().currentUser) {
