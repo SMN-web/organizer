@@ -12,6 +12,7 @@ export function showAdminPanel(container, auth) {
   // ---- Panel UI Rendering ----
   container.innerHTML = `
     <h2>User Admin Panel</h2>
+   <button id="logoutBtn" style="padding:0.4em 1em;font-weight:bold;margin-left:1em;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;">Logout</button>
     <div style="display:flex;align-items:center;gap:2em;flex-wrap:wrap;">
       <div>
         <label>Role: <select id="filterRole">
@@ -43,6 +44,17 @@ export function showAdminPanel(container, auth) {
     <div id="pendingApprovalSection"></div>
     <div id="adminPanelMsg" style="color:#e74c3c;margin-top:1em;"></div>
   `;
+  
+  document.getElementById('logoutBtn').onclick = async () => {
+    try {
+      // Call backend to record logout
+      const token = await auth.currentUser.getIdToken();
+      await fetch('https://ad-api.nafil-8895-s.workers.dev/api/logout', { method: 'POST', headers: { "Authorization": "Bearer " + token } });
+    } catch { /* ignore */ }
+    await auth.signOut();
+    window.location.hash = "#login";
+  };
+
 
   // --- HEARTBEAT LOGIC ---
   async function getFreshToken() {
