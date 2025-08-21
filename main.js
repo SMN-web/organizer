@@ -22,11 +22,6 @@ function router() {
     } else if (hash === '#user') {
       showUserPanel(appDiv);
     } else if (hash === '#admin') {
-      if (!firebase.auth().currentUser) {
-    // If user not logged in, redirect to login
-    window.location.hash = "#login";
-    return;
-  }
       showAdminPanel(appDiv);
     } else if (hash === '#moderator') {
       showModeratorPanel(appDiv);
