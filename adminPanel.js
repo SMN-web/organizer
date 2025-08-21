@@ -1,5 +1,6 @@
+import { sendHeartbeat } from './heartbeat.js'; // Your heartbeat function
+
 export function showAdminPanel(container, auth) {
-  // Guard: Show error if not actually logged in.
   const user = auth.currentUser;
   if (!user) {
     container.innerHTML = '<div style="color:#b71c1c;margin:2em 0;font-weight:bold;">Not logged in. Please log in first.</div>';
@@ -58,6 +59,7 @@ export function showAdminPanel(container, auth) {
   async function fetchUsersAndRender() {
     let token;
     try { token = await getFreshToken(); } catch (e) { showErrorPage("Not logged in."); return; }
+    sendHeartbeat(token);
     const role = document.getElementById('filterRole').value;
     const email = document.getElementById('filterEmail').value.trim();
     const name = document.getElementById('filterName').value.trim();
@@ -93,18 +95,22 @@ export function showAdminPanel(container, auth) {
           <td>${u.adminApproval}</td>
           <td>${new Date(u.createdAt).toLocaleString()}</td>
           <td>
-            <select data-username="${u.username}" class="roleSelect" ${u.adminApproval !== "approved" ? "disabled" : ""}>
+            <select data-username="${u.username}" class="roleSelect"
+              ${u.adminApproval !== "approved" || u.role==="admin" ? "disabled" : ""}>
               <option value="user" ${u.role==="user"?"selected":""}>User</option>
               <option value="admin" ${u.role==="admin"?"selected":""}>Admin</option>
               <option value="moderator" ${u.role==="moderator"?"selected":""}>Moderator</option>
             </select>
           </td>
           <td>
-            <button data-username="${u.username}" class="deleteBtn" style="color:white;background:#e74c3c;border:none;">Delete</button>
+            <button data-username="${u.username}" class="deleteBtn"
+                style="color:white;background:#e74c3c;border:none;"
+                ${u.role==="admin" ? "disabled title='Admin cannot be deleted'" : ""}>
+              Delete
+            </button>
           </td>
         </tr>
       `).join('');
-      // Change role
       [...container.querySelectorAll('.roleSelect')].forEach(sel => {
         sel.onchange = async e => {
           let token; try { token = await getFreshToken(); } catch (e) { showErrorPage("Not logged in."); return; }
@@ -115,17 +121,15 @@ export function showAdminPanel(container, auth) {
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
             body: JSON.stringify({ username, newRole })
           });
-          if (!res.ok) {
-            const { error, detail } = await res.json();
-            document.getElementById('adminPanelMsg').textContent = error + (detail ? " | " + detail : "");
-            return;
-          }
+          const json = await res.json();
+          document.getElementById('adminPanelMsg').textContent =
+            res.ok ? "Role updated." : (json.error || "") + (json.detail ? " | " + json.detail : "");
           fetchUsersAndRender();
         };
       });
-      // Delete
       [...container.querySelectorAll('.deleteBtn')].forEach(btn => {
         btn.onclick = async () => {
+          if (btn.disabled) return;
           let token; try { token = await getFreshToken(); } catch (e) { showErrorPage("Not logged in."); return; }
           if (confirm("Delete user from DB and Firebase Auth? This cannot be undone.")) {
             const username = btn.getAttribute('data-username');
@@ -136,7 +140,8 @@ export function showAdminPanel(container, auth) {
               body: JSON.stringify({ username })
             });
             const json = await res.json();
-            document.getElementById("adminPanelMsg").textContent = res.ok ? "User deleted successfully." : (json.error || "") + (json.detail ? " | " + json.detail : "");
+            document.getElementById("adminPanelMsg").textContent =
+              res.ok ? "User deleted successfully." : (json.error || "") + (json.detail ? " | " + json.detail : "");
             fetchUsersAndRender();
           }
         };
@@ -153,7 +158,6 @@ export function showAdminPanel(container, auth) {
             </div>
           `).join('')
         : "<p>No pending users.</p>";
-      // Approve + Reject
       [...container.querySelectorAll('.approveBtn')].forEach(btn => {
         btn.onclick = async () => {
           let token; try { token = await getFreshToken(); } catch (e) { showErrorPage("Not logged in."); return; }
@@ -163,11 +167,6 @@ export function showAdminPanel(container, auth) {
             headers:{"Content-Type":"application/json", "Authorization": "Bearer " + token },
             body: JSON.stringify({username})
           });
-          if (!res.ok) {
-            const { error, detail } = await res.json();
-            document.getElementById('adminPanelMsg').textContent = error + (detail ? " | " + detail : "");
-            return;
-          }
           fetchUsersAndRender();
         };
       });
@@ -182,8 +181,6 @@ export function showAdminPanel(container, auth) {
               headers:{"Content-Type":"application/json", "Authorization": "Bearer " + token },
               body: JSON.stringify({username})
             });
-            const json = await res.json();
-            document.getElementById("adminPanelMsg").textContent = res.ok ? "User deleted successfully." : (json.error || "") + (json.detail ? " | " + json.detail : "");
             fetchUsersAndRender();
           }
         };
@@ -197,6 +194,5 @@ export function showAdminPanel(container, auth) {
     container.querySelector('#' + id).oninput = fetchUsersAndRender;
     container.querySelector('#' + id).onchange = fetchUsersAndRender;
   });
-
   fetchUsersAndRender();
 }
