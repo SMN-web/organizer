@@ -1,4 +1,4 @@
-import { showSignup } from './signup.js';
+import { showSignup } from './signup.js'; 
 import { showLogin } from './login.js';
 import { showTerms } from './terms.js';
 import { showResendVerification } from './resendVerification.js';
