@@ -1,3 +1,4 @@
+import { getAuth } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { showSignup } from './signup.js';
 import { showLogin } from './login.js';
 import { showTerms } from './terms.js';
@@ -5,59 +6,56 @@ import { showResendVerification } from './resendVerification.js';
 import { showUserPanel } from './userPanel.js';
 import { showAdminPanel } from './adminPanel.js';
 import { showModeratorPanel } from './moderatorPanel.js';
-import { showForgot } from './forget.js'; // If using forgot password
+import { showForgot } from './forget.js';
 
+window.firebaseAuth = getAuth();
 const appDiv = document.getElementById('app');
 
-// Checks current session and gets user details from backend
 async function getSessionStatus(auth) {
   const user = auth.currentUser;
   if (!user) return null;
   try {
-    const token = await user.getIdToken(/* forceRefresh= */ true); // always get the latest token
-    const resp = await fetch('https://ad-api.nafil-8895-s.workers.dev/api/session-status', {
+    const token = await user.getIdToken(true); // Always get the latest token
+    const resp = await fetch('/api/session-status', {
       headers: { "Authorization": "Bearer " + token }
     });
     if (!resp.ok) return null;
     return await resp.json(); // {email, emailVerified, username, adminApproval, role}
-  } catch {
+  } catch (e) {
     return null;
   }
 }
 
-// Centralized UI routing function
 async function router() {
   try {
     const hash = window.location.hash || '#login';
     const auth = window.firebaseAuth;
     const user = auth.currentUser;
 
-    // Show public pages (signup, terms, resend, forgot) without auth
+    // Always show these public pages immediately
     if (hash === '#signup')      return showSignup(appDiv);
     if (hash === '#terms')       return showTerms(appDiv);
     if (hash === '#resend')      return showResendVerification(appDiv);
     if (hash === '#forgot')      return showForgot(appDiv);
 
-    // For anything else (user, admin, moderator), session check is required
+    // For all others, require authentication
     if (!user) {
-      // No currentUser, always show login
       window.location.hash = "#login";
       showLogin(appDiv);
       return;
     }
 
-    // Always check backend session/approval/email-verified on every route
+    // Check backend session status for every route
     const session = await getSessionStatus(auth);
 
-    // If backend denies session, login is forced
-    if (!session || !session.emailVerified || !session.adminApproval || session.adminApproval !== "approved") {
-      await auth.signOut(); // Remove frontend session for extra safety
+    if (!session || session.adminApproval !== "approved" || !session.emailVerified) {
+      await auth.signOut();
       window.location.hash = "#login";
       showLogin(appDiv);
       return;
     }
 
-    // Now, route based on role (safe, always checked with backend)
+    // Correct panel routing by role
     if (hash === "#admin") {
       if (session.role === "admin") {
         showAdminPanel(appDiv, auth);
@@ -75,7 +73,7 @@ async function router() {
     } else if (hash === "#user") {
       showUserPanel(appDiv, auth);
     } else if (hash === "#login") {
-      // If authed and completely verified, redirect to their panel
+      // Redirect logged-in, approved user to correct panel
       if (session.role === "admin") {
         window.location.hash = "#admin";
       } else if (session.role === "moderator") {
@@ -84,22 +82,20 @@ async function router() {
         window.location.hash = "#user";
       }
     } else {
-      // Default: show login for unknown routes
+      // Unknown route fallback
       window.location.hash = "#login";
       showLogin(appDiv);
     }
   } catch (err) {
+    // Show error in UI for easy debugging, not just blank page
     appDiv.innerHTML = `<pre style="color:red">Router error: ${err && err.message ? err.message : err}</pre>`;
   }
 }
 
-// Re-run router for:
-// - any hash change (route navigation)
-// - on page load (to resume sessions)
-// - whenever auth state changes (login/logout/resume)
+// Watch all 3: hash (route), page load, and auth state changes (login/logout/session restore)
 window.addEventListener('hashchange', router);
 window.addEventListener('load', () => {
-  // Listen to Firebase auth state: 
+  // Ensure router runs **after** auth state resumes
   window.firebaseAuth.onAuthStateChanged(() => router());
-  router();
+  router(); // also run here for immediate load
 });
