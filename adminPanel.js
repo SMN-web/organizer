@@ -1,4 +1,6 @@
-import { sendHeartbeat } from './heartbeat.js'; // Your heartbeat function
+import { sendHeartbeat } from './heartbeat.js';
+
+let heartbeatTimer = null;
 
 export function showAdminPanel(container, auth) {
   const user = auth.currentUser;
@@ -7,6 +9,7 @@ export function showAdminPanel(container, auth) {
     return;
   }
 
+  // ---- Panel UI Rendering ----
   container.innerHTML = `
     <h2>User Admin Panel</h2>
     <div style="display:flex;align-items:center;gap:2em;flex-wrap:wrap;">
@@ -41,25 +44,40 @@ export function showAdminPanel(container, auth) {
     <div id="adminPanelMsg" style="color:#e74c3c;margin-top:1em;"></div>
   `;
 
+  // --- HEARTBEAT LOGIC ---
   async function getFreshToken() {
     if (!auth.currentUser) throw new Error("Not logged in");
     return await auth.currentUser.getIdToken(true);
   }
 
-  function showErrorPage(msg) {
-    container.innerHTML = `
-      <div style="margin:4em auto;max-width:450px;text-align:center;">
-        <h2>Access Error</h2>
-        <div style="color:#b71c1c">${msg}</div>
-        <button onclick="window.firebaseAuth.signOut()">Logout</button>
-      </div>
-    `;
+  async function doHeartbeat() {
+    try {
+      const token = await getFreshToken();
+      sendHeartbeat(token); // Sends to /api/heartbeat
+    } catch (e) {/* ignore if logged out */}
   }
 
+  function startHeartbeat() {
+    clearHeartbeat();
+    doHeartbeat(); // fire immediately
+    heartbeatTimer = setInterval(doHeartbeat, 2 * 60 * 1000); // every 2 minutes
+  }
+
+  function clearHeartbeat() {
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+
+  // Start heartbeat when panel loaded
+  startHeartbeat();
+  // Stop it when navigating away (optional safety, keeps only 1 timer alive)
+  window.addEventListener("hashchange", clearHeartbeat, { once: true });
+
+  // --- Rest of adminPanel code: fetching, rendering, etc. ---
   async function fetchUsersAndRender() {
     let token;
     try { token = await getFreshToken(); } catch (e) { showErrorPage("Not logged in."); return; }
-    sendHeartbeat(token);
+    // Heartbeat is handled by timer, no need to call here
     const role = document.getElementById('filterRole').value;
     const email = document.getElementById('filterEmail').value.trim();
     const name = document.getElementById('filterName').value.trim();
@@ -190,9 +208,20 @@ export function showAdminPanel(container, auth) {
     }
   }
 
+  function showErrorPage(msg) {
+    container.innerHTML = `
+      <div style="margin:4em auto;max-width:450px;text-align:center;">
+        <h2>Access Error</h2>
+        <div style="color:#b71c1c">${msg}</div>
+        <button onclick="window.firebaseAuth.signOut()">Logout</button>
+      </div>
+    `;
+  }
+
   ['filterRole', 'filterEmail', 'filterName'].forEach(id => {
     container.querySelector('#' + id).oninput = fetchUsersAndRender;
     container.querySelector('#' + id).onchange = fetchUsersAndRender;
   });
+
   fetchUsersAndRender();
 }
