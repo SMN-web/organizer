@@ -21,22 +21,20 @@ function router() {
     } else if (hash === '#resend') {
       showResendVerification(appDiv);
     } else if (hash === '#user') {
-      showUserPanel(appDiv);
+      showUserPanel(appDiv, window.firebaseAuth);
     } else if (hash === '#admin') {
-      // Only render adminPanel if login is confirmed
-      firebase.auth().onAuthStateChanged(user => {
+      window.firebaseAuth.onAuthStateChanged(user => {
         if (user) {
-          showAdminPanel(appDiv);
+          showAdminPanel(appDiv, window.firebaseAuth);
         } else {
-          // Show login UI if not signed in
           window.location.hash = "#login";
         }
       });
-      return; // Prevents double rendering on hashchange
+      return;
     } else if (hash === '#moderator') {
-      firebase.auth().onAuthStateChanged(user => {
+      window.firebaseAuth.onAuthStateChanged(user => {
         if (user) {
-          showModeratorPanel(appDiv);
+          showModeratorPanel(appDiv, window.firebaseAuth);
         } else {
           window.location.hash = "#login";
         }
