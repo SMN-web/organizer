@@ -16,7 +16,7 @@ async function getSessionStatus(auth) {
   if (!user) return null;
   try {
     const token = await user.getIdToken(true); // Always get the latest token
-    const resp = await fetch('/api/session-status', {
+    const resp = await fetch('https://ad-api.nafil-8895-s.workers.dev/api/session-status', {
       headers: { "Authorization": "Bearer " + token }
     });
     if (!resp.ok) return null;
