@@ -2,27 +2,37 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Firebase Email Token Test</title>
-  <style>
-    body { font-family: sans-serif; background: #fafbfc; margin: 0; padding: 2em; }
-    .box { max-width: 520px; margin: 2em auto; background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 2em; }
-    textarea { width: 100%; font-size:1em; }
-    .err { color: #b71c1c; margin: 1em 0; }
-    .msg { color: #2e7d32; margin: 1em 0; }
-    #loginForm input { padding:0.5em; width:100%; margin:0.2em 0; }
-    #loginForm button { padding: 0.5em 2em; margin-top:0.6em; }
-  </style>
-  <!-- Firebase SDKs -->
+  <title>Firebase Email Worker Test</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <style>
+    body { font-family: sans-serif; background: #fbfbfb; }
+    .testbox { max-width: 420px; margin: 3em auto; background: #fff; border-radius: 9px; box-shadow: 0 4px 12px #e4e4e4; padding: 2em;}
+    .error { color: #b71c1c }
+    .success { color: #168819 }
+  </style>
 </head>
 <body>
-  <div class="box" id="main">
-    <h2>Firebase Email/Token Test</h2>
-    <div>Loading...</div>
+  <div class="testbox" id="main">
+    <h2>Email/Password Login (Test)</h2>
+    <div id="loginSection">
+      <form id="loginForm">
+        <label>Email: <input type="email" id="loginEmail" required></label><br>
+        <label>Password: <input type="password" id="loginPassword" required></label><br>
+        <button type="submit">Sign In</button>
+      </form>
+      <div class="error" id="loginError"></div>
+    </div>
+    <div id="authSection" style="display:none;">
+      <div class="success" id="userMsg"></div>
+      <textarea id="userToken" style="width:100%;height:5em;" readonly></textarea>
+      <button id="fetchEmailBtn">Send Token to Worker</button>
+      <div id="workerResult" style="margin-top:1em;font-size:1.1em;"></div>
+      <button onclick="firebase.auth().signOut().then(()=>location.reload())" style="margin-top:1em;">Sign out</button>
+    </div>
   </div>
   <script>
-    // TODO: Put your Firebase project settings here!
+    // Replace with your Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyAWphaG1_4n1i3F9kY_TrMdvjVQomu7OtQ",
   authDomain: "organizer-359e3.firebaseapp.com",
@@ -34,77 +44,50 @@
     };
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
-    const main = document.getElementById('main');
-    let latestToken = null;
-
-    async function showCurrentToken() {
-      let content = `<h2>Firebase Email/Token Test</h2>`;
-      const user = firebase.auth().currentUser;
-
-      if (!user) {
-        // Render login form
-        content += `
-          <form id="loginForm" style="margin:1.2em 0;">
-            <input type="email" id="loginEmail" placeholder="Email" autocomplete="username" required/><br>
-            <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required/><br>
-            <button type="submit">Log in</button>
-          </form>
-          <div class="err" id="loginError"></div>
-        `;
-        main.innerHTML = content;
-        document.getElementById('loginForm').onsubmit = async function(e) {
-          e.preventDefault();
-          const email = document.getElementById('loginEmail').value.trim();
-          const password = document.getElementById('loginPassword').value;
-          document.getElementById('loginError').textContent = "";
-          try {
-            await firebase.auth().signInWithEmailAndPassword(email, password);
-            showCurrentToken();
-          } catch (err) {
-            document.getElementById('loginError').textContent = err.message;
-          }
-        };
-        return;
-      }
-      // Logged in
+    document.getElementById('loginForm').onsubmit = async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      document.getElementById('loginError').textContent = "";
       try {
-        const token = await user.getIdToken(true);
-        latestToken = token; // Save for API call test
-        content += `<div class="msg">Logged in as <b>${user.email}</b></div>
-          <div><b>Your Firebase ID Token:</b></div>
-          <textarea rows="7" readonly spellcheck="false">${token}</textarea>
-          <div style="font-size:smaller">Token length: ${token.length} characters</div>
-          <button onclick="firebase.auth().signOut().then(() => location.reload())">Sign out</button>
-          <hr>
-          <button id="apiButton" style="margin-top:1em;">Call /api/show-email with This Token</button>
-          <pre id="apiResult" style="background:#f6f6f6;padding:1em;border-radius:5px;margin-top:1em;"></pre>
-        `;
-      } catch (e) {
-        content += `<div class="err">Error fetching token: ${e.message || e.toString()}</div>`;
+        await firebase.auth().signInWithEmailAndPassword(email, password);
+        showAuthSection();
+      } catch (err) {
+        document.getElementById('loginError').textContent = err.message;
       }
-      main.innerHTML = content;
+    };
 
-      const apiButton = document.getElementById('apiButton');
-      if (apiButton) {
-        apiButton.onclick = async function() {
-          document.getElementById('apiResult').textContent = "Calling API...";
-          try {
-            // Change this to your deployed Worker if needed!
-            const apiUrl = "https://try.nafil-8895-s.workers.dev/api/show-email";
-            const res = await fetch(apiUrl, {
-              headers: { "Authorization": "Bearer " + latestToken }
-            });
-            const data = await res.json();
-            document.getElementById('apiResult').textContent =
-              "Status: " + res.status + "\n\n" + JSON.stringify(data, null, 2);
-          } catch (e) {
-            document.getElementById('apiResult').textContent = "Fetch failed: " + (e.message || e.toString());
-          }
+    function showAuthSection() {
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('authSection').style.display = '';
+      const user = firebase.auth().currentUser;
+      document.getElementById('userMsg').textContent = "Signed in as " + user.email;
+      user.getIdToken(true).then(token => {
+        document.getElementById('userToken').value = token;
+        document.getElementById('fetchEmailBtn').onclick = function() {
+          document.getElementById('workerResult').textContent = "Checking with worker...";
+          fetch('https://try.nafil-8895-s.workers.dev/api/verify-email', {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token }
+          }).then(res => res.json()).then(data => {
+            if (data.email) {
+              document.getElementById('workerResult').innerHTML =
+                "<span class='success'>Worker verified email: " + data.email + "</span>";
+            } else {
+              document.getElementById('workerResult').innerHTML =
+                "<span class='error'>Worker error: " + (data.error||'Unknown') + "</span>";
+            }
+          }).catch(e => {
+            document.getElementById('workerResult').innerHTML =
+              "<span class='error'>Worker call failed</span>";
+          });
         };
-      }
+      });
     }
 
-    firebase.auth().onAuthStateChanged(showCurrentToken);
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user) showAuthSection();
+    });
   </script>
 </body>
 </html>
