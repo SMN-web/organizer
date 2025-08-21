@@ -35,7 +35,6 @@ export function showAdminPanel(container) {
     <div id="adminPanelMsg" style="color:#e74c3c;margin-top:1em;"></div>
   `;
 
-  // Heartbeat on load and any user action
   function heartbeat() { sendHeartbeat(window.currentUserIdToken); }
 
   async function fetchUsersAndRender() {
@@ -52,17 +51,32 @@ export function showAdminPanel(container) {
     const res = await fetch('https://ad-api.nafil-8895-s.workers.dev/api/users?' + params.toString(), {
       headers: { "Authorization": "Bearer " + token }
     });
+
     if (res.status === 401 || res.status === 403) {
+      let msg = "Unauthorized access. Please log in again or check backend.";
+      try {
+        const { error } = await res.json();
+        if (error) msg += "<br>" + error;
+      } catch (e) {}
       document.body.innerHTML = `<div style="margin:4em auto;max-width:400px;text-align:center;">
-      <h2>Unauthorized access: You are not an admin</h2>
-      <button onclick="window.location.hash='#login'">Go back to login</button>
-      </div>`;
+        <h2>${msg}</h2>
+        <button onclick="window.location.hash='#login'">Go back to login</button>
+        </div>`;
       if (window.firebaseAuth) window.firebaseAuth.signOut();
       return;
     }
-    const { users, pendingCount } = await res.json();
 
-    document.getElementById('pendingBadge').textContent = pendingCount || 0;
+    let users = [], pendingCount = 0;
+    try {
+      const result = await res.json();
+      users = result.users || [];
+      pendingCount = result.pendingCount || 0;
+    } catch (e) {
+      document.getElementById('adminPanelMsg').textContent = "Backend returned unreadable data.";
+      return;
+    }
+
+    document.getElementById('pendingBadge').textContent = pendingCount;
     const tbody = document.getElementById('usersRows');
     tbody.innerHTML = users.map(u => `
       <tr>
@@ -95,7 +109,12 @@ export function showAdminPanel(container) {
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
           body: JSON.stringify({ username, newRole })
         });
-        if (res.status === 401 || res.status === 403) { fetchUsersAndRender(); return; }
+        if (res.status === 401 || res.status === 403) {
+          let msg = "Unauthorized.<br>";
+          try { msg += (await res.json()).error; } catch {}
+          document.getElementById("adminPanelMsg").innerHTML = msg;
+          return;
+        }
         fetchUsersAndRender();
       };
     });
@@ -111,7 +130,12 @@ export function showAdminPanel(container) {
             headers: { "Content-Type":"application/json", "Authorization": "Bearer " + token },
             body: JSON.stringify({ username })
           });
-          if (res.status === 401 || res.status === 403) { fetchUsersAndRender(); return; }
+          if (res.status === 401 || res.status === 403) {
+            let msg = "Unauthorized.<br>";
+            try { msg += (await res.json()).error; } catch {}
+            document.getElementById("adminPanelMsg").innerHTML = msg;
+            return;
+          }
           const json = await res.json();
           if (res.ok) {
             document.getElementById("adminPanelMsg").textContent = "User deleted successfully.";
@@ -123,7 +147,7 @@ export function showAdminPanel(container) {
       };
     });
 
-    // Pending approvals with heartbeat triggers
+    // Pending approvals
     const pendingUsers = users.filter(u => u.adminApproval === "pending");
     document.getElementById('pendingApprovalSection').innerHTML = pendingUsers.length
       ? pendingUsers.map(u => `
@@ -145,7 +169,12 @@ export function showAdminPanel(container) {
           headers:{"Content-Type":"application/json", "Authorization": "Bearer " + token },
           body: JSON.stringify({username})
         });
-        if (res.status === 401 || res.status === 403) { fetchUsersAndRender(); return; }
+        if (res.status === 401 || res.status === 403) {
+          let msg = "Unauthorized.<br>";
+          try { msg += (await res.json()).error; } catch {}
+          document.getElementById("adminPanelMsg").innerHTML = msg;
+          return;
+        }
         fetchUsersAndRender();
       };
     });
@@ -161,7 +190,12 @@ export function showAdminPanel(container) {
             headers:{"Content-Type":"application/json", "Authorization": "Bearer " + token },
             body: JSON.stringify({username})
           });
-          if (res.status === 401 || res.status === 403) { fetchUsersAndRender(); return; }
+          if (res.status === 401 || res.status === 403) {
+            let msg = "Unauthorized.<br>";
+            try { msg += (await res.json()).error; } catch {}
+            document.getElementById("adminPanelMsg").innerHTML = msg;
+            return;
+          }
           const json = await res.json();
           if (res.ok) {
             document.getElementById("adminPanelMsg").textContent = "User deleted successfully.";
