@@ -35,21 +35,19 @@ export function showForgot(container) {
     }
     try {
       const auth = window.firebaseAuth || getAuth();
-      // Optional: check if there's at least one sign-in method (avoid error for unregistered email)
+      // Optionally check: avoid error for unregistered email
       const methods = await fetchSignInMethodsForEmail(auth, email);
       if (!methods || methods.length === 0) {
-        // Show privacy-respecting message regardless
-        msgEl.style.color = "#27ae60";
-        msgEl.textContent = "If your email is registered, a reset link has been sent. Please check your inbox and spam folders.";
-        return;
+        throw new Error("No user found for this email");
       }
       await sendPasswordResetEmail(auth, email);
       msgEl.style.color = "#27ae60";
       msgEl.textContent = "If your email is registered, a reset link has been sent. Please check your inbox and spam folders.";
     } catch (error) {
-      // Show privacy-respecting message regardless of error
-      msgEl.style.color = "#27ae60";
-      msgEl.textContent = "If your email is registered, a reset link has been sent. Please check your inbox and spam folders.";
+      msgEl.style.color = "#e74c3c";
+      // Display full error info for debugging/testing ONLY!
+      msgEl.textContent =
+        "Error: " + (error.code || error.message || error.toString());
     }
   };
 }
