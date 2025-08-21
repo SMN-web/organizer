@@ -1,10 +1,12 @@
 import { showSignup } from './signup.js';
 import { showLogin } from './login.js';
 import { showTerms } from './terms.js';
+import { showForgot } from './forget.js';
 import { showResendVerification } from './resendVerification.js';
 import { showUserPanel } from './userPanel.js';
 import { showAdminPanel } from './adminPanel.js';
 import { showModeratorPanel } from './moderatorPanel.js';
+
 
 const appDiv = document.getElementById('app');
 
@@ -44,6 +46,8 @@ async function router() {
       showLogin(appDiv);
     } else if (hash === '#terms') {
       showTerms(appDiv);
+    } else if (hash === '#forgot') {
+      showForgot(appDiv);
     } else if (hash === '#resend') {
       showResendVerification(appDiv);
     } else if (hash === '#admin') {
