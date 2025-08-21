@@ -46,8 +46,23 @@ export function showAdminPanel(container) {
     const res = await fetch('https://ad-api.nafil-8895-s.workers.dev/api/users?' + params.toString(), {
       headers: { "Authorization": "Bearer " + token }
     });
-    if (res.status === 401 || res.status === 403) {
-      document.body.innerHTML = `<div style="margin:4em auto;max-width:400px;text-align:center;"><h2>Unauthorized access: You are not an admin</h2><button onclick="window.location.hash='#login'">Go back to login</button></div>`;
+    if (!res.ok) {
+      let msg = "";
+      try {
+        const { error, detail } = await res.json();
+        msg = `<p><b>${error || "Unknown error"}</b></p><p>${detail || ""}</p>`;
+      } catch {
+        msg = "<b>Unexpected backend error</b>";
+      }
+      // Show full error with "detail"
+      document.body.innerHTML = `
+        <div style="margin:4em auto;max-width:450px;text-align:center;">
+          <h2>Access Error</h2>
+          <div style="color:#b71c1c">${msg}</div>
+          <button onclick="window.location.hash='#login'">Go back to login</button>
+        </div>
+      `;
+      // optional: sign out
       if (window.firebaseAuth) window.firebaseAuth.signOut();
       return;
     }
@@ -74,21 +89,29 @@ export function showAdminPanel(container) {
         </td>
       </tr>
     `).join('');
+    // Change role
     [...container.querySelectorAll('.roleSelect')].forEach(sel => {
       sel.onchange = async e => {
+        const token = window.currentUserIdToken;
         const username = e.target.getAttribute('data-username');
         const newRole = e.target.value;
-        await fetch('https://ad-api.nafil-8895-s.workers.dev/api/user/change-role', {
+        const res = await fetch('https://ad-api.nafil-8895-s.workers.dev/api/user/change-role', {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
           body: JSON.stringify({ username, newRole })
         });
+        if (!res.ok) {
+          const { error, detail } = await res.json();
+          document.getElementById('adminPanelMsg').textContent = error + (detail ? " | " + detail : "");
+          return;
+        }
         fetchUsersAndRender();
       };
     });
-
+    // Delete
     [...container.querySelectorAll('.deleteBtn')].forEach(btn => {
       btn.onclick = async () => {
+        const token = window.currentUserIdToken;
         if (confirm("Delete user from DB and Firebase Auth? This cannot be undone.")) {
           const username = btn.getAttribute('data-username');
           document.getElementById("adminPanelMsg").textContent = "Deleting...";
@@ -98,12 +121,11 @@ export function showAdminPanel(container) {
             body: JSON.stringify({ username })
           });
           const json = await res.json();
-          document.getElementById("adminPanelMsg").textContent = res.ok ? "User deleted successfully." : json.error || "Failed to delete.";
+          document.getElementById("adminPanelMsg").textContent = res.ok ? "User deleted successfully." : (json.error || "") + (json.detail ? " | " + json.detail : "");
           fetchUsersAndRender();
         }
       };
     });
-
     // Pending approvals
     const pendingUsers = users.filter(u => u.adminApproval === "pending");
     document.getElementById('pendingApprovalSection').innerHTML = pendingUsers.length
@@ -116,19 +138,27 @@ export function showAdminPanel(container) {
           </div>
         `).join('')
       : "<p>No pending users.</p>";
+    // Approve + Reject
     [...container.querySelectorAll('.approveBtn')].forEach(btn => {
       btn.onclick = async () => {
+        const token = window.currentUserIdToken;
         const username = btn.getAttribute('data-username');
-        await fetch('https://ad-api.nafil-8895-s.workers.dev/api/user/approve', {
+        const res = await fetch('https://ad-api.nafil-8895-s.workers.dev/api/user/approve', {
           method:"POST",
           headers:{"Content-Type":"application/json", "Authorization": "Bearer " + token },
           body: JSON.stringify({username})
         });
+        if (!res.ok) {
+          const { error, detail } = await res.json();
+          document.getElementById('adminPanelMsg').textContent = error + (detail ? " | " + detail : "");
+          return;
+        }
         fetchUsersAndRender();
       };
     });
     [...container.querySelectorAll('.rejectBtn')].forEach(btn => {
       btn.onclick = async () => {
+        const token = window.currentUserIdToken;
         if (confirm("Reject user and delete from both DB and Firebase Auth?")) {
           const username = btn.getAttribute('data-username');
           document.getElementById("adminPanelMsg").textContent = "Deleting...";
@@ -138,7 +168,7 @@ export function showAdminPanel(container) {
             body: JSON.stringify({username})
           });
           const json = await res.json();
-          document.getElementById("adminPanelMsg").textContent = res.ok ? "User deleted successfully." : json.error || "Failed to delete.";
+          document.getElementById("adminPanelMsg").textContent = res.ok ? "User deleted successfully." : (json.error || "") + (json.detail ? " | " + json.detail : "");
           fetchUsersAndRender();
         }
       }
