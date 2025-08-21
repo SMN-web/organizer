@@ -1,6 +1,6 @@
-export function showAdminPanel(container) {
+export function showAdminPanel(container, auth) {
   // Guard: Show error if not actually logged in.
-  const user = firebase.auth().currentUser;
+  const user = auth.currentUser;
   if (!user) {
     container.innerHTML = '<div style="color:#b71c1c;margin:2em 0;font-weight:bold;">Not logged in. Please log in first.</div>';
     return;
@@ -41,9 +41,8 @@ export function showAdminPanel(container) {
   `;
 
   async function getFreshToken() {
-    const user = firebase.auth().currentUser;
-    if (!user) throw new Error("Not logged in");
-    return await user.getIdToken(true);
+    if (!auth.currentUser) throw new Error("Not logged in");
+    return await auth.currentUser.getIdToken(true);
   }
 
   function showErrorPage(msg) {
@@ -51,7 +50,7 @@ export function showAdminPanel(container) {
       <div style="margin:4em auto;max-width:450px;text-align:center;">
         <h2>Access Error</h2>
         <div style="color:#b71c1c">${msg}</div>
-        <button onclick="firebase.auth().signOut()">Logout</button>
+        <button onclick="window.firebaseAuth.signOut()">Logout</button>
       </div>
     `;
   }
