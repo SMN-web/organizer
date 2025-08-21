@@ -2,26 +2,27 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Firebase Email/Password Login & Token Debug</title>
+  <title>Firebase Email Token Test</title>
   <style>
     body { font-family: sans-serif; background: #fafbfc; margin: 0; padding: 2em; }
-    .debug-box { max-width: 500px; margin: 2em auto; background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 2em; box-shadow: 0 2px 7px rgba(0,0,0,.07);}
+    .box { max-width: 520px; margin: 2em auto; background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 2em; }
     textarea { width: 100%; font-size:1em; }
     .err { color: #b71c1c; margin: 1em 0; }
     .msg { color: #2e7d32; margin: 1em 0; }
     #loginForm input { padding:0.5em; width:100%; margin:0.2em 0; }
     #loginForm button { padding: 0.5em 2em; margin-top:0.6em; }
   </style>
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 </head>
 <body>
-  <div class="debug-box" id="main">
-    <h2>Firebase Login & Token Debug</h2>
+  <div class="box" id="main">
+    <h2>Firebase Email/Token Test</h2>
     <div>Loading...</div>
   </div>
   <script>
-    // TODO: Replace with your real Firebase project's settings:
+    // TODO: Put your Firebase project settings here!
     const firebaseConfig = {
       apiKey: "AIzaSyAWphaG1_4n1i3F9kY_TrMdvjVQomu7OtQ",
   authDomain: "organizer-359e3.firebaseapp.com",
@@ -34,10 +35,12 @@
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
     const main = document.getElementById('main');
+    let latestToken = null;
 
     async function showCurrentToken() {
-      let content = `<h2>Firebase Login & Token Debug</h2>`;
+      let content = `<h2>Firebase Email/Token Test</h2>`;
       const user = firebase.auth().currentUser;
+
       if (!user) {
         // Render login form
         content += `
@@ -63,19 +66,42 @@
         };
         return;
       }
-      // User is logged in
+      // Logged in
       try {
         const token = await user.getIdToken(true);
+        latestToken = token; // Save for API call test
         content += `<div class="msg">Logged in as <b>${user.email}</b></div>
           <div><b>Your Firebase ID Token:</b></div>
           <textarea rows="7" readonly spellcheck="false">${token}</textarea>
           <div style="font-size:smaller">Token length: ${token.length} characters</div>
           <button onclick="firebase.auth().signOut().then(() => location.reload())">Sign out</button>
+          <hr>
+          <button id="apiButton" style="margin-top:1em;">Call /api/show-email with This Token</button>
+          <pre id="apiResult" style="background:#f6f6f6;padding:1em;border-radius:5px;margin-top:1em;"></pre>
         `;
       } catch (e) {
         content += `<div class="err">Error fetching token: ${e.message || e.toString()}</div>`;
       }
       main.innerHTML = content;
+
+      const apiButton = document.getElementById('apiButton');
+      if (apiButton) {
+        apiButton.onclick = async function() {
+          document.getElementById('apiResult').textContent = "Calling API...";
+          try {
+            // Change this to your deployed Worker if needed!
+            const apiUrl = "https://try.nafil-8895-s.workers.dev/api/show-email";
+            const res = await fetch(apiUrl, {
+              headers: { "Authorization": "Bearer " + latestToken }
+            });
+            const data = await res.json();
+            document.getElementById('apiResult').textContent =
+              "Status: " + res.status + "\n\n" + JSON.stringify(data, null, 2);
+          } catch (e) {
+            document.getElementById('apiResult').textContent = "Fetch failed: " + (e.message || e.toString());
+          }
+        };
+      }
     }
 
     firebase.auth().onAuthStateChanged(showCurrentToken);
