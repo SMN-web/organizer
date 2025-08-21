@@ -10,7 +10,7 @@ import { showForgot } from './forget.js';
 
 window.firebaseAuth = getAuth(); 
 const appDiv = document.getElementById('app');
-
+ 
 async function getSessionStatus(auth) {
   const user = auth.currentUser;
   if (!user) return null;
