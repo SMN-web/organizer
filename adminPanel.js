@@ -1,3 +1,5 @@
+// adminPanel.js
+
 export function showAdminPanel(container) {
   container.innerHTML = `
     <h2>User Admin Panel</h2>
@@ -33,8 +35,15 @@ export function showAdminPanel(container) {
     <div id="adminPanelMsg" style="color:#e74c3c;margin-top:1em;"></div>
   `;
 
+  async function getFreshToken() {
+    const user = firebase.auth().currentUser;
+    if (!user) throw new Error("Not authenticated");
+    return await user.getIdToken(true);
+  }
+
   async function fetchUsersAndRender() {
-    const token = window.currentUserIdToken;
+    let token;
+    try { token = await getFreshToken(); } catch (e) { showErrorPage("Not logged in."); return; }
     const role = document.getElementById('filterRole').value;
     const email = document.getElementById('filterEmail').value.trim();
     const name = document.getElementById('filterName').value.trim();
@@ -54,16 +63,7 @@ export function showAdminPanel(container) {
       } catch {
         msg = "<b>Unexpected backend error</b>";
       }
-      // Show full error with "detail"
-      document.body.innerHTML = `
-        <div style="margin:4em auto;max-width:450px;text-align:center;">
-          <h2>Access Error</h2>
-          <div style="color:#b71c1c">${msg}</div>
-          <button onclick="window.location.hash='#login'">Go back to login</button>
-        </div>
-      `;
-      // optional: sign out
-      if (window.firebaseAuth) window.firebaseAuth.signOut();
+      showErrorPage(msg);
       return;
     }
     const { users, pendingCount } = await res.json();
@@ -92,7 +92,7 @@ export function showAdminPanel(container) {
     // Change role
     [...container.querySelectorAll('.roleSelect')].forEach(sel => {
       sel.onchange = async e => {
-        const token = window.currentUserIdToken;
+        let token; try { token = await getFreshToken(); } catch (e) { showErrorPage("Not logged in."); return; }
         const username = e.target.getAttribute('data-username');
         const newRole = e.target.value;
         const res = await fetch('https://ad-api.nafil-8895-s.workers.dev/api/user/change-role', {
@@ -111,7 +111,7 @@ export function showAdminPanel(container) {
     // Delete
     [...container.querySelectorAll('.deleteBtn')].forEach(btn => {
       btn.onclick = async () => {
-        const token = window.currentUserIdToken;
+        let token; try { token = await getFreshToken(); } catch (e) { showErrorPage("Not logged in."); return; }
         if (confirm("Delete user from DB and Firebase Auth? This cannot be undone.")) {
           const username = btn.getAttribute('data-username');
           document.getElementById("adminPanelMsg").textContent = "Deleting...";
@@ -141,7 +141,7 @@ export function showAdminPanel(container) {
     // Approve + Reject
     [...container.querySelectorAll('.approveBtn')].forEach(btn => {
       btn.onclick = async () => {
-        const token = window.currentUserIdToken;
+        let token; try { token = await getFreshToken(); } catch (e) { showErrorPage("Not logged in."); return; }
         const username = btn.getAttribute('data-username');
         const res = await fetch('https://ad-api.nafil-8895-s.workers.dev/api/user/approve', {
           method:"POST",
@@ -158,7 +158,7 @@ export function showAdminPanel(container) {
     });
     [...container.querySelectorAll('.rejectBtn')].forEach(btn => {
       btn.onclick = async () => {
-        const token = window.currentUserIdToken;
+        let token; try { token = await getFreshToken(); } catch (e) { showErrorPage("Not logged in."); return; }
         if (confirm("Reject user and delete from both DB and Firebase Auth?")) {
           const username = btn.getAttribute('data-username');
           document.getElementById("adminPanelMsg").textContent = "Deleting...";
@@ -173,6 +173,17 @@ export function showAdminPanel(container) {
         }
       }
     });
+  }
+
+  function showErrorPage(msg) {
+    document.body.innerHTML = `
+      <div style="margin:4em auto;max-width:450px;text-align:center;">
+        <h2>Access Error</h2>
+        <div style="color:#b71c1c">${msg}</div>
+        <button onclick="window.location.hash='#login'">Go back to login</button>
+      </div>
+    `;
+    if (window.firebaseAuth) window.firebaseAuth.signOut();
   }
 
   ['filterRole', 'filterEmail', 'filterName'].forEach(id => {
