@@ -3,7 +3,7 @@ import { showLogin } from './login.js';
 import { showTerms } from './terms.js';
 import { showResendVerification } from './resendVerification.js';
 import { showUserPanel } from './userPanel.js';     // You can expand later
-import { showAdminPanel } from './adminPanel.js';   // You can expand later
+import { showCurrentToken } from './adminPanel.js';   // You can expand later
 import { showModeratorPanel } from './moderatorPanel.js'; // You can expand later
 
 const appDiv = document.getElementById('app');
