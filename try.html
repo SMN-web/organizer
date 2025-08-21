@@ -2,26 +2,26 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Firebase Token Debug Panel</title>
+  <title>Firebase Email/Password Login & Token Debug</title>
   <style>
     body { font-family: sans-serif; background: #fafbfc; margin: 0; padding: 2em; }
-    .debug-box { max-width: 600px; margin: 2em auto; background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 2em; box-shadow: 0 2px 7px rgba(0,0,0,.07);}
-    textarea { width: 100%; font-size: 1em; }
+    .debug-box { max-width: 500px; margin: 2em auto; background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 2em; box-shadow: 0 2px 7px rgba(0,0,0,.07);}
+    textarea { width: 100%; font-size:1em; }
     .err { color: #b71c1c; margin: 1em 0; }
     .msg { color: #2e7d32; margin: 1em 0; }
+    #loginForm input { padding:0.5em; width:100%; margin:0.2em 0; }
+    #loginForm button { padding: 0.5em 2em; margin-top:0.6em; }
   </style>
-  <!-- Firebase App (the core Firebase SDK) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <!-- Firebase Auth SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 </head>
 <body>
   <div class="debug-box" id="main">
-    <h2>Firebase Auth Token Debug</h2>
+    <h2>Firebase Login & Token Debug</h2>
     <div>Loading...</div>
   </div>
   <script>
-    // TODO: Replace with your Firebase project's settings
+    // TODO: Replace with your real Firebase project's settings:
     const firebaseConfig = {
       apiKey: "AIzaSyAWphaG1_4n1i3F9kY_TrMdvjVQomu7OtQ",
   authDomain: "organizer-359e3.firebaseapp.com",
@@ -31,33 +31,53 @@
   appId: "1:223125946708:web:17850e13399725533288c1",
   measurementId: "G-R9GMNJ5Q7T"
     };
-    // Initialize Firebase only ONCE!
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
     const main = document.getElementById('main');
 
     async function showCurrentToken() {
-      let content = `<h2>Firebase Auth Token Debug</h2>`;
+      let content = `<h2>Firebase Login & Token Debug</h2>`;
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        // Render login form
+        content += `
+          <form id="loginForm" style="margin:1.2em 0;">
+            <input type="email" id="loginEmail" placeholder="Email" autocomplete="username" required/><br>
+            <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required/><br>
+            <button type="submit">Log in</button>
+          </form>
+          <div class="err" id="loginError"></div>
+        `;
+        main.innerHTML = content;
+        document.getElementById('loginForm').onsubmit = async function(e) {
+          e.preventDefault();
+          const email = document.getElementById('loginEmail').value.trim();
+          const password = document.getElementById('loginPassword').value;
+          document.getElementById('loginError').textContent = "";
+          try {
+            await firebase.auth().signInWithEmailAndPassword(email, password);
+            showCurrentToken();
+          } catch (err) {
+            document.getElementById('loginError').textContent = err.message;
+          }
+        };
+        return;
+      }
+      // User is logged in
       try {
-        const user = firebase.auth().currentUser;
-        if (!user) {
-          content += `<div class="err">Not logged in. <button onclick="firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(showCurrentToken).catch(e=>alert(e.message))">Sign in with Google</button></div>`;
-        } else {
-          // Always get a fresh token for reliability
-          const token = await user.getIdToken(true);
-          content += `<div class="msg">Logged in as <b>${user.email}</b></div>
-            <div><b>Your ID Token:</b></div>
-            <textarea rows="6" readonly>${token}</textarea>
-            <div style="font-size:smaller">Token length: ${token.length} characters</div>
-            <button onclick="firebase.auth().signOut().then(() => location.reload())">Sign out</button>`;
-        }
+        const token = await user.getIdToken(true);
+        content += `<div class="msg">Logged in as <b>${user.email}</b></div>
+          <div><b>Your Firebase ID Token:</b></div>
+          <textarea rows="7" readonly spellcheck="false">${token}</textarea>
+          <div style="font-size:smaller">Token length: ${token.length} characters</div>
+          <button onclick="firebase.auth().signOut().then(() => location.reload())">Sign out</button>
+        `;
       } catch (e) {
         content += `<div class="err">Error fetching token: ${e.message || e.toString()}</div>`;
       }
       main.innerHTML = content;
     }
 
-    // Refresh UI on auth state change
     firebase.auth().onAuthStateChanged(showCurrentToken);
   </script>
 </body>
