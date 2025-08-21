@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Firebase Email Worker Test</title>
+  <title>Firebase Email Cloudflare Worker Test</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <style>
@@ -75,7 +75,7 @@
                 "<span class='success'>Worker verified email: " + data.email + "</span>";
             } else {
               document.getElementById('workerResult').innerHTML =
-                "<span class='error'>Worker error: " + (data.error||'Unknown') + "</span>";
+                "<span class='error'>Worker error: " + (data.error||'Unknown') + " Detail: " + (data.detail||'') + "</span>";
             }
           }).catch(e => {
             document.getElementById('workerResult').innerHTML =
