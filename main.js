@@ -5,59 +5,69 @@ import { showResendVerification } from './resendVerification.js';
 import { showUserPanel } from './userPanel.js';
 import { showAdminPanel } from './adminPanel.js';
 import { showModeratorPanel } from './moderatorPanel.js';
-import { showForgot } from './forget.js'; // <-- Add this import!
+import { showForgot } from './forget.js';
+import { getSessionStatus, showWarning } from './session.js';
 
 const appDiv = document.getElementById('app');
 
-function router() {
-  try {
-    const hash = window.location.hash || '#login';
+async function router() {
+  const hash = window.location.hash || '#login';
+  const auth = window.firebaseAuth;
 
-    if (hash === '#signup') {
-      showSignup(appDiv);
-    } else if (hash === '#login') {
-      showLogin(appDiv);
-    } else if (hash === '#terms') {
-      showTerms(appDiv);
-    } else if (hash === '#resend') {
-      showResendVerification(appDiv);
-    } else if (hash === '#forgot') {               // <-- Add this route
-      showForgot(appDiv);
-    } else if (hash === '#user') {
-      window.firebaseAuth.onAuthStateChanged(user => {
-        if (user) {
-          showUserPanel(appDiv, window.firebaseAuth);
-        } else {
-          window.location.hash = "#login";
-        }
-      });
-      return;
-    } else if (hash === '#admin') {
-      window.firebaseAuth.onAuthStateChanged(user => {
-        if (user) {
-          showAdminPanel(appDiv, window.firebaseAuth);
-        } else {
-          window.location.hash = "#login";
-        }
-      });
-      return;
-    } else if (hash === '#moderator') {
-      window.firebaseAuth.onAuthStateChanged(user => {
-        if (user) {
-          showModeratorPanel(appDiv, window.firebaseAuth);
-        } else {
-          window.location.hash = "#login";
-        }
-      });
-      return;
-    } else {
-      window.location.hash = '#login';
-    }
-  } catch (err) {
-    appDiv.innerHTML = `<pre style="color:red">Router error: ${err && err.message ? err.message : err}</pre>`;
+  // Public pages (no login needed)
+  if (hash === '#signup')         return showSignup(appDiv);
+  if (hash === '#terms')          return showTerms(appDiv);
+  if (hash === '#resend')         return showResendVerification(appDiv);
+  if (hash === '#forgot')         return showForgot(appDiv);
+
+  // Always check login state on load/hashchange
+  const user = auth.currentUser;
+  if (!user) {
+    showLogin(appDiv);
+    showWarning(appDiv, "Log in required to continue.");
+    return;
+  }
+
+  // Now, mimic login.js: fetch canonical role/approval from backend
+  const session = await getSessionStatus(auth, appDiv);
+  if (!session) return; // (error box is already shown by getSessionStatus)
+
+  if (session.adminApproval !== "approved") {
+    await auth.signOut();
+    showWarning(appDiv, "Your account is not approved yet. Please contact support or wait for admin approval.");
+    return;
+  }
+  if (!session.emailVerified) {
+    await auth.signOut();
+    showWarning(appDiv, "Your email is not verified. Please verify your email to continue.");
+    return;
+  }
+
+  // If user lands on login page while already logged in, redirect to correct role panel
+  if (hash === '#login') {
+    if (session.role === 'admin')        window.location.hash = '#admin';
+    else if (session.role === 'moderator') window.location.hash = '#moderator';
+    else                                  window.location.hash = '#user';
+    return;
+  }
+
+  // Route to correct role-based panel
+  if (hash === '#admin') {
+    if (session.role === 'admin')      return showAdminPanel(appDiv, auth);
+    showWarning(appDiv, "You do not have admin access.");
+  } else if (hash === '#moderator') {
+    if (session.role === 'moderator')  return showModeratorPanel(appDiv, auth);
+    showWarning(appDiv, "You do not have moderator access.");
+  } else if (hash === '#user') {
+    showUserPanel(appDiv, auth);
+  } else {
+    showLogin(appDiv);
+    showWarning(appDiv, "Unknown page. Redirected to login.");
   }
 }
 
-window.addEventListener('hashchange', router);
-window.addEventListener('load', router);
-router();
+window.addEventListener('hashchange', () => { router(); });
+window.addEventListener('load', () => {
+  window.firebaseAuth.onAuthStateChanged(() => { router(); });
+  router();
+});
