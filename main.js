@@ -5,7 +5,7 @@ import { showResendVerification } from './resendVerification.js';
 import { showUserPanel } from './userPanel.js';
 import { showAdminPanel } from './adminPanel.js';
 import { showModeratorPanel } from './moderatorPanel.js';
-import { showForgot } from './forget.js';
+import { showForgot } from './forget.js'; 
 
 const appDiv = document.getElementById('app');
 if (!appDiv) {
