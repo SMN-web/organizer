@@ -16,7 +16,7 @@ async function getSessionStatus(auth) {
   try {
     const token = await user.getIdToken(true);
     // Edit below URL to match your backend endpoint!
-    const resp = await fetch('https://ad-api.nafil-8895-s.workers.dev/api/session-status', {
+    const resp = await fetch('https://session.nafil-8895-s.workers.dev/api/session-status', {
       headers: { "Authorization": "Bearer " + token }
     });
     if (!resp.ok) return null;
