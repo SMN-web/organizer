@@ -4,27 +4,27 @@
   <meta charset="UTF-8">
   <title>SPA Firebase Signup</title>
   <link rel="stylesheet" href="./style.css">
-  <!-- Firebase v9 Modular CDN -->
+  <!-- No JS here! Move script to after #app -->
+</head>
+<body>
+  <div id="app"></div>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
     import { getAuth } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAWphaG1_4n1i3F9kY_TrMdvjVQomu7OtQ",
-  authDomain: "organizer-359e3.firebaseapp.com",
-  projectId: "organizer-359e3",
-  storageBucket: "organizer-359e3.firebasestorage.app",
-  messagingSenderId: "223125946708",
-  appId: "1:223125946708:web:17850e13399725533288c1",
-  measurementId: "G-R9GMNJ5Q7T"
+      authDomain: "organizer-359e3.firebaseapp.com",
+      projectId: "organizer-359e3",
+      storageBucket: "organizer-359e3.firebasestorage.app",
+      messagingSenderId: "223125946708",
+      appId: "1:223125946708:web:17850e13399725533288c1",
+      measurementId: "G-R9GMNJ5Q7T"
     };
     const app = initializeApp(firebaseConfig);
     window.firebaseAuth = getAuth(app);
 
     import('./main.js');
   </script>
-</head>
-<body>
-  <div id="app"></div>
 </body>
 </html>
