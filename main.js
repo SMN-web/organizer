@@ -5,60 +5,59 @@ import { showResendVerification } from './resendVerification.js';
 import { showUserPanel } from './userPanel.js';
 import { showAdminPanel } from './adminPanel.js';
 import { showModeratorPanel } from './moderatorPanel.js';
-import { showForgot } from './forget.js';
-
-import { getSessionStatus } from './session.js';
+import { showForgot } from './forget.js'; // <-- Add this import!
 
 const appDiv = document.getElementById('app');
-if (!appDiv) {
-  document.body.innerHTML = `<div style="padding:2em;font-size:1.2em;text-align:center;background:#ffecec;color:#c00;">
-    &#9940; <b>ERROR:</b> <code>&lt;div id="app"&gt;</code> not found in HTML!
-  </div>`;
-  throw new Error('<div id="app"> is required!');
-}
 
-async function router() {
+function router() {
   try {
     const hash = window.location.hash || '#login';
-    const auth = window.firebaseAuth;
 
-    // Public routes
-    if (hash === '#signup')         return showSignup(appDiv);
-    if (hash === '#terms')          return showTerms(appDiv);
-    if (hash === '#resend')         return showResendVerification(appDiv);
-    if (hash === '#forgot')         return showForgot(appDiv);
-
-    const user = auth.currentUser;
-    if (!user) {
+    if (hash === '#signup') {
+      showSignup(appDiv);
+    } else if (hash === '#login') {
       showLogin(appDiv);
+    } else if (hash === '#terms') {
+      showTerms(appDiv);
+    } else if (hash === '#resend') {
+      showResendVerification(appDiv);
+    } else if (hash === '#forgot') {               // <-- Add this route
+      showForgot(appDiv);
+    } else if (hash === '#user') {
+      window.firebaseAuth.onAuthStateChanged(user => {
+        if (user) {
+          showUserPanel(appDiv, window.firebaseAuth);
+        } else {
+          window.location.hash = "#login";
+        }
+      });
       return;
-    }
-
-    // Get session/role from backend. Don't check anything in frontend.
-    const session = await getSessionStatus(auth, appDiv);
-    if (!session) return;   // If backend says error, the error is already displayed as a message!
-
-    // Backend sends { role: "...", ... } ONLY if all conditions OK.
-    if      (hash === '#admin'     && session.role === 'admin')     return showAdminPanel(appDiv, auth);
-    else if (hash === '#moderator' && session.role === 'moderator') return showModeratorPanel(appDiv, auth);
-    else if (hash === '#user')                                   return showUserPanel(appDiv, auth);
-    else if (hash === '#login') {
-      // Always redirect logged-in, backend-approved user to correct panel!
-      if      (session.role === 'admin')     window.location.hash = '#admin';
-      else if (session.role === 'moderator') window.location.hash = '#moderator';
-      else                                   window.location.hash = '#user';
+    } else if (hash === '#admin') {
+      window.firebaseAuth.onAuthStateChanged(user => {
+        if (user) {
+          showAdminPanel(appDiv, window.firebaseAuth);
+        } else {
+          window.location.hash = "#login";
+        }
+      });
+      return;
+    } else if (hash === '#moderator') {
+      window.firebaseAuth.onAuthStateChanged(user => {
+        if (user) {
+          showModeratorPanel(appDiv, window.firebaseAuth);
+        } else {
+          window.location.hash = "#login";
+        }
+      });
+      return;
     } else {
-      showLogin(appDiv); // Fallback
+      window.location.hash = '#login';
     }
   } catch (err) {
-    appDiv.innerHTML = `<div style="background:#ffecec;color:#c00;padding:1em;text-align:center;">
-      &#9940; <b>Router error:</b> ${err && err.message ? err.message : err}
-    </div>`;
+    appDiv.innerHTML = `<pre style="color:red">Router error: ${err && err.message ? err.message : err}</pre>`;
   }
 }
 
 window.addEventListener('hashchange', router);
-window.addEventListener('load', () => {
-  window.firebaseAuth.onAuthStateChanged(() => { router(); });
-  router();
-});
+window.addEventListener('load', router);
+router();
