@@ -5,14 +5,12 @@ import { showResendVerification } from './resendVerification.js';
 import { showUserPanel } from './userPanel.js';
 import { showAdminPanel } from './adminPanel.js';
 import { showModeratorPanel } from './moderatorPanel.js';
-import { showForgot } from './forget.js'; // If using forgot password
 
 const appDiv = document.getElementById('app');
 
 function router() {
   try {
     const hash = window.location.hash || '#login';
-    const auth = window.firebaseAuth;
 
     if (hash === '#signup') {
       showSignup(appDiv);
@@ -22,23 +20,21 @@ function router() {
       showTerms(appDiv);
     } else if (hash === '#resend') {
       showResendVerification(appDiv);
-    } else if (hash === '#forgot') {
-      showForgot(appDiv);
     } else if (hash === '#user') {
-      showUserPanel(appDiv, auth);
+      showUserPanel(appDiv, window.firebaseAuth);
     } else if (hash === '#admin') {
-      auth.onAuthStateChanged(user => {
+      window.firebaseAuth.onAuthStateChanged(user => {
         if (user) {
-          showAdminPanel(appDiv, auth);
+          showAdminPanel(appDiv, window.firebaseAuth);
         } else {
           window.location.hash = "#login";
         }
       });
       return;
     } else if (hash === '#moderator') {
-      auth.onAuthStateChanged(user => {
+      window.firebaseAuth.onAuthStateChanged(user => {
         if (user) {
-          showModeratorPanel(appDiv, auth);
+          showModeratorPanel(appDiv, window.firebaseAuth);
         } else {
           window.location.hash = "#login";
         }
