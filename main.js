@@ -9,22 +9,31 @@ import { showForgot } from './forget.js';
 
 const appDiv = document.getElementById('app');
 if (!appDiv) {
-  document.body.innerHTML = `<div style="color:#fff;background:#c00;padding:2em;text-align:center;font-size:1.2em;">
-    Critical error: <b>&lt;div id="app"&gt;</b> not found in HTML!
-  </div>`;
+  document.body.innerHTML = `
+    <div style="background:#ffecec;color:#c00;padding:2em;font-size:1.1em;text-align:center;">
+      &#9888;&#65039; <b>ERROR:</b> <code>&lt;div id="app"&gt;</code> not found in HTML!
+    </div>`;
   throw new Error('<div id="app"> is required!');
 }
 
-// Helper to show errors in the app container as a styled message box
-function showErrorBox(message) {
+// Show visible error or warning message in the app container (never blank)
+function showWarning(message) {
   appDiv.innerHTML = `
-    <div style="background:#ffecec;color:#c00;border:1px solid #e74c3c;margin:2em auto;padding:1.2em 1em;max-width:430px;border-radius:8px;font-size:1.1em;text-align:center;">
-      <b>Error:</b> <span>${message}</span>
+    <div style="background:#ffeb3b;color:#444;padding:1em;border-radius:8px;max-width:400px;margin:2em auto;box-shadow:0 2px 6px #ddd;text-align:center;font-weight:bold;">
+      <span style="margin-right:8px;">&#9888;&#65039;</span>${message}
     </div>
   `;
 }
 
-// Securely get session/role/approval from backend (shows any error inline)
+function showError(message) {
+  appDiv.innerHTML = `
+    <div style="background:#ffecec;color:#c00;padding:1.1em;border-radius:8px;max-width:410px;margin:2em auto;box-shadow:0 2px 6px #ddd;text-align:center;font-weight:bold;">
+      <span style="margin-right:8px;">&#9940;</span>${message}
+    </div>
+  `;
+}
+
+// Get session status from backend; display fetch errors inline
 async function getSessionStatus(auth) {
   const user = auth.currentUser;
   if (!user) return null;
@@ -35,12 +44,12 @@ async function getSessionStatus(auth) {
     });
     if (!resp.ok) {
       const text = await resp.text();
-      showErrorBox(`Session status API failed (HTTP ${resp.status}):<br>${text}`);
+      showError(`Session status API failed (${resp.status}):<br>${text}`);
       return null;
     }
-    return await resp.json(); // { email, role, adminApproval, emailVerified }
+    return await resp.json(); // {email, role, adminApproval, emailVerified}
   } catch (e) {
-    showErrorBox(`Session status fetch error:<br>${e && e.message ? e.message : e}`);
+    showError(`Network or backend error:<br>${e && e.message ? e.message : e}`);
     return null;
   }
 }
@@ -50,67 +59,70 @@ async function router() {
     const hash = window.location.hash || '#login';
     const auth = window.firebaseAuth;
 
-    // Show public pages immediately
+    // Public routes
     if (hash === '#signup')         return showSignup(appDiv);
     if (hash === '#terms')          return showTerms(appDiv);
     if (hash === '#resend')         return showResendVerification(appDiv);
     if (hash === '#forgot')         return showForgot(appDiv);
 
+    // Panels: require login and status/role/approval from backend
     const user = auth.currentUser;
     if (!user) {
       showLogin(appDiv);
+      showWarning("Log in required to continue.");
       return;
     }
 
-    // Always get status from backend for role, approval, verified
+    // Always read status from backend
     const session = await getSessionStatus(auth);
-    if (!session) return; // Error already shown
+    if (!session) return; // error already shown
+
     if (session.adminApproval !== "approved") {
       await auth.signOut();
-      showErrorBox("Your account is not approved.<br>Please contact support or wait for admin approval.");
+      showWarning("Your account is not approved yet. Please contact support or wait for admin approval.");
       return;
     }
     if (!session.emailVerified) {
       await auth.signOut();
-      showErrorBox("Your email is not verified.<br>Please verify your email to continue.");
+      showWarning("Your email is not verified. Please verify your email to continue.");
       return;
     }
 
-    // Role-based routing from backend
+    // Role-based page routing
     if (hash === '#admin') {
       if (session.role === 'admin') {
         showAdminPanel(appDiv, auth);
       } else {
-        showErrorBox("Access Denied: You are not an admin.");
+        showWarning("You do not have admin access.");
       }
     } else if (hash === '#moderator') {
       if (session.role === 'moderator') {
         showModeratorPanel(appDiv, auth);
       } else {
-        showErrorBox("Access Denied: You are not a moderator.");
+        showWarning("You do not have moderator access.");
       }
     } else if (hash === '#user') {
       showUserPanel(appDiv, auth);
     } else if (hash === '#login') {
-      // Auto-redirect if logged in and approved
-      if (session.role === 'admin')        window.location.hash = '#admin';
+      // If already approved/verified, redirect to panel based on backend role
+      if (session.role === 'admin') window.location.hash = '#admin';
       else if (session.role === 'moderator') window.location.hash = '#moderator';
-      else                                  window.location.hash = '#user';
+      else window.location.hash = '#user';
     } else {
-      showLogin(appDiv); // Default: show login for any unknown hash
+      showLogin(appDiv);
+      showWarning("Unknown route. Redirected to login.");
     }
   } catch (err) {
-    showErrorBox(`Router error:<br>${err && err.message ? err.message : err}`);
+    showError(`Router error:<br>${err && err.message ? err.message : err}`);
   }
 }
 
-// Always run router on hash, load, and auth state changes
 window.addEventListener('hashchange', router);
 window.addEventListener('load', () => {
   try {
     window.firebaseAuth.onAuthStateChanged(() => router());
     router();
   } catch (err) {
-    showErrorBox(`Startup error:<br>${err && err.message ? err.message : err}`);
+    showError(`Startup error:<br>${err && err.message ? err.message : err}`);
   }
 });
