@@ -1,93 +1,127 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Firebase Email Cloudflare Worker Test</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <meta charset="UTF-8">
+  <title>Firebase Auth Demo</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+
+    // --- Firebase Config ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyAWphaG1_4n1i3F9kY_TrMdvjVQomu7OtQ",
+      authDomain: "organizer-359e3.firebaseapp.com",
+      projectId: "organizer-359e3",
+      storageBucket: "organizer-359e3.firebasestorage.app",
+      messagingSenderId: "223125946708",
+      appId: "1:223125946708:web:17850e13399725533288c1",
+      measurementId: "G-R9GMNJ5Q7T"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const appDiv = document.getElementById('app');
+
+    function showLogin() {
+      appDiv.innerHTML = `
+        <div style="max-width:360px;margin:3em auto;padding:2em;border-radius:16px;background:#fff;">
+          <h2>Login</h2>
+          <form id="loginForm">
+            <input type="email" id="email" placeholder="Email" required style="width:100%;margin-bottom:1em;padding:0.8em;">
+            <input type="password" id="password" placeholder="Password" required style="width:100%;margin-bottom:1em;padding:0.8em;">
+            <button type="submit" style="padding:0.7em 2.5em;">Sign In</button>
+          </form>
+          <div id="loginMsg" style="color:#e74c3c;margin-top:1em;"></div>
+        </div>
+      `;
+      document.getElementById('loginForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
+        const msgDiv = document.getElementById('loginMsg');
+        msgDiv.textContent = '';
+        try {
+          const cred = await signInWithEmailAndPassword(auth, email, password);
+          const token = await cred.user.getIdToken(true);
+          // Optionally store email/token in localStorage for demo purpose
+          localStorage.setItem('auth_email', email);
+          localStorage.setItem('auth_token', token);
+          showDashboard();
+        } catch (err) {
+          msgDiv.textContent = err.message || "Login failed";
+        }
+      };
+    }
+
+    function showDashboard() {
+      appDiv.innerHTML = `
+        <div style="max-width:400px;margin:3em auto;padding:2em;border-radius:16px;background:#eaf7ff;">
+          <h2>Welcome, ${localStorage.getItem('auth_email') || ''}</h2>
+          <button id="logoutBtn" style="padding:0.6em 2em;margin-bottom:1em;">Logout</button>
+          <button id="fetchBtn" style="padding:0.6em 2em;margin-left:1em;">Fetch Session Status</button>
+          <div id="resultBox" style="margin-top:2em;background:#fff;border-radius:6px;padding:1em;"></div>
+        </div>
+      `;
+      document.getElementById('logoutBtn').onclick = async () => {
+        await signOut(auth);
+        localStorage.removeItem('auth_email');
+        localStorage.removeItem('auth_token');
+        showLogin();
+      };
+      document.getElementById('fetchBtn').onclick = async () => {
+        const user = auth.currentUser;
+        const resultBox = document.getElementById('resultBox');
+        if (!user) {
+          resultBox.innerHTML = "<span style='color:#c00'>Not signed in.</span>";
+          return;
+        }
+        resultBox.innerHTML = "<span>Loading...</span>";
+        try {
+          const token = await user.getIdToken(true);
+          // Show token for demo
+          localStorage.setItem('auth_token', token);
+          // Call backend /api/session-status
+          const resp = await fetch('https://session.nafil-8895-s.workers.dev/api/session-status', {
+            headers: { "Authorization": "Bearer " + token }
+          });
+          if (!resp.ok) {
+            const text = await resp.text();
+            resultBox.innerHTML = `<div style="color:#c00">Error [${resp.status}]:<br>${text}</div>`;
+            return;
+          }
+          const data = await resp.json();
+          resultBox.innerHTML = `
+            <div><b>Session Info:</b></div>
+            <pre style="margin-top:1em;background:#f7f7f7;padding:1em;border-radius:8px;">${JSON.stringify(data, null, 2)}</pre>
+          `;
+        } catch (err) {
+          resultBox.innerHTML = `<div style="color:#c00">${err && err.message ? err.message : err}</div>`;
+        }
+      };
+    }
+
+    // On page load or auth state change, restore dashboard if signed in
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        localStorage.setItem('auth_email', user.email);
+        showDashboard();
+      } else {
+        showLogin();
+      }
+    });
+
+    // Initial load for single-page app
+    window.onload = () => {
+      if (auth.currentUser) showDashboard();
+      else showLogin();
+    };
+  </script>
   <style>
-    body { font-family: sans-serif; background: #fbfbfb; }
-    .testbox { max-width: 420px; margin: 3em auto; background: #fff; border-radius: 9px; box-shadow: 0 4px 12px #e4e4e4; padding: 2em;}
-    .error { color: #b71c1c }
-    .success { color: #168819 }
+    body { background:#f4f4f7; font-family:sans-serif; }
   </style>
 </head>
 <body>
-  <div class="testbox" id="main">
-    <h2>Email/Password Login (Test)</h2>
-    <div id="loginSection">
-      <form id="loginForm">
-        <label>Email: <input type="email" id="loginEmail" required></label><br>
-        <label>Password: <input type="password" id="loginPassword" required></label><br>
-        <button type="submit">Sign In</button>
-      </form>
-      <div class="error" id="loginError"></div>
-    </div>
-    <div id="authSection" style="display:none;">
-      <div class="success" id="userMsg"></div>
-      <textarea id="userToken" style="width:100%;height:5em;" readonly></textarea>
-      <button id="fetchEmailBtn">Send Token to Worker</button>
-      <div id="workerResult" style="margin-top:1em;font-size:1.1em;"></div>
-      <button onclick="firebase.auth().signOut().then(()=>location.reload())" style="margin-top:1em;">Sign out</button>
-    </div>
-  </div>
-  <script>
-    // Replace with your Firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyAWphaG1_4n1i3F9kY_TrMdvjVQomu7OtQ",
-  authDomain: "organizer-359e3.firebaseapp.com",
-  projectId: "organizer-359e3",
-  storageBucket: "organizer-359e3.firebasestorage.app",
-  messagingSenderId: "223125946708",
-  appId: "1:223125946708:web:17850e13399725533288c1",
-  measurementId: "G-R9GMNJ5Q7T"
-    };
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-
-    document.getElementById('loginForm').onsubmit = async function(e) {
-      e.preventDefault();
-      const email = document.getElementById('loginEmail').value.trim();
-      const password = document.getElementById('loginPassword').value;
-      document.getElementById('loginError').textContent = "";
-      try {
-        await firebase.auth().signInWithEmailAndPassword(email, password);
-        showAuthSection();
-      } catch (err) {
-        document.getElementById('loginError').textContent = err.message;
-      }
-    };
-
-    function showAuthSection() {
-      document.getElementById('loginSection').style.display = 'none';
-      document.getElementById('authSection').style.display = '';
-      const user = firebase.auth().currentUser;
-      document.getElementById('userMsg').textContent = "Signed in as " + user.email;
-      user.getIdToken(true).then(token => {
-        document.getElementById('userToken').value = token;
-        document.getElementById('fetchEmailBtn').onclick = function() {
-          document.getElementById('workerResult').textContent = "Checking with worker...";
-          fetch('https://try.nafil-8895-s.workers.dev/api/verify-email', {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token }
-          }).then(res => res.json()).then(data => {
-            if (data.email) {
-              document.getElementById('workerResult').innerHTML =
-                "<span class='success'>Worker verified email: " + data.email + "</span>";
-            } else {
-              document.getElementById('workerResult').innerHTML =
-                "<span class='error'>Worker error: " + (data.error||'Unknown') + " Detail: " + (data.detail||'') + "</span>";
-            }
-          }).catch(e => {
-            document.getElementById('workerResult').innerHTML =
-              "<span class='error'>Worker call failed</span>";
-          });
-        };
-      });
-    }
-
-    firebase.auth().onAuthStateChanged(function(user) {
-      if (user) showAuthSection();
-    });
-  </script>
+  <div id="app"></div>
 </body>
 </html>
