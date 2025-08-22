@@ -1,8 +1,5 @@
 // session.js
 
-/**
- * Shows a visible error in the given container.
- */
 export function showError(container, message) {
   container.innerHTML = `
     <div style="background:#ffecec;color:#c00;padding:1.1em;border-radius:10px;max-width:430px;margin:3em auto;text-align:center;font-weight:bold;box-shadow:0 2px 8px #eee;">
@@ -12,11 +9,9 @@ export function showError(container, message) {
 }
 
 /**
- * Calls backend for session status. 
- * ONLY displays backend error/denial messages; all approval/role logic is on backend.
- * Returns session JSON if successful, else null.
- *
- * Usage: const session = await getSessionStatus(window.firebaseAuth, appDiv);
+ * Calls backend session-status.
+ * If backend sends {error: "..."} or non-200, shows error directly.
+ * Returns session JSON if success, else null.
  */
 export async function getSessionStatus(auth, container) {
   const user = auth.currentUser;
@@ -26,13 +21,18 @@ export async function getSessionStatus(auth, container) {
     const resp = await fetch('https://session.nafil-8895-s.workers.dev/api/session-status', {
       headers: { "Authorization": "Bearer " + token }
     });
-    const data = await resp.json();
+
+    let data = {};
+    try {
+      data = await resp.json();
+    } catch (e) {
+      showError(container, "Session-status response not valid JSON.");
+      return null;
+    }
     if (!resp.ok || data.error) {
-      // Backend returns { error: "..."} on any failed check
       showError(container, data.error || "Access denied by backend.");
       return null;
     }
-    // Backend decided: data contains allowed session info!
     return data;
   } catch (e) {
     showError(container, `Network/backend error:<br>${e && e.message ? e.message : e}`);
