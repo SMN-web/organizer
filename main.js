@@ -6,69 +6,68 @@ import { showUserPanel } from './userPanel.js';
 import { showAdminPanel } from './adminPanel.js';
 import { showModeratorPanel } from './moderatorPanel.js';
 import { showForgot } from './forget.js';
+import { getSessionStatus, showWarning } from './session.js';
 
 const appDiv = document.getElementById('app');
-if (!appDiv) {
-  document.body.innerHTML = `
-    <div style="padding:2em;font-size:1.2em;text-align:center;background:#ffecec;color:#c00;">
-      &#9940; <b>ERROR:</b> <code>&lt;div id="app"&gt;</code> not found in HTML!
-    </div>`;
-  throw new Error('<div id="app"> is required!');
-}
 
-// Classic SPA router: detects Firebase Auth only, no backend check
-function router() {
-  try {
-    const hash = window.location.hash || '#login';
-    const auth = window.firebaseAuth;
+async function router() {
+  const hash = window.location.hash || '#login';
+  const auth = window.firebaseAuth;
 
-    if (hash === '#signup') {
-      showSignup(appDiv);
-    } else if (hash === '#login') {
-      showLogin(appDiv);
-    } else if (hash === '#terms') {
-      showTerms(appDiv);
-    } else if (hash === '#resend') {
-      showResendVerification(appDiv);
-    } else if (hash === '#forgot') {
-      showForgot(appDiv);
-    } else if (hash === '#user') {
-      auth.onAuthStateChanged(user => {
-        if (user) {
-          showUserPanel(appDiv, auth);
-        } else {
-          window.location.hash = "#login";
-        }
-      });
-      return;
-    } else if (hash === '#admin') {
-      auth.onAuthStateChanged(user => {
-        if (user) {
-          showAdminPanel(appDiv, auth);
-        } else {
-          window.location.hash = "#login";
-        }
-      });
-      return;
-    } else if (hash === '#moderator') {
-      auth.onAuthStateChanged(user => {
-        if (user) {
-          showModeratorPanel(appDiv, auth);
-        } else {
-          window.location.hash = "#login";
-        }
-      });
-      return;
-    } else {
-      window.location.hash = '#login';
-    }
-  } catch (err) {
-    appDiv.innerHTML = `<div style="background:#ffecec;color:#c00;padding:1em;text-align:center;">
-      &#9940; <b>Router error:</b> ${err && err.message ? err.message : err}
-    </div>`;
+  // Public pages (no login needed)
+  if (hash === '#signup')         return showSignup(appDiv);
+  if (hash === '#terms')          return showTerms(appDiv);
+  if (hash === '#resend')         return showResendVerification(appDiv);
+  if (hash === '#forgot')         return showForgot(appDiv);
+
+  // Always check login state on load/hashchange
+  const user = auth.currentUser;
+  if (!user) {
+    showLogin(appDiv);
+    showWarning(appDiv, "Log in required to continue.");
+    return;
+  }
+
+  // Now, mimic login.js: fetch canonical role/approval from backend
+  const session = await getSessionStatus(auth, appDiv);
+  if (!session) return; // (error box is already shown by getSessionStatus)
+
+  if (session.adminApproval !== "approved") {
+    await auth.signOut();
+    showWarning(appDiv, "Your account is not approved yet. Please contact support or wait for admin approval.");
+    return;
+  }
+  if (!session.emailVerified) {
+    await auth.signOut();
+    showWarning(appDiv, "Your email is not verified. Please verify your email to continue.");
+    return;
+  }
+
+  // If user lands on login page while already logged in, redirect to correct role panel
+  if (hash === '#login') {
+    if (session.role === 'admin')        window.location.hash = '#admin';
+    else if (session.role === 'moderator') window.location.hash = '#moderator';
+    else                                  window.location.hash = '#user';
+    return;
+  }
+
+  // Route to correct role-based panel
+  if (hash === '#admin') {
+    if (session.role === 'admin')      return showAdminPanel(appDiv, auth);
+    showWarning(appDiv, "You do not have admin access.");
+  } else if (hash === '#moderator') {
+    if (session.role === 'moderator')  return showModeratorPanel(appDiv, auth);
+    showWarning(appDiv, "You do not have moderator access.");
+  } else if (hash === '#user') {
+    showUserPanel(appDiv, auth);
+  } else {
+    showLogin(appDiv);
+    showWarning(appDiv, "Unknown page. Redirected to login.");
   }
 }
 
-window.addEventListener('hashchange', router);
-window.addEventListener('load', router);
-router();
+window.addEventListener('hashchange', () => { router(); });
+window.addEventListener('load', () => {
+  window.firebaseAuth.onAuthStateChanged(() => { router(); });
+  router();
+});
