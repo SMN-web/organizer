@@ -5,6 +5,7 @@ import { showResendVerification } from './resendVerification.js';
 import { showUserPanel } from './userPanel.js';
 import { showAdminPanel } from './adminPanel.js';
 import { showModeratorPanel } from './moderatorPanel.js';
+import { showForgot } from './forget.js'; // <-- Add this import!
 
 const appDiv = document.getElementById('app');
 
@@ -20,8 +21,17 @@ function router() {
       showTerms(appDiv);
     } else if (hash === '#resend') {
       showResendVerification(appDiv);
+    } else if (hash === '#forgot') {               // <-- Add this route
+      showForgot(appDiv);
     } else if (hash === '#user') {
-      showUserPanel(appDiv, window.firebaseAuth);
+      window.firebaseAuth.onAuthStateChanged(user => {
+        if (user) {
+          showUserPanel(appDiv, window.firebaseAuth);
+        } else {
+          window.location.hash = "#login";
+        }
+      });
+      return;
     } else if (hash === '#admin') {
       window.firebaseAuth.onAuthStateChanged(user => {
         if (user) {
