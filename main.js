@@ -7,7 +7,7 @@ import { showAdminPanel } from './adminPanel.js';
 import { showModeratorPanel } from './moderatorPanel.js';
 import { showForgot } from './forget.js';
 
-import { getSessionStatus, showError } from './session.js';
+import { getSessionStatus } from './session.js';
 
 const appDiv = document.getElementById('app');
 if (!appDiv) {
@@ -18,39 +18,42 @@ if (!appDiv) {
 }
 
 async function router() {
-  const hash = window.location.hash || '#login';
-  const auth = window.firebaseAuth;
+  try {
+    const hash = window.location.hash || '#login';
+    const auth = window.firebaseAuth;
 
-  // Public pages
-  if (hash === '#signup')         return showSignup(appDiv);
-  if (hash === '#terms')          return showTerms(appDiv);
-  if (hash === '#resend')         return showResendVerification(appDiv);
-  if (hash === '#forgot')         return showForgot(appDiv);
+    // Public routes
+    if (hash === '#signup')         return showSignup(appDiv);
+    if (hash === '#terms')          return showTerms(appDiv);
+    if (hash === '#resend')         return showResendVerification(appDiv);
+    if (hash === '#forgot')         return showForgot(appDiv);
 
-  // App: get backend session, trust backend
-  const user = auth.currentUser;
-  if (!user) {
-    showLogin(appDiv);
-    return;
-  }
+    const user = auth.currentUser;
+    if (!user) {
+      showLogin(appDiv);
+      return;
+    }
 
-  const session = await getSessionStatus(auth, appDiv);
-  if (!session) return;    // If backend returns error, it's displayed—nothing else happens
+    // Get session/role from backend. Don't check anything in frontend.
+    const session = await getSessionStatus(auth, appDiv);
+    if (!session) return;   // If backend says error, the error is already displayed as a message!
 
-  // Backend already approved/verified and supplied role
-  if (hash === '#admin' && session.role === 'admin') {
-    showAdminPanel(appDiv, auth);
-  } else if (hash === '#moderator' && session.role === 'moderator') {
-    showModeratorPanel(appDiv, auth);
-  } else if (hash === '#user') {
-    showUserPanel(appDiv, auth);
-  } else if (hash === '#login') {
-    // Always redirect logged-in, backend-approved user to their panel
-    if (session.role === 'admin')        window.location.hash = '#admin';
-    else if (session.role === 'moderator') window.location.hash = '#moderator';
-    else                                  window.location.hash = '#user';
-  } else {
-    showLogin(appDiv);
+    // Backend sends { role: "...", ... } ONLY if all conditions OK.
+    if      (hash === '#admin'     && session.role === 'admin')     return showAdminPanel(appDiv, auth);
+    else if (hash === '#moderator' && session.role === 'moderator') return showModeratorPanel(appDiv, auth);
+    else if (hash === '#user')                                   return showUserPanel(appDiv, auth);
+    else if (hash === '#login') {
+      // Always redirect logged-in, backend-approved user to correct panel!
+      if      (session.role === 'admin')     window.location.hash = '#admin';
+      else if (session.role === 'moderator') window.location.hash = '#moderator';
+      else                                   window.location.hash = '#user';
+    } else {
+      showLogin(appDiv); // Fallback
+    }
+  } catch (err) {
+    appDiv.innerHTML = `<div style="background:#ffecec;color:#c00;padding:1em;text-align:center;">
+      &#9940; <b>Router error:</b> ${err && err.message ? err.message : err}
+    </div>`;
   }
 }
 
