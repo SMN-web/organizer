@@ -1,7 +1,7 @@
 // session.js
 
 /**
- * Shows a visible error in the specified container (call from anywhere).
+ * Shows a visible error in the given container.
  */
 export function showError(container, message) {
   container.innerHTML = `
@@ -12,20 +12,9 @@ export function showError(container, message) {
 }
 
 /**
- * Shows a visible warning in the specified container.
- */
-export function showWarning(container, message) {
-  container.innerHTML = `
-    <div style="background:#fff7cf;color:#744800;padding:1.1em;border-radius:10px;max-width:430px;margin:3em auto;text-align:center;font-weight:bold;box-shadow:0 2px 8px #eee;">
-      &#9888;&#65039; ${message}
-    </div>
-  `;
-}
-
-/**
- * Fetches backend session status for the logged-in user.
- * Displays a visible error on any network/API failure.
- * Returns session JSON or null.
+ * Calls backend for session status. 
+ * ONLY displays backend error/denial messages; all approval/role logic is on backend.
+ * Returns session JSON if successful, else null.
  *
  * Usage: const session = await getSessionStatus(window.firebaseAuth, appDiv);
  */
@@ -37,14 +26,16 @@ export async function getSessionStatus(auth, container) {
     const resp = await fetch('https://session.nafil-8895-s.workers.dev/api/session-status', {
       headers: { "Authorization": "Bearer " + token }
     });
-    if (!resp.ok) {
-      const text = await resp.text();
-      showError(container, `Session status error [${resp.status}]:<br>${text}`);
+    const data = await resp.json();
+    if (!resp.ok || data.error) {
+      // Backend returns { error: "..."} on any failed check
+      showError(container, data.error || "Access denied by backend.");
       return null;
     }
-    return await resp.json(); // { email, role, adminApproval, emailVerified }
+    // Backend decided: data contains allowed session info!
+    return data;
   } catch (e) {
-    showError(container, `Network or backend error:<br>${e && e.message ? e.message : e}`);
+    showError(container, `Network/backend error:<br>${e && e.message ? e.message : e}`);
     return null;
   }
 }
