@@ -5,7 +5,8 @@ import { showResendVerification } from './resendVerification.js';
 import { showUserPanel } from './userPanel.js';
 import { showAdminPanel } from './adminPanel.js';
 import { showModeratorPanel } from './moderatorPanel.js';
-import { showForgot } from './forget.js'; // <-- Add this import!
+import { showForgot } from './forget.js'; 
+import { sessionRedirect } from './session.js'; // <-- NEW import!
 
 const appDiv = document.getElementById('app');
 
@@ -21,30 +22,13 @@ function router() {
       showTerms(appDiv);
     } else if (hash === '#resend') {
       showResendVerification(appDiv);
-    } else if (hash === '#forgot') {               // <-- Add this route
+    } else if (hash === '#forgot') {
       showForgot(appDiv);
-    } else if (hash === '#user') {
+    } else if (['#user', '#admin', '#moderator'].includes(hash)) {
+      // Use session.js to validate user from backend and redirect as appropriate
       window.firebaseAuth.onAuthStateChanged(user => {
         if (user) {
-          showUserPanel(appDiv, window.firebaseAuth);
-        } else {
-          window.location.hash = "#login";
-        }
-      });
-      return;
-    } else if (hash === '#admin') {
-      window.firebaseAuth.onAuthStateChanged(user => {
-        if (user) {
-          showAdminPanel(appDiv, window.firebaseAuth);
-        } else {
-          window.location.hash = "#login";
-        }
-      });
-      return;
-    } else if (hash === '#moderator') {
-      window.firebaseAuth.onAuthStateChanged(user => {
-        if (user) {
-          showModeratorPanel(appDiv, window.firebaseAuth);
+          sessionRedirect(window.firebaseAuth, appDiv);
         } else {
           window.location.hash = "#login";
         }
