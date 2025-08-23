@@ -16,17 +16,16 @@ export async function sessionRedirect(auth, container) {
       window.location.hash = "#login";
       return;
     }
-    // Local verification: compare Firebase email and backend result (defense in depth)
     if (user.email.toLowerCase() !== data.email.toLowerCase()) {
       container.innerHTML = `<div style="color:#c00;background:#ffecec;padding:1em;">
-        Session email mismatch.<br>
-        Please sign in again.
+        Session email mismatch. Please login again.<br>
+        <pre>Firebase: ${user.email} <br>Backend: ${data.email}</pre>
       </div>`;
       await auth.signOut();
       window.location.hash = "#login";
       return;
     }
-    // Backend and Firebase agree: proceed
+    // Only the backend decides panel/role!
     if (data.role === "admin")        window.location.hash = "#admin";
     else if (data.role === "moderator") window.location.hash = "#moderator";
     else                                window.location.hash = "#user";
