@@ -1,12 +1,17 @@
 import { showManageSpend } from './manageSpend.js';
 
 export async function showUserPanel(container, auth) {
-
-  // Initial skeleton for panel, menu, and the content area
+  // Add spinner overlay
   container.innerHTML = `
+    <div id="loadingOverlay"
+      style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.9);display:flex;align-items:center;justify-content:center;z-index:999;">
+      <div class="spinner" style="
+        width:44px;height:44px;border:5px solid #eee;border-top:5px solid #3498db;border-radius:50%;animation:spin 0.9s linear infinite;">
+      </div>
+    </div>
     <div style="position:relative; width:100%;">
       <button id="menuBtn"
-        style="position:absolute;top:0;left:0;background:none;border:none;padding:15px 23px 14px 15px;font-size:2em;cursor:pointer;z-index:101">
+        style="position:absolute;top:0;left:0;background:none;border:none;padding:15px 23px 14px 15px;font-size:2em;cursor:pointer;z-index:101;visibility:hidden">
         &#9776;
       </button>
       <div id="mainContent">
@@ -31,8 +36,12 @@ export async function showUserPanel(container, auth) {
         <div style="padding:16px 18px;cursor:pointer;" id="managefriends">Friends Manage</div>
       </div>
     </div>
+    <style>
+      @keyframes spin { 0% { transform: rotate(0deg);} 100% {transform: rotate(360deg);}}
+    </style>
   `;
 
+  const loadingOverlay = container.querySelector("#loadingOverlay");
   const menuBtn = container.querySelector("#menuBtn");
   const simpleMenu = container.querySelector("#simpleMenu");
   const avatarCircle = container.querySelector("#avatarCircle");
@@ -40,7 +49,7 @@ export async function showUserPanel(container, auth) {
   const mainContent = container.querySelector("#mainContent");
   const messageBox = container.querySelector("#messageBox");
 
-  // --- Fast Name Fetch: Get ON PAGE LOAD (not menu open) ---
+  // --- Fetch name/avatar while showing spinner ---
   let userDisplayName = "Unknown";
   let userInitials = "??";
 
@@ -65,13 +74,19 @@ export async function showUserPanel(container, auth) {
       userDisplayName = "Unknown";
       userInitials = "??";
     }
-    // Always set these in the menu, even if menu is not visible yet
     menuName.textContent = userDisplayName;
     avatarCircle.textContent = userInitials;
   }
 
-  // Immediately fetch name/avatar on load
+  // Show spinner until data is loaded, then enable menu button
+  menuBtn.disabled = true;
+  menuBtn.style.visibility = "hidden";
   await fetchNameAndAvatar();
+  setTimeout(() => { // show spinner for at least ~2 seconds
+    loadingOverlay.style.display = "none";
+    menuBtn.disabled = false;
+    menuBtn.style.visibility = "visible";
+  }, 1800);
 
   // --- Menu logic ---
   menuBtn.onclick = (e) => {
@@ -79,7 +94,6 @@ export async function showUserPanel(container, auth) {
     simpleMenu.style.opacity = "1";
     simpleMenu.style.transform = "translateX(-50%) scale(1)";
     simpleMenu.style.pointerEvents = "auto";
-    // Name is already set, so it shows instantly
   };
   document.addEventListener("click", function handler(e) {
     if (!simpleMenu.contains(e.target) && e.target !== menuBtn) closeMenu();
@@ -88,7 +102,7 @@ export async function showUserPanel(container, auth) {
   container.querySelector("#dashboard").onclick = () => { showCentered("Welcome to your Dashboard!"); };
   container.querySelector("#spend").onclick = () => {
     closeMenu();
-    showManageSpend(mainContent); // loads Manage Spend module
+    showManageSpend(mainContent);
   };
   container.querySelector("#friends").onclick = () => { showCentered("This is your friend list."); };
   container.querySelector("#managefriends").onclick = () => { showCentered("Manage friends and connections here."); };
