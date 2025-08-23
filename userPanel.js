@@ -1,12 +1,13 @@
 export async function showUserPanel(container, auth) {
-  // Panel template: button at top left inside container, then message, then menu (initially hidden)
   container.innerHTML = `
     <div style="position:relative; width:100%;">
       <button id="menuBtn"
         style="position:absolute;top:0;left:0;background:none;border:none;padding:15px 23px 14px 15px;font-size:2em;cursor:pointer;z-index:101">
         &#9776;
       </button>
-      <div id="messageBox" style="padding-top:60px;color:#27ae60;font-size:1.04em;"></div>
+      <div id="messageBox"
+        style="padding-top:60px; min-height:2.5em; display:flex; align-items:center; justify-content:center; color:#27ae60; font-size:1.18em; text-align:center;">
+      </div>
       <div id="simpleMenu"
         style="opacity:0; pointer-events:none; position:fixed; left:50%; top:90px; transform:translateX(-50%) scale(0.98);
         width:90vw; max-width:340px; background:#fff; border-radius:12px; box-shadow:0 4px 24px #0002; border:1px solid #eee;
@@ -18,9 +19,10 @@ export async function showUserPanel(container, auth) {
           <span id="menuName" style="font-size:1.12em;font-weight:600;"></span>
         </div>
         <div style="border-bottom:1px solid #ececec;"></div>
-        <div style="padding:16px 18px;border-bottom:1px solid #ececec;cursor:pointer;" id="line1">Line 1</div>
-        <div style="padding:16px 18px;border-bottom:1px solid #ececec;cursor:pointer;" id="line2">Line 2</div>
-        <div style="padding:16px 18px;cursor:pointer;" id="line3">Line 3</div>
+        <div style="padding:16px 18px;border-bottom:1px solid #ececec;cursor:pointer;" id="dashboard">Dashboard</div>
+        <div style="padding:16px 18px;border-bottom:1px solid #ececec;cursor:pointer;" id="spend">Manage Spend</div>
+        <div style="padding:16px 18px;border-bottom:1px solid #ececec;cursor:pointer;" id="friends">Friend List</div>
+        <div style="padding:16px 18px;cursor:pointer;" id="managefriends">Friends Manage</div>
       </div>
     </div>
   `;
@@ -30,9 +32,6 @@ export async function showUserPanel(container, auth) {
   const avatarCircle = container.querySelector("#avatarCircle");
   const menuName = container.querySelector("#menuName");
   const messageBox = container.querySelector("#messageBox");
-  const line1 = container.querySelector("#line1");
-  const line2 = container.querySelector("#line2");
-  const line3 = container.querySelector("#line3");
 
   // Show menu when button is clicked
   menuBtn.onclick = (e) => {
@@ -40,7 +39,7 @@ export async function showUserPanel(container, auth) {
     simpleMenu.style.opacity = "1";
     simpleMenu.style.transform = "translateX(-50%) scale(1)";
     simpleMenu.style.pointerEvents = "auto";
-    menuBtn.style.visibility = "hidden"; // hide while open
+    menuBtn.style.visibility = "hidden";
     fetchUserPanelProfile(auth, avatarCircle, menuName, container, simpleMenu, menuBtn);
   };
 
@@ -49,10 +48,16 @@ export async function showUserPanel(container, auth) {
     if (!simpleMenu.contains(e.target) && e.target !== menuBtn) closeMenu();
   });
 
-  // Menu interactions
-  line1.onclick = () => { messageBox.textContent = "You clicked Line 1"; closeMenu(); };
-  line2.onclick = () => { messageBox.textContent = "You clicked Line 2"; closeMenu(); };
-  line3.onclick = () => { messageBox.textContent = "You clicked Line 3"; closeMenu(); };
+  // Custom messages for each line, shown centered
+  container.querySelector("#dashboard").onclick = () => showCentered("Welcome to your Dashboard!");
+  container.querySelector("#spend").onclick = () => showCentered("Here you can manage your spendings.");
+  container.querySelector("#friends").onclick = () => showCentered("This is your friend list.");
+  container.querySelector("#managefriends").onclick = () => showCentered("Manage friends and connections here.");
+
+  function showCentered(msg) {
+    messageBox.textContent = msg;
+    closeMenu();
+  }
 
   function closeMenu() {
     simpleMenu.style.opacity = "0";
@@ -78,7 +83,6 @@ async function fetchUserPanelProfile(auth, avatarCircle, menuName, container, si
       const initials = (data.name.match(/[A-Z]/gi) || []).join('').toUpperCase().slice(0,2);
       avatarCircle.textContent = initials || "??";
     } else if (resp.status === 403 && data.showLogout) {
-      // Blocked panel: only show logout
       container.innerHTML = `
         <div style="padding:2.3em 1em;text-align:center;">
           <b style="color:#c00;font-size:1.15em;">Access Denied</b><br>
