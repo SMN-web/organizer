@@ -10,37 +10,28 @@ import { sessionRedirect } from './session.js';
 
 const appDiv = document.getElementById('app');
 
-function router() {
-  try {
-    const hash = window.location.hash || '#login';
+function handleRoute(user) {
+  const hash = window.location.hash || "#login";
+  // Public pages (no login requirement)
+  if (hash === "#signup") return showSignup(appDiv);
+  if (hash === "#login")  return showLogin(appDiv);
+  if (hash === "#terms")  return showTerms(appDiv);
+  if (hash === "#resend") return showResendVerification(appDiv);
+  if (hash === "#forgot") return showForgot(appDiv);
 
-    if (hash === '#signup') {
-      showSignup(appDiv);
-    } else if (hash === '#login') {
-      showLogin(appDiv);
-    } else if (hash === '#terms') {
-      showTerms(appDiv);
-    } else if (hash === '#resend') {
-      showResendVerification(appDiv);
-    } else if (hash === '#forgot') {
-      showForgot(appDiv);
-    } else if (['#user', '#admin', '#moderator'].includes(hash)) {
-      window.firebaseAuth.onAuthStateChanged(user => {
-        if (user) {
-          sessionRedirect(window.firebaseAuth, appDiv); // Backend-driven redirect
-        } else {
-          window.location.hash = "#login";
-        }
-      });
-      return;
-    } else {
-      window.location.hash = '#login';
-    }
-  } catch (err) {
-    appDiv.innerHTML = `<pre style="color:red">Router error: ${err && err.message ? err.message : err}</pre>`;
+  // Auth required for below
+  if (!user) {
+    showLogin(appDiv);
+    window.location.hash = "#login";
+    return;
   }
+  // For any protected route, always delegate to sessionRedirect, which will reroute as needed
+  sessionRedirect(window.firebaseAuth, appDiv);
 }
 
-window.addEventListener('hashchange', router);
-window.addEventListener('load', router);
-router();
+// Trigger router on auth state changes & every hash change
+window.firebaseAuth.onAuthStateChanged(user => handleRoute(user));
+window.addEventListener('hashchange', () => {
+  handleRoute(window.firebaseAuth.currentUser);
+});
+handleRoute(window.firebaseAuth.currentUser);
