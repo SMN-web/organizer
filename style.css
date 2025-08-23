@@ -156,28 +156,51 @@ a {
   }
 }
 
+/* --- Floating three-line menu styles and animation --- */
 #simpleMenu {
-  min-width: 180px;
-  max-width: 80vw;
+  position: fixed;
+  left: 50%;
+  top: 90px;
+  transform: translateX(-50%) scale(0.98);
+  width: 90vw;
+  max-width: 340px;
+  background: #fff;
   border-radius: 12px;
   box-shadow: 0 4px 24px #0002;
   border: 1px solid #eee;
-  background: #fff;
   z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s cubic-bezier(.45,1.6,.41,1), transform 0.17s cubic-bezier(.45,1.6,.41,1);
 }
+
+#simpleMenu.menu-open {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+  pointer-events: auto;
+}
+
 #simpleMenu > div {
   padding: 16px 18px;
   border-bottom: 1px solid #ececec;
   cursor: pointer;
   font-size: 1.07em;
+  background: none;
+  transition: background 0.13s;
+}
+#simpleMenu > div:hover {
+  background: #f6f8fa;
 }
 #simpleMenu > div:last-child {
   border-bottom: none;
 }
+
 @media (max-width:600px){
   #simpleMenu {
-    left: 12vw !important;
     top: 70px !important;
-    max-width: 96vw;
+    width: 96vw;
+    max-width: 98vw;
+    left: 50%;
+    transform: translateX(-50%) scale(1);
   }
 }
