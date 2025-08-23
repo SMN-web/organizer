@@ -5,8 +5,8 @@ import { showResendVerification } from './resendVerification.js';
 import { showUserPanel } from './userPanel.js';
 import { showAdminPanel } from './adminPanel.js';
 import { showModeratorPanel } from './moderatorPanel.js';
-import { showForgot } from './forget.js'; 
-import { sessionRedirect } from './session.js'; // <-- NEW import!
+import { showForgot } from './forget.js';
+import { sessionRedirect } from './session.js';
 
 const appDiv = document.getElementById('app');
 
@@ -25,10 +25,9 @@ function router() {
     } else if (hash === '#forgot') {
       showForgot(appDiv);
     } else if (['#user', '#admin', '#moderator'].includes(hash)) {
-      // Use session.js to validate user from backend and redirect as appropriate
       window.firebaseAuth.onAuthStateChanged(user => {
         if (user) {
-          sessionRedirect(window.firebaseAuth, appDiv);
+          sessionRedirect(window.firebaseAuth, appDiv); // Backend-driven redirect
         } else {
           window.location.hash = "#login";
         }
