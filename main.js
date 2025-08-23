@@ -5,39 +5,57 @@ import { showResendVerification } from './resendVerification.js';
 import { showUserPanel } from './userPanel.js';
 import { showAdminPanel } from './adminPanel.js';
 import { showModeratorPanel } from './moderatorPanel.js';
-import { showForgot } from './forget.js';
+import { showForgot } from './forget.js'; // <-- Add this import!
 
 const appDiv = document.getElementById('app');
 
 function router() {
-  const hash = window.location.hash || "#login";
-  if (hash === "#signup")      return showSignup(appDiv);
-  if (hash === "#login")       return showLogin(appDiv);
-  if (hash === "#terms")       return showTerms(appDiv);
-  if (hash === "#resend")      return showResendVerification(appDiv);
-  if (hash === "#forgot")      return showForgot(appDiv);
-  if (hash === "#user") {
-    window.firebaseAuth.onAuthStateChanged(user => {
-      if (user) showUserPanel(appDiv, window.firebaseAuth);
-      else window.location.hash = "#login";
-    });
-    return;
+  try {
+    const hash = window.location.hash || '#login';
+
+    if (hash === '#signup') {
+      showSignup(appDiv);
+    } else if (hash === '#login') {
+      showLogin(appDiv);
+    } else if (hash === '#terms') {
+      showTerms(appDiv);
+    } else if (hash === '#resend') {
+      showResendVerification(appDiv);
+    } else if (hash === '#forgot') {               // <-- Add this route
+      showForgot(appDiv);
+    } else if (hash === '#user') {
+      window.firebaseAuth.onAuthStateChanged(user => {
+        if (user) {
+          showUserPanel(appDiv, window.firebaseAuth);
+        } else {
+          window.location.hash = "#login";
+        }
+      });
+      return;
+    } else if (hash === '#admin') {
+      window.firebaseAuth.onAuthStateChanged(user => {
+        if (user) {
+          showAdminPanel(appDiv, window.firebaseAuth);
+        } else {
+          window.location.hash = "#login";
+        }
+      });
+      return;
+    } else if (hash === '#moderator') {
+      window.firebaseAuth.onAuthStateChanged(user => {
+        if (user) {
+          showModeratorPanel(appDiv, window.firebaseAuth);
+        } else {
+          window.location.hash = "#login";
+        }
+      });
+      return;
+    } else {
+      window.location.hash = '#login';
+    }
+  } catch (err) {
+    appDiv.innerHTML = `<pre style="color:red">Router error: ${err && err.message ? err.message : err}</pre>`;
   }
-  if (hash === "#admin") {
-    window.firebaseAuth.onAuthStateChanged(user => {
-      if (user) showAdminPanel(appDiv, window.firebaseAuth);
-      else window.location.hash = "#login";
-    });
-    return;
-  }
-  if (hash === "#moderator") {
-    window.firebaseAuth.onAuthStateChanged(user => {
-      if (user) showModeratorPanel(appDiv, window.firebaseAuth);
-      else window.location.hash = "#login";
-    });
-    return;
-  }
-  window.location.hash = "#login";
 }
 
 window.addEventListener('hashchange', router);
