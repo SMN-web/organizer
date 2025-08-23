@@ -1,11 +1,11 @@
-        
+
 import {
   signInWithEmailAndPassword,
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { sessionRedirect } from './session.js'; // IMPORTANT: Import session.js here
+import { sessionRedirect } from './session.js';
 
 export function showLogin(container) {
   container.innerHTML = `
@@ -39,7 +39,7 @@ export function showLogin(container) {
     </div>
   `;
 
-  // ... Password toggle logic omitted for brevity ...
+  // Password toggle UI omitted for brevity
 
   const loginForm = container.querySelector("#loginForm");
   const idInput = container.querySelector("#loginId");
@@ -69,7 +69,7 @@ export function showLogin(container) {
     loginBtn.classList.add("loading");
     loginBtn.innerHTML = `<span class="spinner"></span>Logging in...`;
     try {
-      // 1. Backend approval lookup
+      // Backend approval check
       const resp = await fetch(
         "https://lucky-dawn-90bb.nafil-8895-s.workers.dev/api/login-lookup",
         {
@@ -101,7 +101,7 @@ export function showLogin(container) {
         return;
       }
 
-      // 2. Firebase Auth with persistence
+      // Firebase Auth, only if backend approved
       const auth = window.firebaseAuth;
       const persistenceType = keepSignedInCheckbox.checked
         ? browserLocalPersistence
@@ -115,13 +115,10 @@ export function showLogin(container) {
           errBox.innerHTML = `Please verify your email to continue.<br>
             <a href="#resend" style="color:#3498db;">Resend verification email</a>`;
           await auth.signOut();
-          loginBtn.classList.remove("loading");
-          loginBtn.innerHTML = "Login";
-          return;
+        } else {
+          // Now always call sessionRedirect for panel routing
+          await sessionRedirect(auth, container);
         }
-        // 3. Immediately run sessionRedirect after sign-in!
-        await sessionRedirect(auth, container);
-        // The sessionRedirect will handle any further redirects or errors!
       } catch (firebaseErr) {
         errBox.textContent = "Incorrect username/email or password.";
       }
