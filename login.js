@@ -38,38 +38,31 @@ export function showLogin(container) {
       <a href="#signup" style="font-size:0.97em;color:#3498db;cursor:pointer;">Create an account</a>
     </div>
   `;
+  // password toggle omitted for brevity
 
-  // Password toggle UI omitted for brevity
-
-  const loginForm = container.querySelector("#loginForm");
-  const idInput = container.querySelector("#loginId");
-  const pwdInput = container.querySelector("#loginPassword");
-  const idErr = container.querySelector("#loginIdError");
-  const pwdErr = container.querySelector("#loginPasswordError");
-  const errBox = container.querySelector("#loginError");
-  const loginBtn = container.querySelector("#loginBtn");
-  const keepSignedInCheckbox = container.querySelector("#keepSignedIn");
-  const forgotLink = container.querySelector("#forgotLink");
+  const loginForm = container.querySelector("#loginForm"),
+        idInput = container.querySelector("#loginId"),
+        pwdInput = container.querySelector("#loginPassword"),
+        idErr = container.querySelector("#loginIdError"),
+        pwdErr = container.querySelector("#loginPasswordError"),
+        errBox = container.querySelector("#loginError"),
+        loginBtn = container.querySelector("#loginBtn"),
+        keepSignedInCheckbox = container.querySelector("#keepSignedIn"),
+        forgotLink = container.querySelector("#forgotLink");
 
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     errBox.textContent = idErr.textContent = pwdErr.textContent = "";
 
-    const rawId = idInput.value.trim();
-    const password = pwdInput.value.trim();
-    if (!rawId) {
-      idErr.textContent = "Username or email required";
-      return;
-    }
-    if (!password) {
-      pwdErr.textContent = "Password required";
-      return;
-    }
+    const rawId = idInput.value.trim(),
+          password = pwdInput.value.trim();
+    if (!rawId) { idErr.textContent = "Username or email required"; return; }
+    if (!password) { pwdErr.textContent = "Password required"; return; }
 
     loginBtn.classList.add("loading");
     loginBtn.innerHTML = `<span class="spinner"></span>Logging in...`;
     try {
-      // Backend approval check
+      // 1. Backend approval, get canonical email only!
       const resp = await fetch(
         "https://lucky-dawn-90bb.nafil-8895-s.workers.dev/api/login-lookup",
         {
@@ -100,14 +93,12 @@ export function showLogin(container) {
         loginBtn.innerHTML = "Login";
         return;
       }
-
-      // Firebase Auth, only if backend approved
+      // 2. Firebase Auth with persistence
       const auth = window.firebaseAuth;
       const persistenceType = keepSignedInCheckbox.checked
         ? browserLocalPersistence
         : browserSessionPersistence;
       await setPersistence(auth, persistenceType);
-
       try {
         await signInWithEmailAndPassword(auth, lookup.email, password);
         await auth.currentUser.reload();
@@ -115,12 +106,17 @@ export function showLogin(container) {
           errBox.innerHTML = `Please verify your email to continue.<br>
             <a href="#resend" style="color:#3498db;">Resend verification email</a>`;
           await auth.signOut();
-        } else {
-          // Now always call sessionRedirect for panel routing
-          await sessionRedirect(auth, container);
+          loginBtn.classList.remove("loading");
+          loginBtn.innerHTML = "Login";
+          return;
         }
+        // 3. After successful login/emailVerified — let session.js handle ALL routing!
+        await sessionRedirect(auth, container);
       } catch (firebaseErr) {
         errBox.textContent = "Incorrect username/email or password.";
+        loginBtn.classList.remove("loading");
+        loginBtn.innerHTML = "Login";
+        return;
       }
     } catch (err) {
       errBox.textContent = "Network error. Try again.";
