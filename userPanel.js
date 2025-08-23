@@ -1,24 +1,15 @@
+import { showDashboard } from './dashboard.js';
 import { showManageSpend } from './manageSpend.js';
+import { showFriends } from './friends.js';
 
 export async function showUserPanel(container, auth) {
-  // Add spinner overlay
   container.innerHTML = `
-    <div id="loadingOverlay"
-      style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.9);display:flex;align-items:center;justify-content:center;z-index:999;">
-      <div class="spinner" style="
-        width:44px;height:44px;border:5px solid #eee;border-top:5px solid #3498db;border-radius:50%;animation:spin 0.9s linear infinite;">
-      </div>
-    </div>
     <div style="position:relative; width:100%;">
       <button id="menuBtn"
-        style="position:absolute;top:0;left:0;background:none;border:none;padding:15px 23px 14px 15px;font-size:2em;cursor:pointer;z-index:101;visibility:hidden">
+        style="position:absolute;top:0;left:0;background:none;border:none;padding:15px 23px 14px 15px;font-size:2em;cursor:pointer;z-index:101">
         &#9776;
       </button>
-      <div id="mainContent">
-        <div id="messageBox"
-          style="padding-top:60px;min-height:2.6em;display:flex;align-items:center;justify-content:center;color:#27ae60;font-size:1.18em;text-align:center;">
-        </div>
-      </div>
+      <div id="mainContent"></div>
       <div id="simpleMenu"
         style="opacity:0; pointer-events:none; position:fixed; left:50%; top:90px; transform:translateX(-50%) scale(0.98);
         width:90vw; max-width:340px; background:#fff; border-radius:12px; box-shadow:0 4px 24px #0002; border:1px solid #eee;
@@ -32,27 +23,20 @@ export async function showUserPanel(container, auth) {
         <div style="border-bottom:1px solid #ececec;"></div>
         <div style="padding:16px 18px;border-bottom:1px solid #ececec;cursor:pointer;" id="dashboard">Dashboard</div>
         <div style="padding:16px 18px;border-bottom:1px solid #ececec;cursor:pointer;" id="spend">Manage Spend</div>
-        <div style="padding:16px 18px;border-bottom:1px solid #ececec;cursor:pointer;" id="friends">Friend List</div>
-        <div style="padding:16px 18px;cursor:pointer;" id="managefriends">Friends Manage</div>
+        <div style="padding:16px 18px;cursor:pointer;" id="friends">Friends</div>
       </div>
     </div>
-    <style>
-      @keyframes spin { 0% { transform: rotate(0deg);} 100% {transform: rotate(360deg);}}
-    </style>
   `;
 
-  const loadingOverlay = container.querySelector("#loadingOverlay");
   const menuBtn = container.querySelector("#menuBtn");
   const simpleMenu = container.querySelector("#simpleMenu");
   const avatarCircle = container.querySelector("#avatarCircle");
   const menuName = container.querySelector("#menuName");
   const mainContent = container.querySelector("#mainContent");
-  const messageBox = container.querySelector("#messageBox");
 
-  // --- Fetch name/avatar while showing spinner ---
+  // Name/avatar fetching on load
   let userDisplayName = "Unknown";
   let userInitials = "??";
-
   async function fetchNameAndAvatar() {
     try {
       if (!auth.currentUser) throw new Error("No logged in user");
@@ -66,31 +50,18 @@ export async function showUserPanel(container, auth) {
       if (resp.status === 200 && data.name) {
         userDisplayName = data.name;
         userInitials = (data.name.match(/[A-Z]/gi) || []).join('').toUpperCase().slice(0,2) || "??";
-      } else {
-        userDisplayName = "Unknown";
-        userInitials = "??";
       }
-    } catch (e) {
-      userDisplayName = "Unknown";
-      userInitials = "??";
-    }
+    } catch (e) {}
     menuName.textContent = userDisplayName;
     avatarCircle.textContent = userInitials;
   }
-
-  // Show spinner until data is loaded, then enable menu button
-  menuBtn.disabled = true;
-  menuBtn.style.visibility = "hidden";
   await fetchNameAndAvatar();
-  setTimeout(() => { // show spinner for at least ~2 seconds
-    loadingOverlay.style.display = "none";
-    menuBtn.disabled = false;
-    menuBtn.style.visibility = "visible";
-  }, 1800);
 
-  // --- Menu logic ---
-  menuBtn.onclick = (e) => {
-    e.stopPropagation();
+  // Load dashboard by default
+  showDashboard(mainContent, { name: userDisplayName });
+
+  // Menu logic
+  menuBtn.onclick = () => {
     simpleMenu.style.opacity = "1";
     simpleMenu.style.transform = "translateX(-50%) scale(1)";
     simpleMenu.style.pointerEvents = "auto";
@@ -98,24 +69,18 @@ export async function showUserPanel(container, auth) {
   document.addEventListener("click", function handler(e) {
     if (!simpleMenu.contains(e.target) && e.target !== menuBtn) closeMenu();
   });
-
-  container.querySelector("#dashboard").onclick = () => { showCentered("Welcome to your Dashboard!"); };
+  container.querySelector("#dashboard").onclick = () => {
+    closeMenu();
+    showDashboard(mainContent, { name: userDisplayName });
+  };
   container.querySelector("#spend").onclick = () => {
     closeMenu();
-    showManageSpend(mainContent);
+    showManageSpend(mainContent, { name: userDisplayName });
   };
-  container.querySelector("#friends").onclick = () => { showCentered("This is your friend list."); };
-  container.querySelector("#managefriends").onclick = () => { showCentered("Manage friends and connections here."); };
-
-  function showCentered(msg) {
-    mainContent.innerHTML = `
-      <div id="messageBox"
-        style="padding-top:60px;min-height:2.5em;display:flex;align-items:center;justify-content:center;color:#27ae60;font-size:1.18em;text-align:center;">
-        ${msg}
-      </div>
-    `;
+  container.querySelector("#friends").onclick = () => {
     closeMenu();
-  }
+    showFriends(mainContent, { name: userDisplayName });
+  };
 
   function closeMenu() {
     simpleMenu.style.opacity = "0";
