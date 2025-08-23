@@ -6,32 +6,40 @@ import { showUserPanel } from './userPanel.js';
 import { showAdminPanel } from './adminPanel.js';
 import { showModeratorPanel } from './moderatorPanel.js';
 import { showForgot } from './forget.js';
-import { sessionRedirect } from './session.js';
 
 const appDiv = document.getElementById('app');
 
-function handleRoute(user) {
+function router() {
   const hash = window.location.hash || "#login";
-  // Public pages (no login requirement)
-  if (hash === "#signup") return showSignup(appDiv);
-  if (hash === "#login")  return showLogin(appDiv);
-  if (hash === "#terms")  return showTerms(appDiv);
-  if (hash === "#resend") return showResendVerification(appDiv);
-  if (hash === "#forgot") return showForgot(appDiv);
-
-  // Auth required for below
-  if (!user) {
-    showLogin(appDiv);
-    window.location.hash = "#login";
+  if (hash === "#signup")      return showSignup(appDiv);
+  if (hash === "#login")       return showLogin(appDiv);
+  if (hash === "#terms")       return showTerms(appDiv);
+  if (hash === "#resend")      return showResendVerification(appDiv);
+  if (hash === "#forgot")      return showForgot(appDiv);
+  if (hash === "#user") {
+    window.firebaseAuth.onAuthStateChanged(user => {
+      if (user) showUserPanel(appDiv, window.firebaseAuth);
+      else window.location.hash = "#login";
+    });
     return;
   }
-  // For any protected route, always delegate to sessionRedirect, which will reroute as needed
-  sessionRedirect(window.firebaseAuth, appDiv);
+  if (hash === "#admin") {
+    window.firebaseAuth.onAuthStateChanged(user => {
+      if (user) showAdminPanel(appDiv, window.firebaseAuth);
+      else window.location.hash = "#login";
+    });
+    return;
+  }
+  if (hash === "#moderator") {
+    window.firebaseAuth.onAuthStateChanged(user => {
+      if (user) showModeratorPanel(appDiv, window.firebaseAuth);
+      else window.location.hash = "#login";
+    });
+    return;
+  }
+  window.location.hash = "#login";
 }
 
-// Trigger router on auth state changes & every hash change
-window.firebaseAuth.onAuthStateChanged(user => handleRoute(user));
-window.addEventListener('hashchange', () => {
-  handleRoute(window.firebaseAuth.currentUser);
-});
-handleRoute(window.firebaseAuth.currentUser);
+window.addEventListener('hashchange', router);
+window.addEventListener('load', router);
+router();
