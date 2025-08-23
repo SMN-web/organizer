@@ -50,7 +50,10 @@ export async function showUserPanel(container, auth) {
 
   // Custom messages for each line, shown centered
   container.querySelector("#dashboard").onclick = () => showCentered("Welcome to your Dashboard!");
-  container.querySelector("#spend").onclick = () => showCentered("Here you can manage your spendings.");
+  container.querySelector("#spend").onclick = () => { 
+  closeMenu();
+  showManageSpend(container, { name: menuName.textContent });
+};
   container.querySelector("#friends").onclick = () => showCentered("This is your friend list.");
   container.querySelector("#managefriends").onclick = () => showCentered("Manage friends and connections here.");
 
