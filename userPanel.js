@@ -4,7 +4,14 @@ import { showFriends } from './friends.js';
 import { showUserProfile } from './userProfile.js';
 
 export async function showUserPanel(container, auth) {
+  // Show spinner overlay for 2 seconds on every reload
   container.innerHTML = `
+    <div id="loadingOverlay"
+      style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.98);display:flex;align-items:center;justify-content:center;z-index:999;">
+      <div class="spinner" style="
+        width:44px;height:44px;border:5px solid #eee;border-top:5px solid #3498db;border-radius:50%;animation:spin 0.8s linear infinite;">
+      </div>
+    </div>
     <div style="position:relative; width:100%;">
       <button id="menuBtn"
         style="position:absolute;top:0;left:0;background:none;border:none;padding:15px 23px 14px 15px;font-size:2em;cursor:pointer;z-index:101">
@@ -12,9 +19,9 @@ export async function showUserPanel(container, auth) {
       </button>
       <div id="mainContent"></div>
       <div id="simpleMenu"
-        style="opacity:0; pointer-events:none; position:fixed; left:50%; top:90px; transform:translateX(-50%) scale(0.98);
-        width:90vw; max-width:340px; background:#fff; border-radius:12px; box-shadow:0 4px 24px #0002; border:1px solid #eee;
-        z-index:150; transition:opacity 0.22s cubic-bezier(.45,1.6,.41,1), transform 0.17s cubic-bezier(.45,1.6,.41,1); display:flex;flex-direction:column;">
+        style="opacity:0;pointer-events:none;position:fixed;left:50%;top:90px;transform:translateX(-50%) scale(0.98);
+        width:90vw;max-width:340px;background:#fff;border-radius:12px;box-shadow:0 4px 24px #0002;border:1px solid #eee;
+        z-index:150;transition:opacity 0.22s cubic-bezier(.45,1.6,.41,1),transform 0.17s cubic-bezier(.45,1.6,.41,1);display:flex;flex-direction:column;">
         <div id="userHeader" style="display:flex;align-items:center;padding:18px 18px 16px 18px;cursor:pointer;">
           <span id="avatarCircle"
             style="background:#e1e6ef;color:#355;font-weight:700;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;font-size:1.2em;margin-right:13px;">
@@ -28,14 +35,19 @@ export async function showUserPanel(container, auth) {
         <div style="flex:1;"></div>
         <div style="padding:12px 16px 14px 16px; border-top:1px solid #f3f3f3;">
           <button id="logoutBtn"
-            style="background:none;color:#d00;border:none;font-size:1em;padding:0.2em 0.8em;cursor:pointer;text-align:left;">
-            &#x23FB; Logout
+            style="background:none;color:#d00;border:none;font-size:1em;padding:0.2em 0.9em;cursor:pointer;text-align:left;">
+            Logout
           </button>
         </div>
       </div>
     </div>
+    <style>
+      @keyframes spin { 0% { transform: rotate(0deg);} 100% {transform: rotate(360deg);}}
+    </style>
   `;
 
+  // Save code references
+  const loadingOverlay = container.querySelector("#loadingOverlay");
   const menuBtn = container.querySelector("#menuBtn");
   const simpleMenu = container.querySelector("#simpleMenu");
   const avatarCircle = container.querySelector("#avatarCircle");
@@ -44,7 +56,7 @@ export async function showUserPanel(container, auth) {
   const userHeader = container.querySelector("#userHeader");
   const logoutBtn = container.querySelector("#logoutBtn");
 
-  // Fetch name/avatar
+  // Fetch user info
   let userDisplayName = "Unknown";
   let userInitials = "??";
   let userEmail = "";
@@ -69,10 +81,32 @@ export async function showUserPanel(container, auth) {
   }
   await fetchNameAndAvatar();
 
-  // Show dashboard by default!
-  showDashboard(mainContent, { name: userDisplayName, email: userEmail });
+  // --- Loading spinner: rotate for ~2 seconds then reveal UI ---
+  menuBtn.disabled = true;
+  simpleMenu.style.pointerEvents = "none";
+  setTimeout(() => {
+    loadingOverlay.style.display = "none";
+    menuBtn.disabled = false;
+    simpleMenu.style.pointerEvents = "";
+  }, 1900);
 
-  // --- MENU LOGIC ---
+  // --- Load last selected tab from localStorage, else dashboard as default ---
+  const TAB_KEYS = {
+    dashboard: showDashboard,
+    spend: showManageSpend,
+    friends: showFriends,
+    userprofile: showUserProfile
+  };
+  // On signin: always show Dashboard if freshly signed-in
+  let lastTab = localStorage.getItem('lastTab') || 'dashboard';
+  let tabToLoad = lastTab;
+  if (!localStorage.getItem('userSignedIn')) {
+    tabToLoad = 'dashboard';
+    localStorage.setItem('userSignedIn', '1');
+  }
+  (TAB_KEYS[tabToLoad] || showDashboard)(mainContent, { name: userDisplayName, email: userEmail });
+
+  // --- Menu logic ---
   menuBtn.onclick = () => {
     simpleMenu.style.opacity = "1";
     simpleMenu.style.transform = "translateX(-50%) scale(1)";
@@ -82,27 +116,19 @@ export async function showUserPanel(container, auth) {
     if (!simpleMenu.contains(e.target) && e.target !== menuBtn) closeMenu();
   });
 
-  // MENU ITEM LOGIC
-  container.querySelector("#dashboard").onclick = () => {
+  function selectTab(key) {
     closeMenu();
-    showDashboard(mainContent, { name: userDisplayName, email: userEmail });
-  };
-  container.querySelector("#spend").onclick = () => {
-    closeMenu();
-    showManageSpend(mainContent, { name: userDisplayName, email: userEmail });
-  };
-  container.querySelector("#friends").onclick = () => {
-    closeMenu();
-    showFriends(mainContent, { name: userDisplayName, email: userEmail });
-  };
-  // Profile open on clicking name/avatar
-  userHeader.onclick = () => {
-    closeMenu();
-    showUserProfile(mainContent, { name: userDisplayName, email: userEmail });
-  };
+    localStorage.setItem('lastTab', key);
+    (TAB_KEYS[key] || showDashboard)(mainContent, { name: userDisplayName, email: userEmail });
+  }
 
-  // LOGOUT button
+  container.querySelector("#dashboard").onclick = () => selectTab('dashboard');
+  container.querySelector("#spend").onclick = () => selectTab('spend');
+  container.querySelector("#friends").onclick = () => selectTab('friends');
+  userHeader.onclick = () => selectTab('userprofile');
+
   logoutBtn.onclick = async () => {
+    localStorage.clear();
     await auth.signOut();
     location.reload();
   };
