@@ -1,13 +1,18 @@
 import { showManageSpend } from './manageSpend.js';
+
 export async function showUserPanel(container, auth) {
+
+  // Initial skeleton for panel, menu, and the content area
   container.innerHTML = `
     <div style="position:relative; width:100%;">
       <button id="menuBtn"
         style="position:absolute;top:0;left:0;background:none;border:none;padding:15px 23px 14px 15px;font-size:2em;cursor:pointer;z-index:101">
         &#9776;
       </button>
-      <div id="messageBox"
-        style="padding-top:60px; min-height:2.5em; display:flex; align-items:center; justify-content:center; color:#27ae60; font-size:1.18em; text-align:center;">
+      <div id="mainContent">
+        <div id="messageBox"
+          style="padding-top:60px;min-height:2.6em;display:flex;align-items:center;justify-content:center;color:#27ae60;font-size:1.18em;text-align:center;">
+        </div>
       </div>
       <div id="simpleMenu"
         style="opacity:0; pointer-events:none; position:fixed; left:50%; top:90px; transform:translateX(-50%) scale(0.98);
@@ -32,34 +37,69 @@ export async function showUserPanel(container, auth) {
   const simpleMenu = container.querySelector("#simpleMenu");
   const avatarCircle = container.querySelector("#avatarCircle");
   const menuName = container.querySelector("#menuName");
+  const mainContent = container.querySelector("#mainContent");
   const messageBox = container.querySelector("#messageBox");
 
-  // Show menu when button is clicked
+  // --- Fast Name Fetch: Get ON PAGE LOAD (not menu open) ---
+  let userDisplayName = "Unknown";
+  let userInitials = "??";
+
+  async function fetchNameAndAvatar() {
+    try {
+      if (!auth.currentUser) throw new Error("No logged in user");
+      await auth.currentUser.reload();
+      const token = await auth.currentUser.getIdToken(true);
+      const resp = await fetch("https://us-api.nafil-8895-s.workers.dev/api/userpanel", {
+        headers: { Authorization: "Bearer " + token },
+        mode: "cors",
+      });
+      const data = await resp.json();
+      if (resp.status === 200 && data.name) {
+        userDisplayName = data.name;
+        userInitials = (data.name.match(/[A-Z]/gi) || []).join('').toUpperCase().slice(0,2) || "??";
+      } else {
+        userDisplayName = "Unknown";
+        userInitials = "??";
+      }
+    } catch (e) {
+      userDisplayName = "Unknown";
+      userInitials = "??";
+    }
+    // Always set these in the menu, even if menu is not visible yet
+    menuName.textContent = userDisplayName;
+    avatarCircle.textContent = userInitials;
+  }
+
+  // Immediately fetch name/avatar on load
+  await fetchNameAndAvatar();
+
+  // --- Menu logic ---
   menuBtn.onclick = (e) => {
     e.stopPropagation();
     simpleMenu.style.opacity = "1";
     simpleMenu.style.transform = "translateX(-50%) scale(1)";
     simpleMenu.style.pointerEvents = "auto";
-    menuBtn.style.visibility = "hidden";
-    fetchUserPanelProfile(auth, avatarCircle, menuName, container, simpleMenu, menuBtn);
+    // Name is already set, so it shows instantly
   };
-
-  // Hide menu on outside click
   document.addEventListener("click", function handler(e) {
     if (!simpleMenu.contains(e.target) && e.target !== menuBtn) closeMenu();
   });
 
-  // Custom messages for each line, shown centered
-  container.querySelector("#dashboard").onclick = () => showCentered("Welcome to your Dashboard!");
-  container.querySelector("#spend").onclick = () => { 
-  closeMenu();
-  showManageSpend(container, { name: menuName.textContent });
-};
-  container.querySelector("#friends").onclick = () => showCentered("This is your friend list.");
-  container.querySelector("#managefriends").onclick = () => showCentered("Manage friends and connections here.");
+  container.querySelector("#dashboard").onclick = () => { showCentered("Welcome to your Dashboard!"); };
+  container.querySelector("#spend").onclick = () => {
+    closeMenu();
+    showManageSpend(mainContent); // loads Manage Spend module
+  };
+  container.querySelector("#friends").onclick = () => { showCentered("This is your friend list."); };
+  container.querySelector("#managefriends").onclick = () => { showCentered("Manage friends and connections here."); };
 
   function showCentered(msg) {
-    messageBox.textContent = msg;
+    mainContent.innerHTML = `
+      <div id="messageBox"
+        style="padding-top:60px;min-height:2.5em;display:flex;align-items:center;justify-content:center;color:#27ae60;font-size:1.18em;text-align:center;">
+        ${msg}
+      </div>
+    `;
     closeMenu();
   }
 
@@ -67,46 +107,5 @@ export async function showUserPanel(container, auth) {
     simpleMenu.style.opacity = "0";
     simpleMenu.style.transform = "translateX(-50%) scale(0.98)";
     simpleMenu.style.pointerEvents = "none";
-    menuBtn.style.visibility = "visible";
-  }
-}
-
-async function fetchUserPanelProfile(auth, avatarCircle, menuName, container, simpleMenu, menuBtn) {
-  try {
-    if (!auth.currentUser) throw new Error("No logged in user");
-    await auth.currentUser.reload();
-    const token = await auth.currentUser.getIdToken(true);
-
-    const resp = await fetch("https://us-api.nafil-8895-s.workers.dev/api/userpanel", {
-      headers: { Authorization: "Bearer " + token },
-      mode: "cors",
-    });
-    const data = await resp.json();
-    if (resp.status === 200 && data.name) {
-      menuName.textContent = data.name;
-      const initials = (data.name.match(/[A-Z]/gi) || []).join('').toUpperCase().slice(0,2);
-      avatarCircle.textContent = initials || "??";
-    } else if (resp.status === 403 && data.showLogout) {
-      container.innerHTML = `
-        <div style="padding:2.3em 1em;text-align:center;">
-          <b style="color:#c00;font-size:1.15em;">Access Denied</b><br>
-          <div style="margin:1.3em 0 2em;">${data.error || "Unauthorized access."}</div>
-          <button id="logoutBtn"
-            style="background:#c00;color:#fff;padding:0.7em 2em;border:none;border-radius:6px;cursor:pointer;font-size:1em;">
-            Logout
-          </button>
-        </div>
-      `;
-      container.querySelector("#logoutBtn").onclick = async () => {
-        await auth.signOut();
-        location.reload();
-      };
-    } else {
-      menuName.textContent = "Unknown";
-      avatarCircle.textContent = "??";
-    }
-  } catch (e) {
-    menuName.textContent = "Unknown";
-    avatarCircle.textContent = "??";
   }
 }
