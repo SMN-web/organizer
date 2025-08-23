@@ -1,3 +1,4 @@
+import { showManageSpend } from './manageSpend.js';
 export async function showUserPanel(container, auth) {
   container.innerHTML = `
     <div style="position:relative; width:100%;">
