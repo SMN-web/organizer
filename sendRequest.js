@@ -1,5 +1,3 @@
-import { getAuth } from "firebase/auth";
-
 export function showSendRequest(container, user) {
   container.innerHTML = `
     <h3>Send Friend Request</h3>
@@ -15,14 +13,11 @@ export function showSendRequest(container, user) {
       return;
     }
     try {
-      // Always get fresh token from Firebase Auth session
-      const auth = getAuth();
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
+      if (!user) {
         container.querySelector("#searchResult").textContent = "Please log in first.";
         return;
       }
-      const token = await currentUser.getIdToken();
+      const token = await user.getIdToken();
 
       const res = await fetch('https://se-re.nafil-8895-s.workers.dev/api/friends/search-status', {
         method: 'POST',
@@ -51,6 +46,7 @@ export function showSendRequest(container, user) {
         container.querySelector("#searchResult").textContent = "Request is already pending.";
         return;
       }
+
       container.querySelector("#searchResult").innerHTML = `
         <div>
           <span style="font-weight:500">${result.name || result.username}</span>
@@ -61,7 +57,7 @@ export function showSendRequest(container, user) {
       `;
       container.querySelector("#sendRequestBtn").onclick = async () => {
         try {
-          const newToken = await currentUser.getIdToken(); // Ensure fresh token
+          const newToken = await user.getIdToken(); // re-check token
           const req = await fetch('https://se-re.nafil-8895-s.workers.dev/api/friends/send', {
             method: 'POST',
             headers: {
