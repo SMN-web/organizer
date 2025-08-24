@@ -1,2 +1,19 @@
-const arr = crypto.getRandomValues(new Uint8Array(32));
-btoa(String.fromCharCode(...arr));
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Generate AES-256 Key</title>
+</head>
+<body>
+  <h2>Secure 256-bit Key Generator</h2>
+  <button onclick="genKey()">Generate Key</button>
+  <pre id="output" style="margin-top:1.5em;font-size:1.14em;line-break:anywhere;background:#f2f2f2;padding:1em;border-radius:8px;min-height:40px;"></pre>
+  <script>
+    function genKey() {
+      const arr = crypto.getRandomValues(new Uint8Array(32));
+      const key = btoa(String.fromCharCode(...arr));
+      document.getElementById('output').textContent = key;
+    }
+  </script>
+</body>
+</html>
