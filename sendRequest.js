@@ -1,3 +1,5 @@
+import { showSpinner, hideSpinner, delay } from './spinner.js';
+
 export function showSendRequest(container, user) {
   container.innerHTML = `
     <h3>Send Friend Request</h3>
@@ -19,8 +21,8 @@ export function showSendRequest(container, user) {
         resultDiv.innerHTML = `<div style="color:#d12020;">Please log in first.</div>`;
         return;
       }
+      showSpinner(container); await delay(1200);
       const token = await user.firebaseUser.getIdToken();
-
       const res = await fetch('https://se-re.nafil-8895-s.workers.dev/api/friends/search-status', {
         method: 'POST',
         headers: {
@@ -29,6 +31,7 @@ export function showSendRequest(container, user) {
         },
         body: JSON.stringify({ target: input })
       });
+      hideSpinner(container);
       if (!res.ok) throw new Error(await res.text());
       const result = await res.json();
 
@@ -48,14 +51,11 @@ export function showSendRequest(container, user) {
         resultDiv.innerHTML = `<div style='padding:10px;background:#fff4e0;border-radius:6px;color:#ad670f;'>Friend request already sent to <b>${result.name || result.username}</b>.</div>`;
         return;
       }
-
-      // If matching yourself, hide button and show clear warning
       const myUsername = user.firebaseUser.displayName?.toLowerCase() || user.firebaseUser.email?.toLowerCase() || '';
       if (result.username.toLowerCase() === myUsername) {
         resultDiv.innerHTML = `<div style="color:#d12020;background:#ffe6e6;padding:10px 12px;border-radius:6px;">You cannot send a friend request to yourself.</div>`;
         return;
       }
-
       resultDiv.innerHTML = `
         <div style="padding:12px 16px;background:#f5f6fa;border-radius:6px;display:flex;align-items:center;gap:12px;">
           <span style="font-weight:500;font-size:1.1em;">${result.name || result.username}</span>
@@ -65,6 +65,7 @@ export function showSendRequest(container, user) {
         </div>
       `;
       container.querySelector("#sendRequestBtn").onclick = async () => {
+        showSpinner(container); await delay(1000);
         try {
           const newToken = await user.firebaseUser.getIdToken();
           const req = await fetch('https://se-re.nafil-8895-s.workers.dev/api/friends/send', {
@@ -75,6 +76,7 @@ export function showSendRequest(container, user) {
             },
             body: JSON.stringify({ to: result.username })
           });
+          hideSpinner(container);
           if (!req.ok) {
             const err = await req.text();
             let msg = '';
@@ -91,11 +93,13 @@ export function showSendRequest(container, user) {
           container.querySelector("#sendMsg").style.color = "#158b46";
           container.querySelector("#sendRequestBtn").disabled = true;
         } catch (e) {
+          hideSpinner(container);
           container.querySelector("#sendMsg").textContent = e.message;
           container.querySelector("#sendMsg").style.color = "#d12020";
         }
       };
     } catch (e) {
+      hideSpinner(container);
       container.querySelector("#searchResult").innerHTML = `<div style="color:#d12020;">Error: ${e.message.replace(/"/g,'')}</div>`;
     }
   };
