@@ -4,13 +4,10 @@ import { showFriends } from './friends.js';
 import { showUserProfile } from './userProfile.js';
 
 export async function showUserPanel(container, auth) {
-  // Show spinner overlay for 2 seconds on every reload
   container.innerHTML = `
     <div id="loadingOverlay"
       style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.98);display:flex;align-items:center;justify-content:center;z-index:999;">
-      <div class="spinner" style="
-        width:44px;height:44px;border:5px solid #eee;border-top:5px solid #3498db;border-radius:50%;animation:spin 0.8s linear infinite;">
-      </div>
+      <div class="spinner" style="width:44px;height:44px;border:5px solid #eee;border-top:5px solid #3498db;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
     </div>
     <div style="position:relative; width:100%;">
       <button id="menuBtn"
@@ -46,7 +43,6 @@ export async function showUserPanel(container, auth) {
     </style>
   `;
 
-  // Save code references
   const loadingOverlay = container.querySelector("#loadingOverlay");
   const menuBtn = container.querySelector("#menuBtn");
   const simpleMenu = container.querySelector("#simpleMenu");
@@ -56,7 +52,7 @@ export async function showUserPanel(container, auth) {
   const userHeader = container.querySelector("#userHeader");
   const logoutBtn = container.querySelector("#logoutBtn");
 
-  // Fetch user info
+  // Fetch user info (name, initials, email)
   let userDisplayName = "Unknown";
   let userInitials = "??";
   let userEmail = "";
@@ -81,6 +77,13 @@ export async function showUserPanel(container, auth) {
   }
   await fetchNameAndAvatar();
 
+  // Always create this user context object:
+  const userContext = {
+    name: userDisplayName,
+    email: userEmail,
+    firebaseUser: auth.currentUser // this .firebaseUser will be used by all child modules!
+  };
+
   // --- Loading spinner: rotate for ~2 seconds then reveal UI ---
   menuBtn.disabled = true;
   simpleMenu.style.pointerEvents = "none";
@@ -90,21 +93,22 @@ export async function showUserPanel(container, auth) {
     simpleMenu.style.pointerEvents = "";
   }, 1900);
 
-  // --- Load last selected tab from localStorage, else dashboard as default ---
+  // --- Set up tab dispatchers ---
   const TAB_KEYS = {
     dashboard: showDashboard,
     spend: showManageSpend,
     friends: showFriends,
     userprofile: showUserProfile
   };
-  // On signin: always show Dashboard if freshly signed-in
+
   let lastTab = localStorage.getItem('lastTab') || 'dashboard';
   let tabToLoad = lastTab;
   if (!localStorage.getItem('userSignedIn')) {
     tabToLoad = 'dashboard';
     localStorage.setItem('userSignedIn', '1');
   }
-  (TAB_KEYS[tabToLoad] || showDashboard)(mainContent, { name: userDisplayName, email: userEmail });
+  // Pass userContext to each tab
+  (TAB_KEYS[tabToLoad] || showDashboard)(mainContent, userContext);
 
   // --- Menu logic ---
   menuBtn.onclick = () => {
@@ -119,7 +123,7 @@ export async function showUserPanel(container, auth) {
   function selectTab(key) {
     closeMenu();
     localStorage.setItem('lastTab', key);
-    (TAB_KEYS[key] || showDashboard)(mainContent, { name: userDisplayName, email: userEmail });
+    (TAB_KEYS[key] || showDashboard)(mainContent, userContext);
   }
 
   container.querySelector("#dashboard").onclick = () => selectTab('dashboard');
