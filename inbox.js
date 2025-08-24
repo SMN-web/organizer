@@ -7,15 +7,36 @@ export function showInbox(container, user) {
       container.innerHTML = `<div style="color:#c00">Please log in.</div>`;
       return;
     }
-    const token = await user.firebaseUser.getIdToken();
-    const res = await fetch('https://fr-in.nafil-8895-s.workers.dev/api/friends/inbox', {
-      headers: { Authorization: 'Bearer ' + token }
-    });
     let requests = [];
+    let errMsg = "";
     try {
-      requests = await res.json();
-    } catch (e) {}
-    if (!Array.isArray(requests) || requests.length === 0) {
+      const token = await user.firebaseUser.getIdToken();
+      const res = await fetch('https://fr-in.nafil-8895-s.workers.dev/api/friends/inbox', {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      const text = await res.text();
+      try {
+        requests = JSON.parse(text);
+      } catch (e) {
+        errMsg = "Invalid backend response: " + text;
+      }
+      // If response is not array, treat as error
+      if (!Array.isArray(requests)) {
+        if (requests && requests.error)
+          errMsg = "Backend error: " + requests.error;
+        else
+          errMsg = "Unexpected backend error: " + text;
+      }
+    } catch (e) {
+      errMsg = "Network error: " + e.message;
+    }
+
+    if (errMsg) {
+      container.innerHTML = `<div style="color:#d12020;font-size:1.1em;margin:1.5em 0;">${errMsg}</div>`;
+      return;
+    }
+
+    if (requests.length === 0) {
       container.innerHTML = `<div style="margin:2em 0;color:#888;">No pending friend requests.</div>`;
       return;
     }
