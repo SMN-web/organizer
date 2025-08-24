@@ -156,15 +156,15 @@ export async function showUserPanel(container, auth) {
 
   // --- Notifications bell, badge, and demo navigation ---
   mountNotifications(document.getElementById('notifyBell'), userContext, (type) => {
-    if (type === "friend_request") {
-      // Click Friends tab, then Inbox tab after slight delay
-      const friendsBtn = document.querySelector("#friends");
-      if (friendsBtn) friendsBtn.click();
-      setTimeout(() => {
-        const inboxBtn = document.querySelector("#tabInbox");
-        if (inboxBtn) inboxBtn.click();
-      }, 120);
-    }
-    // More types can be handled here
-  });
+  if (type === "friend_request") {
+    // Switch Friends tab, then Inbox
+    const friendsBtn = document.querySelector("#friends");
+    if (friendsBtn) friendsBtn.click();
+    setTimeout(() => {
+      const inboxBtn = document.querySelector("#tabInbox");
+      if (inboxBtn) inboxBtn.click();
+    }, 120);
+  }
+});
+
 }
