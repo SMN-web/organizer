@@ -2,6 +2,7 @@ import { showDashboard } from './dashboard.js';
 import { showManageSpend } from './manageSpend.js';
 import { showFriends } from './friends.js';
 import { showUserProfile } from './userProfile.js';
+import { mountNotifications } from './notifications.js';
 
 export async function showUserPanel(container, auth) {
   container.innerHTML = `
@@ -81,7 +82,7 @@ export async function showUserPanel(container, auth) {
   const userContext = {
     name: userDisplayName,
     email: userEmail,
-    firebaseUser: auth.currentUser // this .firebaseUser will be used by all child modules!
+    firebaseUser: auth.currentUser // for token access in modules
   };
 
   // --- Loading spinner: rotate for ~2 seconds then reveal UI ---
@@ -107,7 +108,6 @@ export async function showUserPanel(container, auth) {
     tabToLoad = 'dashboard';
     localStorage.setItem('userSignedIn', '1');
   }
-  // Pass userContext to each tab
   (TAB_KEYS[tabToLoad] || showDashboard)(mainContent, userContext);
 
   // --- Menu logic ---
@@ -142,4 +142,18 @@ export async function showUserPanel(container, auth) {
     simpleMenu.style.transform = "translateX(-50%) scale(0.98)";
     simpleMenu.style.pointerEvents = "none";
   }
+
+  // --- Notifications bell, badge, and demo navigation ---
+  mountNotifications(document.body, userContext, (type) => {
+    if (type === "friend_request") {
+      // Click Friends tab, then Inbox tab after slight delay
+      const friendsBtn = document.querySelector("#friends");
+      if (friendsBtn) friendsBtn.click();
+      setTimeout(() => {
+        const inboxBtn = document.querySelector("#tabInbox");
+        if (inboxBtn) inboxBtn.click();
+      }, 120);
+    }
+    // Other types could be routed as needed
+  });
 }
