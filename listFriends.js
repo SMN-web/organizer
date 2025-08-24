@@ -1,5 +1,6 @@
 import { showSpinner, hideSpinner, delay } from './spinner.js';
 
+// Main Friends List UI
 export function showListFriends(container, user) {
   container.innerHTML = '';
   showSpinner(container);
@@ -7,7 +8,7 @@ export function showListFriends(container, user) {
   let allFriends = [];
 
   function createDropdown(friend, parentRow, onActionDone) {
-    // Remove old
+    // Remove any old
     for (let el of document.querySelectorAll('.friendDropdown')) el.remove();
     const dd = document.createElement('div');
     dd.className = 'friendDropdown';
@@ -92,16 +93,20 @@ export function showListFriends(container, user) {
 
   async function fetchFriendsList() {
     showSpinner(container);
-    const start = Date.now();
-    let list = [], errMsg = '';
+    let errMsg = '';
+    let list = [];
     try {
-      if (!user?.firebaseUser) throw new Error('Please log in.');
+      if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function') {
+        hideSpinner(container);
+        container.innerHTML = `<div style="color:#d12020;margin:2em;">You must be logged in to view friends.</div>`;
+        return;
+      }
       const token = await user.firebaseUser.getIdToken();
       const res = await fetch('https://fr-li.nafil-8895-s.workers.dev/api/friends/list', {
         headers: { Authorization: 'Bearer ' + token }
       });
       const text = await res.text();
-      await delay(Math.max(0, 1200 - (Date.now() - start)));
+      await delay(1000);
       try { list = JSON.parse(text); } catch (e) { errMsg = "Invalid backend response: " + text; }
       if (!Array.isArray(list)) {
         if (list && list.error) errMsg = "Backend error: " + list.error;
@@ -115,51 +120,59 @@ export function showListFriends(container, user) {
       return;
     }
     allFriends = list;
-    render();
+    render('');
   }
 
   function render(filterTerm = "") {
-    container.innerHTML = `
-      <div style="font-weight:600;font-size:1.13em;line-height:1.6;margin-bottom:9px;">
-        My Friends
-      </div>
-      <input id="friendFilter" type="text" placeholder="Filter by name or username" style="width:98%;max-width:330px;margin-bottom:17px;padding:0.5em 1em;border-radius:7px;border:1px solid #dde;">
-      <div id="friendList" style="max-height:54vh;overflow-y:auto;"></div>
-    `;
-    const friendList = container.querySelector("#friendList");
-    container.querySelector('#friendFilter').oninput = e => render(e.target.value);
-    let friends = allFriends;
-    if (filterTerm) {
-      const t = filterTerm.toLowerCase();
-      friends = allFriends.filter(f =>
-        (f.name||'').toLowerCase().includes(t) ||
-        (f.username||'').toLowerCase().includes(t)
-      );
-    }
-    if (friends.length === 0) {
-      friendList.innerHTML = `<div style="margin:2em 0;color:#888;">No friends found.</div>`;
-      return;
-    }
-    friends.forEach(friend => {
-      const row = document.createElement("div");
-      row.style =
-        "position:relative;margin:13px 0;display:flex;align-items:center;gap:18px;padding:10px 0 10px 0;overflow-wrap:break-word;word-break:break-word;";
-      row.innerHTML = `
-        <div class="friendNameClickable" style="cursor:pointer;flex:1 1 0;display:flex;flex-direction:column;">
-          <span style="font-size:1.07em;font-weight:500;">${friend.name || friend.username}</span>
-          <span style="font-size:0.97em;color:#888;margin-top:-1px;">@${friend.username}</span>
+    try {
+      container.innerHTML = `
+        <div style="font-weight:600;font-size:1.13em;line-height:1.6;margin-bottom:9px;">
+          My Friends
         </div>
-        <span style="font-size:1.25em;cursor:pointer;color:#bbb;">&#8942;</span>
+        <input id="friendFilter" type="text" placeholder="Filter by name or username" style="width:98%;max-width:330px;margin-bottom:17px;padding:0.5em 1em;border-radius:7px;border:1px solid #dde;">
+        <div id="friendList" style="max-height:54vh;overflow-y:auto;"></div>
       `;
-      row.querySelector('.friendNameClickable').onclick = e => {
-        createDropdown(friend, row);
-      };
-      row.querySelector('span[style*="cursor:pointer;color:#bbb"]').onclick = e => {
-        createDropdown(friend, row);
-      };
-      friendList.appendChild(row);
-    });
+      const friendList = container.querySelector("#friendList");
+      container.querySelector('#friendFilter').oninput = e => render(e.target.value);
+      let friends = allFriends;
+      if (filterTerm) {
+        const t = filterTerm.toLowerCase();
+        friends = allFriends.filter(f =>
+          (f.name||'').toLowerCase().includes(t) ||
+          (f.username||'').toLowerCase().includes(t)
+        );
+      }
+      if (!friends || friends.length === 0) {
+        friendList.innerHTML = `<div style="margin:2em 0;color:#888;">No friends found.</div>`;
+        return;
+      }
+      friends.forEach(friend => {
+        const row = document.createElement("div");
+        row.style =
+          "position:relative;margin:13px 0;display:flex;align-items:center;gap:18px;padding:10px 0 10px 0;overflow-wrap:break-word;word-break:break-word;";
+        row.innerHTML = `
+          <div class="friendNameClickable" style="cursor:pointer;flex:1 1 0;display:flex;flex-direction:column;">
+            <span style="font-size:1.07em;font-weight:500;">${friend.name || friend.username}</span>
+            <span style="font-size:0.97em;color:#888;margin-top:-1px;">@${friend.username}</span>
+          </div>
+          <span style="font-size:1.25em;cursor:pointer;color:#bbb;">&#8942;</span>
+        `;
+        row.querySelector('.friendNameClickable').onclick = e => {
+          createDropdown(friend, row);
+        };
+        row.querySelector('span[style*="cursor:pointer;color:#bbb"]').onclick = e => {
+          createDropdown(friend, row);
+        };
+        friendList.appendChild(row);
+      });
+    } catch(e) {
+      container.innerHTML = `<div style="color:#d12020;font-size:1.05em;">JS Error: ${e && e.stack ? e.stack : e}</div>`;
+    }
   }
 
-  fetchFriendsList();
+  try {
+    fetchFriendsList();
+  } catch(e) {
+    container.innerHTML = `<div style="color:#d12020;font-size:1.1em;">Could not start: ${e && e.stack ? e.stack : e}</div>`;
+  }
 }
