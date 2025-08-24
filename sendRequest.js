@@ -1,4 +1,5 @@
-export function showSendRequest(container, user) {
+export function showSendRequest(container, userCtx) {
+  // userCtx: { firebaseUser, name, email }
   container.innerHTML = `
     <h3>Send Friend Request</h3>
     <input id="friendUsername" type="text" placeholder="Exact username" style="width:100%;padding:0.7em;">
@@ -13,11 +14,11 @@ export function showSendRequest(container, user) {
       return;
     }
     try {
-      if (!user) {
+      if (!userCtx?.firebaseUser || typeof userCtx.firebaseUser.getIdToken !== 'function') {
         container.querySelector("#searchResult").textContent = "Please log in first.";
         return;
       }
-      const token = await user.getIdToken();
+      const token = await userCtx.firebaseUser.getIdToken();
 
       const res = await fetch('https://se-re.nafil-8895-s.workers.dev/api/friends/search-status', {
         method: 'POST',
@@ -46,7 +47,6 @@ export function showSendRequest(container, user) {
         container.querySelector("#searchResult").textContent = "Request is already pending.";
         return;
       }
-
       container.querySelector("#searchResult").innerHTML = `
         <div>
           <span style="font-weight:500">${result.name || result.username}</span>
@@ -57,7 +57,7 @@ export function showSendRequest(container, user) {
       `;
       container.querySelector("#sendRequestBtn").onclick = async () => {
         try {
-          const newToken = await user.getIdToken(); // re-check token
+          const newToken = await userCtx.firebaseUser.getIdToken();
           const req = await fetch('https://se-re.nafil-8895-s.workers.dev/api/friends/send', {
             method: 'POST',
             headers: {
