@@ -62,10 +62,12 @@ export function showInbox(container, user) {
           });
           const result = await resp.json();
           if (result.ok) {
-            row.querySelector(".actionResp").innerHTML = `<span style="color:#178d3c;">Accepted!</span>`;
-          } else {
-            row.querySelector(".actionResp").innerHTML = `<span style="color:#d12020;">${result.error || "Error"}</span>`;
-          }
+  row.innerHTML = `<span style="flex:1 1 0;">${req.username}</span>
+                   <span style="color:#178d3c;font-weight:600;">Accepted!</span>`;
+} else {
+  row.querySelector(".actionResp").innerHTML = `<span style="color:#d12020;">${result.error || "Error"}</span>`;
+}
+
         } catch (e) {
           row.querySelector(".actionResp").innerHTML = `<span style="color:#d12020;">${e.message}</span>`;
         }
@@ -85,10 +87,12 @@ export function showInbox(container, user) {
           });
           const result = await resp.json();
           if (result.ok) {
-            row.querySelector(".actionResp").innerHTML = `<span style="color:#d12020;">Rejected</span>`;
-          } else {
-            row.querySelector(".actionResp").innerHTML = `<span style="color:#d12020;">${result.error || "Error"}</span>`;
-          }
+  row.innerHTML = `<span style="flex:1 1 0;">${req.username}</span>
+                   <span style="color:#d12020;font-weight:600;">Rejected</span>`;
+} else {
+  row.querySelector(".actionResp").innerHTML = `<span style="color:#d12020;">${result.error || "Error"}</span>`;
+}
+
         } catch (e) {
           row.querySelector(".actionResp").innerHTML = `<span style="color:#d12020;">${e.message}</span>`;
         }
