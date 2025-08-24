@@ -1,82 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Firebase Auth + Fetch Name Demo</title>
-  <script type="module">
-    // ---- Firebase Config ----
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-    const firebaseConfig = {
-      apiKey: "AIzaSyAWphaG1_4n1i3F9kY_TrMdvjVQomu7OtQ",
-      authDomain: "organizer-359e3.firebaseapp.com",
-      projectId: "organizer-359e3",
-      storageBucket: "organizer-359e3.firebasestorage.app",
-      messagingSenderId: "223125946708",
-      appId: "1:223125946708:web:17850e13399725533288c1",
-      measurementId: "G-R9GMNJ5Q7T"
-    };
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-
-    // ---- UI Logic ----
-    window.onload = () => {
-      const loginBtn = document.getElementById('loginBtn');
-      const fetchBtn = document.getElementById('fetchBtn');
-      const msgBox = document.getElementById('msgBox');
-      loginBtn.onclick = async () => {
-        msgBox.textContent = '';
-        const email = document.getElementById('email').value.trim();
-        const pass = document.getElementById('password').value;
-        try {
-          await signInWithEmailAndPassword(auth, email, pass);
-          msgBox.textContent = 'Login successful!';
-          fetchBtn.disabled = false;
-        } catch (e) {
-          msgBox.textContent = 'Login error: ' + (e.message || e.code);
-        }
-      };
-
-      fetchBtn.onclick = async () => {
-        msgBox.textContent = 'Fetching name...';
-        try {
-          const token = await auth.currentUser.getIdToken(true);
-          const resp = await fetch("https://us-api.nafil-8895-s.workers.dev/api/userpanel", {
-            headers: { Authorization: "Bearer " + token },
-            mode: "cors",
-          });
-          const data = await resp.json();
-          if (resp.status === 200 && data.name) {
-            msgBox.textContent = "User Name: " + data.name;
-          } else {
-            msgBox.textContent = "Error: " + (data.error || 'No name');
-          }
-        } catch (e) {
-          msgBox.textContent = 'Fetch error: ' + (e.message || e);
-        }
-      };
-    }
-  </script>
-  <style>
-    body { background:#f7f7f7; font-family:sans-serif; }
-    #container {
-      margin: 60px auto; max-width: 350px; padding:2em 1.5em 1.3em;
-      background: #fff; border-radius: 12px; box-shadow: 0 2px 12px #ddd;
-    }
-    input { width: 100%; font-size: 1.13em; margin-bottom: 1em; padding: 0.65em; border-radius:6px; border:1px solid #ccc;}
-    button { background:#3498db; color:#fff; border:none; border-radius:6px; font-size:1.09em; padding:0.7em 0; width:100%; cursor:pointer; margin-bottom:1.1em;}
-    #fetchBtn { background:#2ecc71; }
-    #msgBox { margin-top:1em; padding:1em; background:#e7f5ff; border-radius:8px; color:#226; text-align:center; font-size:1.13em;}
-  </style>
+  <title>Profile Photo Upload Demo</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage.js"></script>
 </head>
 <body>
-  <div id="container">
-    <h2>Firebase Login Test</h2>
-    <input type="email" id="email" placeholder="Email" autocomplete="username" />
-    <input type="password" id="password" placeholder="Password" autocomplete="current-password" />
-    <button id="loginBtn">Login</button>
-    <button id="fetchBtn" disabled>Fetch User Name (from backend)</button>
-    <div id="msgBox"></div>
-  </div>
+  <h2>Sign In</h2>
+  <input id="email" placeholder="Email"><br>
+  <input id="password" type="password" placeholder="Password"><br>
+  <button id="signInBtn">Sign In</button>
+  <div id="authStatus"></div>
+
+  <h2>Upload Profile Photo</h2>
+  <input type="file" id="photoInput" accept="image/*">
+  <button id="uploadPhotoBtn">Upload Photo</button>
+  <div id="uploadStatus"></div>
+
+  <h2>Show Profile Photo</h2>
+  <button id="showPhotoBtn">Show Image</button>
+  <div id="profilePhoto"></div>
+
+<script type="module">
+  // --- 1. Firebase setup ---
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+  import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    // ...rest config
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const storage = getStorage(app);
+
+  // --- 2. Sign-in ---
+  document.getElementById('signInBtn').onclick = async () => {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      document.getElementById('authStatus').textContent = "Signed in!";
+    } catch (e) {
+      document.getElementById('authStatus').textContent = "Sign-in error: " + e.message;
+    }
+  };
+
+  // --- 3. Upload photo ---
+  document.getElementById('uploadPhotoBtn').onclick = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      document.getElementById('uploadStatus').textContent = "Sign in first!";
+      return;
+    }
+    const photoFile = document.getElementById('photoInput').files[0];
+    if (!photoFile) {
+      document.getElementById('uploadStatus').textContent = "Choose a file!";
+      return;
+    }
+    try {
+      const storageRef = ref(storage, `avatars/${user.uid}.jpg`);
+      await uploadBytes(storageRef, photoFile);
+      const imageUrl = await getDownloadURL(storageRef);
+      document.getElementById('uploadStatus').textContent = "Uploaded!";
+      // Call Worker to save imageUrl in users table
+      const token = await user.getIdToken();
+      const resp = await fetch("https://try.nafil-8895-s.workers.dev/api/user/avatar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ uid: user.uid, imageUrl })
+      });
+      if (!resp.ok) throw new Error(await resp.text());
+      document.getElementById('uploadStatus').textContent = "Saved imageURL to database!";
+    } catch (e) {
+      document.getElementById('uploadStatus').textContent = "Error: " + e.message;
+    }
+  };
+
+  // --- 4. Show photo (fetch imageURL from Worker, then display) ---
+  document.getElementById('showPhotoBtn').onclick = async () => {
+    const user = auth.currentUser;
+    if (!user) {
+      document.getElementById('profilePhoto').textContent = "Sign in first!";
+      return;
+    }
+    try {
+      const token = await user.getIdToken();
+      const resp = await fetch("https://try.nafil-8895-s.workers.dev/api/user/avatar?uid=" + user.uid, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (!resp.ok) throw new Error(await resp.text());
+      const data = await resp.json();
+      if (!data.imageUrl) {
+        document.getElementById('profilePhoto').textContent = "No image found!";
+        return;
+      }
+      document.getElementById('profilePhoto').innerHTML = `<img src="${data.imageUrl}" style="width:110px;height:110px;border-radius:50%;">`;
+    } catch (e) {
+      document.getElementById('profilePhoto').textContent = "Error: " + e.message;
+    }
+  };
+</script>
 </body>
 </html>
