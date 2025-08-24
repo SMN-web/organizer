@@ -3,7 +3,7 @@ import { showManageSpend } from './manageSpend.js';
 import { showFriends } from './friends.js';
 import { showUserProfile } from './userProfile.js';
 import { mountNotifications } from './notifications.js';
-
+ 
 export async function showUserPanel(container, auth) {
   container.innerHTML = `
     <div id="loadingOverlay"
