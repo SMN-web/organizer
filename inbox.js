@@ -1,8 +1,13 @@
+import { showSpinner, hideSpinner, delay } from './spinner.js';
+
 export function showInbox(container, user) {
-  container.innerHTML = `<div style="padding:1em 0;">Loading...</div>`;
+  container.innerHTML = '';
+  showSpinner(container);
 
   async function loadInbox() {
+    const start = Date.now();
     if (!user?.firebaseUser) {
+      await delay(1200); hideSpinner(container);
       container.innerHTML = `<div style="color:#c00">Please log in.</div>`;
       return;
     }
@@ -19,6 +24,9 @@ export function showInbox(container, user) {
         else errMsg = "Unexpected backend error: " + text;
       }
     } catch (e) { errMsg = "Network error: " + e.message; }
+
+    await delay(Math.max(0, 2000 - (Date.now() - start))); // at least 2 seconds
+    hideSpinner(container);
 
     if (errMsg) {
       container.innerHTML = `<div style="color:#d12020;font-size:1.1em;margin:1.5em 0;">${errMsg}</div>`;
@@ -39,20 +47,26 @@ export function showInbox(container, user) {
     `;
     const reqList = container.querySelector("#reqList");
     requests.forEach(req => {
+      const name = req.name || req.username;
+      const uname = req.username;
       const row = document.createElement("div");
-      row.style = "margin:14px 0;display:flex;align-items:center;gap:18px;font-size:1.08em;font-weight:500;";
+      row.style = "margin:14px 0;display:flex;align-items:center;gap:18px;";
       row.innerHTML = `
-        <span style="flex:1 1 0;">${req.username}</span>
+        <div style="flex:1 1 0;display:flex;flex-direction:column;">
+          <span style="font-size:1.08em;font-weight:500;">${name}</span>
+          <span style="font-size:0.97em;color:#888;margin-top:-1px;">@${uname}</span>
+        </div>
         <button class="acceptBtn" style="background:#3AC66F;color:#fff;border:none;border-radius:6px;padding:0.5em 1.2em;font-size:1em;cursor:pointer;">Accept</button>
         <button class="rejectBtn" style="background:#D84040;color:#fff;border:none;border-radius:6px;padding:0.5em 1.2em;font-size:1em;margin-left:4px;cursor:pointer;">Reject</button>
         <span class="actionResp" style="margin-left:10px;font-size:0.96em;"></span>
       `;
 
-      // Accept handler
       row.querySelector(".acceptBtn").onclick = async () => {
         row.querySelector(".acceptBtn").disabled = true;
         row.querySelector(".rejectBtn").disabled = true;
         row.querySelector(".actionResp").innerText = "Processing...";
+        showSpinner(container);
+        await delay(1200);
         try {
           const token = await user.firebaseUser.getIdToken();
           const resp = await fetch('https://fr-in.nafil-8895-s.workers.dev/api/friends/accept', {
@@ -61,23 +75,28 @@ export function showInbox(container, user) {
             body: JSON.stringify({ username: req.username })
           });
           const result = await resp.json();
+          hideSpinner(container);
           if (result.ok) {
-  row.innerHTML = `<span style="flex:1 1 0;">${req.username}</span>
-                   <span style="color:#178d3c;font-weight:600;">Accepted!</span>`;
-} else {
-  row.querySelector(".actionResp").innerHTML = `<span style="color:#d12020;">${result.error || "Error"}</span>`;
-}
-
+            row.innerHTML = `
+              <div style="flex:1 1 0;display:flex;flex-direction:column;">
+                <span style="font-size:1.08em;font-weight:500;">${name}</span>
+                <span style="font-size:0.97em;color:#888;margin-top:-1px;">@${uname}</span>
+              </div>
+              <span style="color:#178d3c;font-weight:600;">Accepted!</span>`;
+          } else {
+            row.querySelector(".actionResp").innerHTML = `<span style="color:#d12020;">${result.error || "Error"}</span>`;
+          }
         } catch (e) {
+          hideSpinner(container);
           row.querySelector(".actionResp").innerHTML = `<span style="color:#d12020;">${e.message}</span>`;
         }
       };
-
-      // Reject handler
       row.querySelector(".rejectBtn").onclick = async () => {
         row.querySelector(".acceptBtn").disabled = true;
         row.querySelector(".rejectBtn").disabled = true;
         row.querySelector(".actionResp").innerText = "Processing...";
+        showSpinner(container);
+        await delay(1200);
         try {
           const token = await user.firebaseUser.getIdToken();
           const resp = await fetch('https://fr-in.nafil-8895-s.workers.dev/api/friends/reject', {
@@ -86,18 +105,22 @@ export function showInbox(container, user) {
             body: JSON.stringify({ username: req.username })
           });
           const result = await resp.json();
+          hideSpinner(container);
           if (result.ok) {
-  row.innerHTML = `<span style="flex:1 1 0;">${req.username}</span>
-                   <span style="color:#d12020;font-weight:600;">Rejected</span>`;
-} else {
-  row.querySelector(".actionResp").innerHTML = `<span style="color:#d12020;">${result.error || "Error"}</span>`;
-}
-
+            row.innerHTML = `
+              <div style="flex:1 1 0;display:flex;flex-direction:column;">
+                <span style="font-size:1.08em;font-weight:500;">${name}</span>
+                <span style="font-size:0.97em;color:#888;margin-top:-1px;">@${uname}</span>
+              </div>
+              <span style="color:#d12020;font-weight:600;">Rejected</span>`;
+          } else {
+            row.querySelector(".actionResp").innerHTML = `<span style="color:#d12020;">${result.error || "Error"}</span>`;
+          }
         } catch (e) {
+          hideSpinner(container);
           row.querySelector(".actionResp").innerHTML = `<span style="color:#d12020;">${e.message}</span>`;
         }
       };
-
       reqList.appendChild(row);
     });
   }
