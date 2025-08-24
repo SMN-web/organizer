@@ -3,18 +3,25 @@ import { showManageSpend } from './manageSpend.js';
 import { showFriends } from './friends.js';
 import { showUserProfile } from './userProfile.js';
 import { mountNotifications } from './notifications.js';
- 
+
 export async function showUserPanel(container, auth) {
   container.innerHTML = `
-    <div id="loadingOverlay"
-      style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.98);display:flex;align-items:center;justify-content:center;z-index:999;">
-      <div class="spinner" style="width:44px;height:44px;border:5px solid #eee;border-top:5px solid #3498db;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-    </div>
-    <div style="position:relative; width:100%;">
+    <div style="position:relative; width:100%; min-height:100vh;">
       <button id="menuBtn"
-        style="position:absolute;top:0;left:0;background:none;border:none;padding:15px 23px 14px 15px;font-size:2em;cursor:pointer;z-index:101">
+        style="position:absolute;top:0;left:0;background:none;border:none;padding:15px 23px 14px 15px;font-size:2em;cursor:pointer;z-index:102">
         &#9776;
       </button>
+      <span id="notifyBell"
+        style="position:absolute;top:0;right:0;background:none;padding:15px 17px 14px 15px;z-index:103;cursor:pointer;">
+        <span id="notifyIcon"
+          style="display:inline-block;vertical-align:middle;position:relative;font-size:1.4em;">
+          &#128276;<span id="notifyCount"
+          style="position:absolute;top:-8px;right:-8px;background:#d12020;color:#fff;
+            min-width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;
+            border-radius:50%;font-size:0.83em;padding:0 4px;font-weight:600;">
+          </span>
+        </span>
+      </span>
       <div id="mainContent"></div>
       <div id="simpleMenu"
         style="opacity:0;pointer-events:none;position:fixed;left:50%;top:90px;transform:translateX(-50%) scale(0.98);
@@ -37,6 +44,10 @@ export async function showUserPanel(container, auth) {
             Logout
           </button>
         </div>
+      </div>
+      <div id="loadingOverlay"
+        style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,255,255,0.98);display:flex;align-items:center;justify-content:center;z-index:999;">
+        <div class="spinner" style="width:44px;height:44px;border:5px solid #eee;border-top:5px solid #3498db;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
       </div>
     </div>
     <style>
@@ -144,7 +155,7 @@ export async function showUserPanel(container, auth) {
   }
 
   // --- Notifications bell, badge, and demo navigation ---
-  mountNotifications(document.body, userContext, (type) => {
+  mountNotifications(document.getElementById('notifyBell'), userContext, (type) => {
     if (type === "friend_request") {
       // Click Friends tab, then Inbox tab after slight delay
       const friendsBtn = document.querySelector("#friends");
@@ -154,6 +165,6 @@ export async function showUserPanel(container, auth) {
         if (inboxBtn) inboxBtn.click();
       }, 120);
     }
-    // Other types could be routed as needed
+    // More types can be handled here
   });
 }
