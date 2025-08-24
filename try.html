@@ -23,23 +23,24 @@
   <div id="profilePhoto"></div>
 
 <script type="module">
-  // --- 1. Firebase setup ---
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
   import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-storage.js";
 
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    // ...rest config
+    apiKey: "AIzaSyAWphaG1_4n1i3F9kY_TrMdvjVQomu7OtQ",
+  authDomain: "organizer-359e3.firebaseapp.com",
+  projectId: "organizer-359e3",
+  storageBucket: "organizer-359e3.firebasestorage.app",
+  messagingSenderId: "223125946708",
+  appId: "1:223125946708:web:17850e13399725533288c1",
+  measurementId: "G-R9GMNJ5Q7T"
   };
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const storage = getStorage(app);
 
-  // --- 2. Sign-in ---
+  // --- Sign-in handler ---
   document.getElementById('signInBtn').onclick = async () => {
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value.trim();
@@ -51,7 +52,7 @@
     }
   };
 
-  // --- 3. Upload photo ---
+  // --- Upload photo handler ---
   document.getElementById('uploadPhotoBtn').onclick = async () => {
     const user = auth.currentUser;
     if (!user) {
@@ -60,7 +61,7 @@
     }
     const photoFile = document.getElementById('photoInput').files[0];
     if (!photoFile) {
-      document.getElementById('uploadStatus').textContent = "Choose a file!";
+      document.getElementById('uploadStatus').textContent = "Choose a photo file first!";
       return;
     }
     try {
@@ -68,12 +69,12 @@
       await uploadBytes(storageRef, photoFile);
       const imageUrl = await getDownloadURL(storageRef);
       document.getElementById('uploadStatus').textContent = "Uploaded!";
-      // Call Worker to save imageUrl in users table
+      // Save image url to backend
       const token = await user.getIdToken();
       const resp = await fetch("https://try.nafil-8895-s.workers.dev/api/user/avatar", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ uid: user.uid, imageUrl })
+        body: JSON.stringify({ imageUrl })
       });
       if (!resp.ok) throw new Error(await resp.text());
       document.getElementById('uploadStatus').textContent = "Saved imageURL to database!";
@@ -82,27 +83,30 @@
     }
   };
 
-  // --- 4. Show photo (fetch imageURL from Worker, then display) ---
+  // --- Show photo handler ---
   document.getElementById('showPhotoBtn').onclick = async () => {
     const user = auth.currentUser;
+    const profileDiv = document.getElementById('profilePhoto');
+    profileDiv.innerHTML = "";
     if (!user) {
-      document.getElementById('profilePhoto').textContent = "Sign in first!";
+      profileDiv.textContent = "Sign in first!";
       return;
     }
     try {
       const token = await user.getIdToken();
-      const resp = await fetch("https://try.nafil-8895-s.workers.dev/api/user/avatar?uid=" + user.uid, {
+      const resp = await fetch("https://try.nafil-8895-s.workers.dev/api/user/avatar", {
+        method: "GET",
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (!resp.ok) throw new Error(await resp.text());
       const data = await resp.json();
-      if (!data.imageUrl) {
-        document.getElementById('profilePhoto').textContent = "No image found!";
+      if (!data.imageURL) {
+        profileDiv.textContent = "You have no profile image uploaded!";
         return;
       }
-      document.getElementById('profilePhoto').innerHTML = `<img src="${data.imageUrl}" style="width:110px;height:110px;border-radius:50%;">`;
+      profileDiv.innerHTML = `<img src="${data.imageURL}" style="width:110px;height:110px;border-radius:50%;border:2px solid #ccc;">`;
     } catch (e) {
-      document.getElementById('profilePhoto').textContent = "Error: " + e.message;
+      profileDiv.textContent = "Error: " + e.message;
     }
   };
 </script>
