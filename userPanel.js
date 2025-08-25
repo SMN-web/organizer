@@ -67,6 +67,32 @@ export async function showUserPanel(container, auth) {
   const userHeader = container.querySelector("#userHeader");
   const logoutBtn = container.querySelector("#logoutBtn");
 
+  // --- HEARTBEAT LOGIC (START) ---
+  async function getFreshToken() {
+    if (!auth.currentUser) throw new Error("Not logged in");
+    return await auth.currentUser.getIdToken(true);
+  }
+  async function doHeartbeat() {
+    try {
+      const token = await getFreshToken();
+      await sendHeartbeat(token);
+    } catch (e) {/* ignore logout etc. */}
+  }
+  function startHeartbeat() {
+    clearHeartbeat();
+    doHeartbeat();
+    heartbeatTimer = setInterval(doHeartbeat, 2 * 60 * 1000); // every 2 minutes
+  }
+  function clearHeartbeat() {
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+  // Start heartbeat when entering user panel
+  startHeartbeat();
+  // Optional: When navigating away, stop it
+  window.addEventListener("hashchange", clearHeartbeat, { once: true });
+  // --- HEARTBEAT LOGIC (END) ---
+
   // Fetch user info (name, initials, email)
   let userDisplayName = "Unknown";
   let userInitials = "??";
@@ -76,26 +102,6 @@ export async function showUserPanel(container, auth) {
       if (!auth.currentUser) throw new Error("No logged in user");
       await auth.currentUser.reload();
       const token = await auth.currentUser.getIdToken(true);
-       async function doHeartbeat() {
-    try {
-      const token = await getFreshToken();
-      sendHeartbeat(token); // Sends to /api/heartbeat
-    } catch (e) {/* ignore if logged out */}
-  }
-
-  function startHeartbeat() {
-    clearHeartbeat();
-    doHeartbeat(); // fire immediately
-    heartbeatTimer = setInterval(doHeartbeat, 2 * 60 * 1000); // every 2 minutes
-  }
-
-  function clearHeartbeat() {
-    if (heartbeatTimer) clearInterval(heartbeatTimer);
-    heartbeatTimer = null;
-  }
-
-  // Start heartbeat when panel loaded
-  startHeartbeat();
       const resp = await fetch("https://us-api.nafil-8895-s.workers.dev/api/userpanel", {
         headers: { Authorization: "Bearer " + token },
         mode: "cors",
@@ -179,15 +185,15 @@ export async function showUserPanel(container, auth) {
 
   // --- Notifications bell, badge, and demo navigation ---
   mountNotifications(document.getElementById('notifyBell'), userContext, (type) => {
-  if (type === "friend_request") {
-    // Switch Friends tab, then Inbox
-    const friendsBtn = document.querySelector("#friends");
-    if (friendsBtn) friendsBtn.click();
-    setTimeout(() => {
-      const inboxBtn = document.querySelector("#tabInbox");
-      if (inboxBtn) inboxBtn.click();
-    }, 120);
-  }
-});
+    if (type === "friend_request") {
+      // Switch Friends tab, then Inbox
+      const friendsBtn = document.querySelector("#friends");
+      if (friendsBtn) friendsBtn.click();
+      setTimeout(() => {
+        const inboxBtn = document.querySelector("#tabInbox");
+        if (inboxBtn) inboxBtn.click();
+      }, 120);
+    }
+  });
 
 }
