@@ -79,17 +79,14 @@ export function showSendRequest(container, user, showInboxCallback) {
         return;
       }
       if (result.status === 'pending' && result.direction === 'incoming') {
-        resultDiv.innerHTML = `
-          <div style='padding:10px 14px;background:#ffeac5;border-radius:6px;color:#a77010;display:flex;align-items:center;gap:10px;'>
-            <b>${result.name || result.username}</b> already sent you a friend request.
-            <button id="goInboxBtn" style="margin-left:7px;background:#3271d0;color:#fff;border:none;border-radius:5px;padding:0.3em 1em;font-size:0.97em;cursor:pointer;">Go to Inbox</button>
-          </div>
-        `;
-        container.querySelector("#goInboxBtn").onclick = () => {
-          if (typeof showInboxCallback === "function") showInboxCallback();
-        };
-        return;
-      }
+  resultDiv.innerHTML = `
+    <div style='padding:10px 14px;background:#ffeac5;border-radius:6px;color:#a77010;'>
+      <b>${result.name || result.username}</b> already sent you a friend request. Please check your inbox.
+    </div>
+  `;
+  return;
+}
+
       resultDiv.innerHTML = `
         <div style="padding:12px 16px;background:#f5f6fa;border-radius:6px;display:flex;align-items:center;gap:12px;">
           <span style="font-weight:500;font-size:1.1em;">${result.name || result.username}</span>
