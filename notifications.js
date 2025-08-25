@@ -32,14 +32,21 @@ export function mountNotifications(parent, user, navigateToTarget) {
 
   function renderDropdown() {
     dropdown.innerHTML = notifications.length
-      ? notifications.map(n => `
-        <div class="notifyItem" style="padding:14px 15px;cursor:pointer;border-bottom:1px solid #eee;background:${!n.read ? '#f4fbfe':'#fff'}"
-          data-id="${n.id}" data-type="${n.type}">
-          ${n.type === 'friend_request'
-            ? `<b>${JSON.parse(n.data).from}</b> sent you a friend request`
-            : '<i>Unknown notification</i>'}
-        </div>
-      `).join('')
+      ? notifications.map(n => {
+          if (n.type === 'friend_request') {
+            return `<div class="notifyItem" style="padding:14px 15px;cursor:pointer;border-bottom:1px solid #eee;background:${!n.read ? '#f4fbfe':'#fff'}"
+              data-id="${n.id}" data-type="${n.type}">
+              <b>${JSON.parse(n.data).from}</b> sent you a friend request
+            </div>`;
+          }
+          if (n.type === 'friend_accept') {
+            return `<div class="notifyItem" style="padding:14px 15px;cursor:pointer;border-bottom:1px solid #eee;background:${!n.read ? '#f4fbfe':'#fff'}"
+              data-id="${n.id}" data-type="${n.type}">
+              <b>${JSON.parse(n.data).from}</b> accepted your friend request
+            </div>`;
+          }
+          return `<div class="notifyItem" style="padding:14px 15px;"><i>Unknown notification</i></div>`;
+        }).join('')
       : `<div style="padding:16px;text-align:center;color:#888;">No notifications.</div>`;
   }
 
@@ -63,12 +70,16 @@ export function mountNotifications(parent, user, navigateToTarget) {
               body: JSON.stringify({ id })
             });
           }
-          await delay(1000); // quick delay for visual consistency
+          await delay(500); // quick delay for visual consistency
           notifications = notifications.map(n => n.id === id ? { ...n, read: 1 } : n);
           hideSpinner(document.body);
           renderBadge();
           dropdown.style.display = "none";
-          if (typeof navigateToTarget === "function") navigateToTarget(item.dataset.type);
+
+          // Redirect for friend_request ONLY (not friend_accept)
+          if (typeof navigateToTarget === "function" && item.dataset.type === "friend_request") {
+            navigateToTarget(item.dataset.type);
+          }
         };
       });
     }, 1);
