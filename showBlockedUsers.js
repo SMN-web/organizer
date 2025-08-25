@@ -1,7 +1,6 @@
 import { showSpinner, hideSpinner, delay } from './spinner.js';
 
-// ---------- Blocked Users List ----------
-export function showBlockedUsers(container, user) {
+export function showBlockedUsersModal(container, user) {
   container.innerHTML = `<div style="text-align:center;font-size:1.13em;padding-top:2.6em;">Loading blocked users...</div>`;
   (async function() {
     let error = '', blocks = [];
@@ -34,7 +33,9 @@ export function showBlockedUsers(container, user) {
       </div>
       <div id="blockList" style="margin-top:18px;"></div>
     `;
-    container.querySelector("#bbBack").onclick = () => window._showFriendsMainView && window._showFriendsMainView();
+    container.querySelector("#bbBack").onclick = () =>
+      window._showFriendsMainView && window._showFriendsMainView();
+
     const blockList = container.querySelector("#blockList");
     if (!blocks.length) {
       blockList.innerHTML = `<div style="margin:3em 0;color:#888;font-size:1.13em;text-align:center;">You have not blocked anyone.</div>`;
@@ -42,7 +43,7 @@ export function showBlockedUsers(container, user) {
     }
     blocks.forEach(bu => {
       const row = document.createElement("div");
-      row.style = "display:flex;align-items:center;gap:15px;padding:10px 0 10px 0;border-bottom:1px solid #efefef;";
+      row.style = "display:flex;align-items:center;gap:15px;padding:10px 0;border-bottom:1px solid #efefef;";
       row.innerHTML = `
         <span style="font-size:1.05em;flex:1 1 0;">${bu.name || bu.username} <span style="color:#999;">@${bu.username}</span></span>
         <button class="blockUnblock" style="background:#e74c3c;color:#fff;padding:6px 13px;border:none;border-radius:7px;font-size:1em;">Unblock</button>
