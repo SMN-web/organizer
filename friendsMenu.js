@@ -1,14 +1,15 @@
+// friendsMenu.js
 import { showBlockedUsersModal } from './showBlockedUsers.js';
 
 export function showFriendsMenuDropdown(e, container, user) {
+  // Remove any previous dropdown
   for (let el of document.querySelectorAll('.headerMenuDropdown')) el.remove();
 
   const btn = e?.currentTarget || e?.target || document.getElementById('headerDotsBtn');
   const rect = btn.getBoundingClientRect();
   const scrollY = window.scrollY, scrollX = window.scrollX;
 
-  const menuWidth = 165;
-  const padding = 12;
+  const menuWidth = 170, padding = 14;
   let left = rect.left + scrollX;
   if (left + menuWidth + padding > window.innerWidth) {
     left = window.innerWidth - menuWidth - padding;
@@ -35,8 +36,9 @@ export function showFriendsMenuDropdown(e, container, user) {
 
   menu.innerHTML = `
     <button id="menuUnblockUser" style="
-      background:none;border:none;padding:12px 22px 12px 22px;display:block;width:100%;text-align:left;
-      font-size:0.95em;cursor:pointer;color:#1761a0;letter-spacing:.01em;">
+      background:none;border:none;padding:12px 20px 12px 22px;
+      display:block;width:100%;text-align:left;
+      font-size:0.95em;cursor:pointer;color:#1761a0;">
       Unblock User
     </button>
   `;
