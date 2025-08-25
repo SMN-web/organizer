@@ -8,6 +8,7 @@ export function showSendRequest(container, user, showInboxCallback) {
     <button id="searchBtn" style="background:#3498db;color:#fff;border:none;border-radius:6px;padding:0.6em 1.4em;cursor:pointer;font-size:1em;">Search</button>
     <div id="searchResult" style="margin-top:22px;"></div>
   `;
+
   container.querySelector("#searchBtn").onclick = async () => {
     const input = container.querySelector("#friendUsername").value.trim().toLowerCase();
     const resultDiv = container.querySelector("#searchResult");
@@ -20,7 +21,8 @@ export function showSendRequest(container, user, showInboxCallback) {
         resultDiv.innerHTML = `<div style="color:#d12020;">Please log in first.</div>`;
         return;
       }
-      showSpinner(container); await delay(1200);
+      showSpinner(container);
+      await delay(1200);
       const token = await user.firebaseUser.getIdToken();
       const res = await fetch('https://se-re.nafil-8895-s.workers.dev/api/friends/search-status', {
         method: 'POST',
@@ -35,7 +37,6 @@ export function showSendRequest(container, user, showInboxCallback) {
         resultDiv.innerHTML = `<div style='color:#d12020;'>User not found.</div>`;
         return;
       }
-
       if (result.status === 'blocked') {
         resultDiv.innerHTML = `<div style="color:#d12020;">Cannot send friend request to blocked person.</div>`;
         return;
@@ -49,14 +50,12 @@ export function showSendRequest(container, user, showInboxCallback) {
         resultDiv.innerHTML = `<div style="color:#d12020;background:#ffe6e6;padding:10px 12px;border-radius:6px;">You cannot send a friend request to yourself.</div>`;
         return;
       }
-      // Pending logic, now direction-aware
       if (result.status === 'pending' && result.direction === 'outgoing') {
         resultDiv.innerHTML = `
           <div style='padding:10px 14px;background:#fff4e0;border-radius:6px;color:#ad670f;display:flex;align-items:center;gap:10px;'>
             Friend request already sent to <b>${result.name || result.username}</b>.
             <button id="cancelRequestBtn" style="margin-left:12px;background:#e25c41;color:#fff;border:none;border-radius:5px;padding:0.35em 0.9em;cursor:pointer;font-size:0.97em;">Cancel</button>
           </div>
-          <div id="cancelMsg" style="margin-top:7px;font-size:1em;"></div>
         `;
         container.querySelector("#cancelRequestBtn").onclick = async () => {
           showSpinner(container); await delay(750);
@@ -69,17 +68,14 @@ export function showSendRequest(container, user, showInboxCallback) {
             });
             hideSpinner(container);
             if (!cancelRes.ok) {
-              container.querySelector("#cancelMsg").textContent = "Failed to cancel request.";
-              container.querySelector("#cancelMsg").style.color = "#d12020";
+              resultDiv.innerHTML = `<div style="color:#d12020;">Failed to cancel request.</div>`;
               return;
             }
-            container.querySelector("#cancelMsg").textContent = "Friend request cancelled.";
-            container.querySelector("#cancelMsg").style.color = "#178d3c";
-            // Optionally, reload status here
+            // Success - show clean message, cannot click again
+            resultDiv.innerHTML = `<div style='color:#178d3c;padding:12px 14px;background:#e8fce5;border-radius:7px;'>Friend request cancelled.</div>`;
           } catch (e) {
             hideSpinner(container);
-            container.querySelector("#cancelMsg").textContent = e.message;
-            container.querySelector("#cancelMsg").style.color = "#d12020";
+            resultDiv.innerHTML = `<div style="color:#d12020;">${e.message}</div>`;
           }
         };
         return;
@@ -96,7 +92,6 @@ export function showSendRequest(container, user, showInboxCallback) {
         };
         return;
       }
-      // Not friends, not blocked, no pending request: can send
       resultDiv.innerHTML = `
         <div style="padding:12px 16px;background:#f5f6fa;border-radius:6px;display:flex;align-items:center;gap:12px;">
           <span style="font-weight:500;font-size:1.1em;">${result.name || result.username}</span>
