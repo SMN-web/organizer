@@ -28,12 +28,12 @@ export function showFriendsList(container, user) {
     container.prepend(headerRow);
   }
 
-  // Improved dropdown: always overlays, no scroll clipping, closes on any click outside
+  // Overlay dropdown menu absolutely, always on top, closes on outside click
   function createDropdown(friend, parentRow, event) {
-    // Remove any previous dropdowns
+    // Remove existing
     for (let el of document.querySelectorAll('.friendDropdown')) el.remove();
 
-    // Get viewport position for placement
+    // Position the dropdown overlay relative to viewport
     const rect = event.target.getBoundingClientRect();
     const scrollY = window.scrollY;
     const scrollX = window.scrollX;
@@ -51,7 +51,7 @@ export function showFriendsList(container, user) {
       border-radius:10px;
       padding:7px 0;
       font-size:1em;
-      z-index:99999;
+      z-index:120000;
       overflow:hidden;
       word-break:break-word;
     `;
@@ -59,10 +59,9 @@ export function showFriendsList(container, user) {
       <div style="padding:11px 17px;cursor:pointer;" class="ddUnfriend">Unfriend</div>
       <div style="padding:11px 17px;cursor:pointer;color:#b22;" class="ddBlock">Block</div>
     `;
-    // Overlay: Append to body, not just parent row
+
     document.body.appendChild(dd);
 
-    // Click option handlers (replace with real logic as desired)
     dd.querySelector('.ddUnfriend').onclick = async () => {
       dd.innerHTML = `<div style="padding:13px;text-align:center;">Unfriending...</div>`;
       showSpinner(dd); await delay(500);
@@ -105,7 +104,7 @@ export function showFriendsList(container, user) {
       }
       setTimeout(() => dd.remove(), 800);
     };
-    // Hide menu when clicking elsewhere
+
     setTimeout(() => {
       function hideMenu(ev) {
         if (dd && !dd.contains(ev.target)) {
@@ -166,7 +165,6 @@ export function showFriendsList(container, user) {
         <span class="friendMoreBtn" style="font-size:1.45em;cursor:pointer;color:#bbb;padding:4px 8px;">&#8942;</span>
       `;
       const moreBtn = row.querySelector('.friendMoreBtn');
-      // For desktop/touch, always show overlay menu
       moreBtn.onclick = moreBtn.ontouchstart = (e) => {
         e.preventDefault(); e.stopPropagation();
         createDropdown(friend, row, e);
