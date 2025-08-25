@@ -2,13 +2,11 @@ import { showBlockedUsersPanel } from './showBlockedUsers.js';
 import { showFriendsList } from './listFriends.js';
 
 export function showFriendsMenuDropdown(e, container, user) {
-  // Remove any previous dropdown
   for (let el of document.querySelectorAll('.headerMenuDropdown')) el.remove();
 
   const btn = e?.currentTarget || e?.target || document.getElementById('headerDotsBtn');
   const rect = btn.getBoundingClientRect();
   const scrollY = window.scrollY, scrollX = window.scrollX;
-
   const menuWidth = 170, padding = 14;
   let left = rect.left + scrollX;
   if (left + menuWidth + padding > window.innerWidth) {
@@ -46,7 +44,6 @@ export function showFriendsMenuDropdown(e, container, user) {
 
   menu.querySelector("#menuBlockedUsers").onclick = () => {
     menu.remove();
-    // Set the global to always go to Friends when "back" is clicked
     window._showFriendsMainView = () => showFriendsList(container, user);
     showBlockedUsersPanel(container, user);
   };
