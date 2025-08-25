@@ -1,7 +1,5 @@
 import { showBlockedUsersPanel } from './showBlockedUsers.js';
-
-// Call this from your friends panel:
-// container.querySelector("#headerDotsBtn").onclick = e => showFriendsMenuDropdown(e, container, user);
+import { showFriendsList } from './listFriends.js';
 
 export function showFriendsMenuDropdown(e, container, user) {
   // Remove any previous dropdown
@@ -48,7 +46,8 @@ export function showFriendsMenuDropdown(e, container, user) {
 
   menu.querySelector("#menuBlockedUsers").onclick = () => {
     menu.remove();
-    window._showFriendsMainView = () => window.showFriendsList && window.showFriendsList(container, user);
+    // Set the global to always go to Friends when "back" is clicked
+    window._showFriendsMainView = () => showFriendsList(container, user);
     showBlockedUsersPanel(container, user);
   };
 
