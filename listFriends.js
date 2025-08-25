@@ -194,7 +194,7 @@ export function showFriendsList(container, user) {
         </div>
         <div style="color:#d12020;font-size:1.1em;margin:2em 0;text-align:center;">${errMsg}</div>
       `;
-      container.querySelector("#headerDotsBtn").onclick = e => showFriendsMenuDropdown(e);
+      container.querySelector("#headerDotsBtn").onclick = e => showFriendsMenuDropdown(e, container, user);
       return;
     }
     allFriends = list;
