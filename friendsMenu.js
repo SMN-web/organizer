@@ -2,6 +2,7 @@
 import { showBlockedUsersModal } from './showBlockedUsers.js';
 
 export function showFriendsMenuDropdown(e, container, user) {
+  // Remove any previous dropdown
   for (let el of document.querySelectorAll('.headerMenuDropdown')) el.remove();
 
   const btn = e?.currentTarget || e?.target || document.getElementById('headerDotsBtn');
@@ -45,7 +46,7 @@ export function showFriendsMenuDropdown(e, container, user) {
 
   menu.querySelector("#menuUnblockUser").onclick = () => {
     menu.remove();
-    showBlockedUsersModal(user); // <- pass the caller's user, always!
+    showBlockedUsersModal(container, user); // pass both!
   };
 
   setTimeout(() => {
