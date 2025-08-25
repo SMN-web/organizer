@@ -1,6 +1,6 @@
 import { showBlockedUsersModal } from './showBlockedUsers.js';
 
-// Called from your friends panel, e.g.:
+// Attach this to the 3-dot button in your friends panel:
 // container.querySelector("#headerDotsBtn").onclick = e => showFriendsMenuDropdown(e, container, user);
 
 export function showFriendsMenuDropdown(e, container, user) {
