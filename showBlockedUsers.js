@@ -62,7 +62,7 @@ export function showBlockedUsersModal(container, user) {
         row.querySelector('.blockUnblock').disabled = true;
         const token = await user.firebaseUser.getIdToken();
         const resp = await fetch('https://fr-li.nafil-8895-s.workers.dev/api/friends/unblock', {
-          method:"POST",
+          method: "POST",
           headers: { "Content-Type":"application/json","Authorization":"Bearer "+token },
           body: JSON.stringify({ username: bu.username })
         });
