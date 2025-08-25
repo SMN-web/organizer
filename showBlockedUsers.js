@@ -1,7 +1,6 @@
 // showBlockedUsers.js
 
 export function showBlockedUsersModal(user) {
-  // Remove previous modal
   const prev = document.getElementById('blockedUsersModal');
   if (prev) prev.remove();
 
