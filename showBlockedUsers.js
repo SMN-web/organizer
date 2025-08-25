@@ -11,7 +11,7 @@ export function showBlockedUsers(container, user) {
         return;
       }
       const token = await user.firebaseUser.getIdToken();
-      const res = await fetch('https://fr-in.nafil-8895-s.workers.dev/api/friends/blocked', {
+      const res = await fetch('https://fr-li.nafil-8895-s.workers.dev/api/friends/blocked', {
         headers: { Authorization: "Bearer "+token }
       });
       const text = await res.text();
@@ -51,7 +51,7 @@ export function showBlockedUsers(container, user) {
         row.querySelector('.blockUnblock').textContent = 'Unblocking...';
         row.querySelector('.blockUnblock').disabled = true;
         const token = await user.firebaseUser.getIdToken();
-        const resp = await fetch('https://fr-in.nafil-8895-s.workers.dev/api/friends/unblock', {
+        const resp = await fetch('https://fr-li.nafil-8895-s.workers.dev/api/friends/unblock', {
           method:"POST",
           headers: { "Content-Type":"application/json","Authorization":"Bearer "+token },
           body: JSON.stringify({ username: bu.username })
