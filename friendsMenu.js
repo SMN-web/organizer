@@ -1,6 +1,6 @@
-// friendsMenu.js (handles menu, currently just shows a message on selection)
+// friendsMenu.js
 export function showFriendsMenu(container, user) {
-  // Remove any preexisting modal (for safety)
+  // Remove any old menu
   function removeModal() {
     let modal = document.getElementById('mobActionsModal');
     if (modal) modal.remove();
@@ -33,7 +33,6 @@ export function showFriendsMenu(container, user) {
         style="border:none;background:none;font-size:1em;color:#222;padding:11px 26px;width:100%;font-weight:bold;">
         View Blocked Users
       </button>
-      <!-- Add more menu items here as needed -->
     `;
     document.body.appendChild(modal);
 
@@ -49,17 +48,24 @@ export function showFriendsMenu(container, user) {
       document.addEventListener('mousedown', esc, true);
     }, 20);
 
-    // For now: just show a custom message on click
     modal.querySelector("#mobBlockedBtn").onclick = () => {
       modal.remove();
-      // Show message in container
+      // Show a demo message (replace with functionality later)
       container.innerHTML = `
         <div style="margin:3em auto;max-width:330px;text-align:center;">
           <div style="font-size:2.1em;margin-bottom:0.6em;">🔒</div>
           <div style="font-size:1.22em;margin-bottom:0.5em;font-weight:bold;">Blocked Users Coming Soon</div>
-          <div style="color:#888;font-size:1.08em;">Your blocked users panel will appear here soon. <br><br>Use the menu above to navigate to future features.</div>
+          <div style="color:#888;font-size:1.08em;">Your blocked users panel will appear here soon.<br><br>Use the menu above to navigate to future features.</div>
+        </div>
+        <div style="text-align:center;margin-top:2.2em;">
+          <button id="backToFriendsPanel" style="border:none;background:#eee;border-radius:8px;padding:0.7em 1.5em;font-size:1.06em;"
+          >Back</button>
         </div>
       `;
+      container.querySelector("#backToFriendsPanel").onclick = () => {
+        if (window._showFriendsMainView) window._showFriendsMainView();
+        // else, reload base panel (works if you set _showFriendsMainView on routing)
+      };
     };
   };
 
