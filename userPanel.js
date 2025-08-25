@@ -2,10 +2,12 @@ import { showDashboard } from './dashboard.js';
 import { showManageSpend } from './manageSpend.js';
 import { showFriends } from './friends.js';
 import { showUserProfile } from './userProfile.js';
-import { mountNotifications } from './notifications.js';
+import { fetchNotificationsBadge } from './notifications.js';
 import { sendHeartbeat } from './heartbeat.js';
 
 let heartbeatTimer = null;
+
+// NOTE: mountNotifications is now "internal" to notifications.js, see how it's used below
 
 export async function showUserPanel(container, auth) {
   container.innerHTML = `
@@ -76,20 +78,18 @@ export async function showUserPanel(container, auth) {
     try {
       const token = await getFreshToken();
       await sendHeartbeat(token);
-    } catch (e) {/* ignore logout etc. */}
+    } catch (e) {}
   }
   function startHeartbeat() {
     clearHeartbeat();
     doHeartbeat();
-    heartbeatTimer = setInterval(doHeartbeat, 2 * 60 * 1000); // every 2 minutes
+    heartbeatTimer = setInterval(doHeartbeat, 2 * 60 * 1000);
   }
   function clearHeartbeat() {
     if (heartbeatTimer) clearInterval(heartbeatTimer);
     heartbeatTimer = null;
   }
-  // Start heartbeat when entering user panel
   startHeartbeat();
-  // Optional: When navigating away, stop it
   window.addEventListener("hashchange", clearHeartbeat, { once: true });
   // --- HEARTBEAT LOGIC (END) ---
 
@@ -118,12 +118,14 @@ export async function showUserPanel(container, auth) {
   }
   await fetchNameAndAvatar();
 
-  // Always create this user context object:
   const userContext = {
     name: userDisplayName,
     email: userEmail,
-    firebaseUser: auth.currentUser // for token access in modules
+    firebaseUser: auth.currentUser
   };
+
+  // Initial badge load (fetches notifications, spins)
+  await fetchNotificationsBadge(userContext, document.getElementById('notifyBell'));
 
   // --- Loading spinner: rotate for ~2 seconds then reveal UI ---
   menuBtn.disabled = true;
@@ -141,7 +143,6 @@ export async function showUserPanel(container, auth) {
     friends: showFriends,
     userprofile: showUserProfile
   };
-
   let lastTab = localStorage.getItem('lastTab') || 'dashboard';
   let tabToLoad = lastTab;
   if (!localStorage.getItem('userSignedIn')) {
@@ -183,17 +184,19 @@ export async function showUserPanel(container, auth) {
     simpleMenu.style.pointerEvents = "none";
   }
 
-  // --- Notifications bell, badge, and demo navigation ---
-  mountNotifications(document.getElementById('notifyBell'), userContext, (type) => {
-    if (type === "friend_request") {
-      // Switch Friends tab, then Inbox
-      const friendsBtn = document.querySelector("#friends");
-      if (friendsBtn) friendsBtn.click();
-      setTimeout(() => {
-        const inboxBtn = document.querySelector("#tabInbox");
-        if (inboxBtn) inboxBtn.click();
-      }, 120);
-    }
+  // Notifications bell, badge, and navigation
+  // (the export from notifications.js wires up bell click to show the dropdown and handle marking read, not fetch or redirect except on friend requests)
+  import('./notifications.js').then(({ default: mountNotifications }) => {
+    mountNotifications(document.getElementById('notifyBell'), userContext, (type) => {
+      if (type === "friend_request") {
+        // Switch Friends tab, then Inbox (as before)
+        const friendsBtn = document.querySelector("#friends");
+        if (friendsBtn) friendsBtn.click();
+        setTimeout(() => {
+          const inboxBtn = document.querySelector("#tabInbox");
+          if (inboxBtn) inboxBtn.click();
+        }, 120);
+      }
+    });
   });
-
 }
