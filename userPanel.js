@@ -3,6 +3,9 @@ import { showManageSpend } from './manageSpend.js';
 import { showFriends } from './friends.js';
 import { showUserProfile } from './userProfile.js';
 import { mountNotifications } from './notifications.js';
+import { sendHeartbeat } from './heartbeat.js';
+
+let heartbeatTimer = null;
 
 export async function showUserPanel(container, auth) {
   container.innerHTML = `
@@ -73,6 +76,26 @@ export async function showUserPanel(container, auth) {
       if (!auth.currentUser) throw new Error("No logged in user");
       await auth.currentUser.reload();
       const token = await auth.currentUser.getIdToken(true);
+       async function doHeartbeat() {
+    try {
+      const token = await getFreshToken();
+      sendHeartbeat(token); // Sends to /api/heartbeat
+    } catch (e) {/* ignore if logged out */}
+  }
+
+  function startHeartbeat() {
+    clearHeartbeat();
+    doHeartbeat(); // fire immediately
+    heartbeatTimer = setInterval(doHeartbeat, 2 * 60 * 1000); // every 2 minutes
+  }
+
+  function clearHeartbeat() {
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+
+  // Start heartbeat when panel loaded
+  startHeartbeat();
       const resp = await fetch("https://us-api.nafil-8895-s.workers.dev/api/userpanel", {
         headers: { Authorization: "Bearer " + token },
         mode: "cors",
