@@ -12,7 +12,6 @@ export function showFriendsList(container, user) {
     const rect = event.target.getBoundingClientRect();
     const scrollY = window.scrollY;
     const scrollX = window.scrollX;
-
     const dd = document.createElement('div');
     dd.className = 'friendDropdown';
     dd.style = `
@@ -36,7 +35,6 @@ export function showFriendsList(container, user) {
       <div style="padding:15px 22px;cursor:pointer;transition:background .16s;" class="ddUnfriend" onmouseover="this.style.background='#f5f7fa'" onmouseout="this.style.background='none'">Unfriend</div>
       <div style="padding:15px 22px;cursor:pointer;color:#d22;transition:background .16s;" class="ddBlock" onmouseover="this.style.background='#f3e1e1'" onmouseout="this.style.background='none'">Block</div>
     `;
-
     document.body.appendChild(dd);
 
     dd.querySelector('.ddUnfriend').onclick = async () => {
