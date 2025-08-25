@@ -12,13 +12,36 @@ export async function fetchNotificationsBadge(user, parent) {
     notifyCount = parent.querySelector("#notifyCount");
     dropdown = document.createElement('div');
     dropdown.id = "notifyDropdown";
-    dropdown.style.cssText = "display:none;position:fixed;top:53px;right:17px;min-width:225px;max-width:94vw;background:#fff;border-radius:12px;box-shadow:0 8px 24px #0002;z-index:220;";
+    dropdown.style.cssText = `
+      display:none;
+      position:fixed;top:65px;right:22px;
+      min-width:272px;max-width:96vw;
+      background:#fff;
+      border-radius:17px;
+      box-shadow:0 8px 36px #0003, 0 2px 7px #0001;
+      z-index:220;
+      overflow:hidden;
+      transform:translateY(-12px) scale(.99);
+      opacity:0.01;
+      transition:opacity .18s cubic-bezier(.5,.6,.4,1),transform .22s cubic-bezier(.5,1.4,.45,1.05);
+    `;
+    // Animate dropdown
     document.body.appendChild(dropdown);
     renderingSetupDone = true;
 
     parent.querySelector("#notifyIcon").onclick = () => {
       renderDropdown();
-      dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+      if (dropdown.style.display === "block") {
+        dropdown.style.opacity = "0.01";
+        dropdown.style.transform = "translateY(-12px) scale(.99)";
+        setTimeout(() => dropdown.style.display = "none", 120);
+      } else {
+        dropdown.style.display = "block";
+        setTimeout(() => {
+          dropdown.style.opacity = "1";
+          dropdown.style.transform = "translateY(0) scale(1)";
+        }, 4);
+      }
       setTimeout(() => {
         Array.from(dropdown.querySelectorAll('.notifyItem')).forEach(item => {
           item.onclick = async () => {
@@ -41,22 +64,26 @@ export async function fetchNotificationsBadge(user, parent) {
             notifications = notifications.map(n => n.id === id ? { ...n, read: 1 } : n);
             if (type === "friend_request") hideSpinner(document.body);
             renderBadge();
-            dropdown.style.display = "none";
-            // Only redirect for friend request
+            dropdown.style.opacity = "0.01";
+            dropdown.style.transform = "translateY(-12px) scale(.99)";
+            setTimeout(() => dropdown.style.display = "none", 120);
             if (typeof navigateToTarget === "function" && type === "friend_request") {
               navigateToTarget(type);
             }
           };
         });
-      }, 1);
+      }, 12);
     };
+
     document.addEventListener('click', function handler(e) {
       if (!dropdown.contains(e.target) && e.target !== parent.querySelector("#notifyIcon")) {
-        dropdown.style.display = "none";
+        dropdown.style.opacity = "0.01";
+        dropdown.style.transform = "translateY(-12px) scale(.99)";
+        setTimeout(() => dropdown.style.display = "none", 120);
       }
     });
   }
-  // Actual fetch for badge, once or when you call this
+
   showSpinner(document.body);
   const start = Date.now();
   const token = await user.firebaseUser.getIdToken();
@@ -78,18 +105,41 @@ function renderBadge() {
 
 function renderDropdown() {
   dropdown.innerHTML = notifications.length
-    ? notifications.map(n => {
+    ? notifications.map((n, i) => {
+        const isUnread = !n.read;
+        const dark = "#222";
+        const mid = "#4e5560";
+        const bgUnread = "linear-gradient(90deg,#f0f5fd 0%,#e8f0fc 80%)";
+        const bgRead = "#fafbfc";
+        const fontWeight = isUnread ? 600 : 400;
+        const fadeIn = `animation:ndropfade .32s cubic-bezier(.23,1,.29,1.01) both;animation-delay:${i*0.02}s;`;
+        let text = "";
         if (n.type === 'friend_request') {
-          return `<div class="notifyItem" style="padding:14px 15px;cursor:pointer;border-bottom:1px solid #eee;background:${!n.read ? '#f4fbfe':'#fff'}" data-id="${n.id}" data-type="${n.type}">
-            <b>${JSON.parse(n.data).from}</b> sent you a friend request
-          </div>`;
+          text = `<b style="font-weight:700;">${escapeHtml(JSON.parse(n.data).from)}</b> sent you a friend request`;
         }
         if (n.type === 'friend_accept') {
-          return `<div class="notifyItem" style="padding:14px 15px;cursor:pointer;border-bottom:1px solid #eee;background:${!n.read ? '#f4fbfe':'#fff'}" data-id="${n.id}" data-type="${n.type}">
-            <b>${JSON.parse(n.data).from}</b> accepted your friend request
-          </div>`;
+          text = `<b style="font-weight:700;">${escapeHtml(JSON.parse(n.data).from)}</b> accepted your friend request`;
         }
-        return `<div class="notifyItem" style="padding:14px 15px;"><i>Unknown notification</i></div>`;
-      }).join('')
-    : `<div style="padding:16px;text-align:center;color:#888;">No notifications.</div>`;
+        if (!text) text = `<i style="color:#a7a9ae;">Unknown notification</i>`;
+        return `<div class="notifyItem" style="
+          transition:background .16s,box-shadow .13s;
+          ${isUnread ? `background:${bgUnread};color:${dark}` : `background:${bgRead};color:${mid}`};
+          font-weight:${fontWeight};font-size:1em;
+          padding:15px 19px 12px 19px;cursor:pointer;border-bottom:1px solid #e5ebf2;
+          border-radius:${i===0 ? "17px 17px 0 0":"0"};
+          ${fadeIn}
+        " data-id="${n.id}" data-type="${n.type}">
+          <span>${text}</span>
+        </div>`;
+      }).join('') +
+      `<style>
+      @keyframes ndropfade {0%{transform:translateY(-18px) scale(.93);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+      .notifyItem:hover {background: linear-gradient(90deg,#dbe5f7 0%,#e3ecfa 84%) !important;border-radius:14px;}
+      </style>`
+    : `<div style="padding:35px 7px 32px 7px;text-align:center;color:#9aa;">No notifications.</div>`;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[<>&"]/g, t =>
+    t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
 }
