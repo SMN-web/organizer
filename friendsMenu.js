@@ -1,6 +1,6 @@
 // friendsMenu.js
 export function showFriendsMenu(container, user) {
-  // Remove any old menu
+  // Remove any previous menu
   function removeModal() {
     let modal = document.getElementById('mobActionsModal');
     if (modal) modal.remove();
@@ -50,7 +50,7 @@ export function showFriendsMenu(container, user) {
 
     modal.querySelector("#mobBlockedBtn").onclick = () => {
       modal.remove();
-      // Show a demo message (replace with functionality later)
+      // Show a demo message (replace with real function later)
       container.innerHTML = `
         <div style="margin:3em auto;max-width:330px;text-align:center;">
           <div style="font-size:2.1em;margin-bottom:0.6em;">🔒</div>
@@ -63,8 +63,7 @@ export function showFriendsMenu(container, user) {
         </div>
       `;
       container.querySelector("#backToFriendsPanel").onclick = () => {
-        if (window._showFriendsMainView) window._showFriendsMainView();
-        // else, reload base panel (works if you set _showFriendsMainView on routing)
+        location.reload(); // or rerun showFriendsList(container, user), or set up global handler
       };
     };
   };
