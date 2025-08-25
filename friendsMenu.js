@@ -1,6 +1,14 @@
+// friendsMenu.js
 import { showBlockedUsers } from './showBlockedUsers.js';
 
 export function showFriendsMenu(container, user) {
+  // Remove any existing menu modals (cleanup)
+  function removeModal() {
+    let modal = document.getElementById('mobActionsModal');
+    if (modal) modal.remove();
+  }
+
+  // Create the three-dot menu button
   const dotsBtn = document.createElement("button");
   dotsBtn.type = "button";
   dotsBtn.className = "friendDots";
@@ -12,30 +20,30 @@ export function showFriendsMenu(container, user) {
     min-width:30px;min-height:30px;height:34px;
   `;
 
-  dotsBtn.onclick = () => {
-    let modal = document.getElementById("mobActionsModal");
-    if (modal) modal.remove();
+  dotsBtn.onclick = e => {
+    removeModal();
 
-    modal = document.createElement("div");
-    modal.id = "mobActionsModal";
+    let modal = document.createElement('div');
+    modal.id = 'mobActionsModal';
     modal.style = `
       position:fixed;left:50%;top:92px;transform:translateX(-50%);
       background:#fff;border-radius:14px;box-shadow:0 1px 16px #0002;border:1px solid #eee;
       min-width:170px;max-width:90vw;padding:14px 0 6px 0;z-index:101000;
-      text-align:center;font-size:1.13em;animation:fadeinA .14s;
+      text-align:center;font-size:1.13em;
     `;
     modal.innerHTML = `
       <button id="mobBlockedBtn"
         style="border:none;background:none;font-size:1em;color:#222;padding:11px 26px;width:100%;font-weight:bold;">
         View Blocked Users
       </button>
-      <!-- Add more menu items here easily -->
+      <!-- Add more menu items here as needed -->
     `;
     document.body.appendChild(modal);
 
+    // Dismiss modal on outside touch/click
     setTimeout(() => {
-      function esc(e) {
-        if (!modal.contains(e.target) && e.target !== dotsBtn) {
+      function esc(ev) {
+        if (!modal.contains(ev.target) && ev.target !== dotsBtn) {
           modal.remove();
           document.removeEventListener('touchstart', esc, true);
           document.removeEventListener('mousedown', esc, true);
