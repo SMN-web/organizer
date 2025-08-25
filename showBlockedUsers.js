@@ -1,11 +1,10 @@
 // showBlockedUsers.js
 
 export function showBlockedUsersModal(user) {
-  // Remove previous modal
+  // Remove any previous modal
   const prev = document.getElementById('blockedUsersModal');
   if (prev) prev.remove();
 
-  // Create modal overlay
   const modal = document.createElement('div');
   modal.id = 'blockedUsersModal';
   modal.style = `
@@ -16,14 +15,13 @@ export function showBlockedUsersModal(user) {
     font-family:inherit;
   `;
 
-  // Modal content
   modal.innerHTML = `
-    <div id="blockedUsersCard" style="
+    <div style="
       width:96vw;max-width:410px;max-height:84vh;overflow-y:auto;
       background:#fff;
       border-radius:15px;
       box-shadow:0 4px 26px #0002;
-      padding:27px 18px 20px 17px;
+      padding:27px 18px 22px 17px;
       position:relative;
       text-align:center;">
       <button id="backBtnBlocked" style="
@@ -33,7 +31,7 @@ export function showBlockedUsersModal(user) {
         onmouseover="this.style.background='#f4f4f6'" onmouseout="this.style.background='none'">&#8592;</button>
       <div style="font-size:2em;margin-bottom:.20em;">🔒</div>
       <div style="font-size:1.18em;font-weight:600;margin-bottom:.38em;">Blocked Users</div>
-      <div id="blockList" style="margin-top:1em;min-height:50px;">
+      <div id="blockList" style="margin-top:1em;min-height:55px;">
         <div style="color:#888;">Loading blocked users...</div>
       </div>
     </div>
@@ -45,7 +43,6 @@ export function showBlockedUsersModal(user) {
     if (window._showFriendsMainView) window._showFriendsMainView();
   };
 
-  // Fetch blocked users from backend
   (async function() {
     let blockList = modal.querySelector("#blockList");
     try {
@@ -55,15 +52,11 @@ export function showBlockedUsersModal(user) {
       }
       const token = await user.firebaseUser.getIdToken();
       const res = await fetch('https://fr-li.nafil-8895-s.workers.dev/api/friends/blocked', {
-        headers: { Authorization: "Bearer " + token }
+        headers: { Authorization: 'Bearer ' + token }
       });
       const text = await res.text();
       let blocks = [];
-      try { blocks = JSON.parse(text); }
-      catch (e) {
-        blockList.innerHTML = `<div style="color:#d12020;text-align:center;">Invalid backend: ${text}</div>`;
-        return;
-      }
+      try { blocks = JSON.parse(text); } catch (e) { /* leave as [] */ }
       if (!Array.isArray(blocks)) {
         if (blocks && blocks.error) {
           blockList.innerHTML = `<div style="color:#d12020;text-align:center;">Backend: ${blocks.error}</div>`;
@@ -72,19 +65,19 @@ export function showBlockedUsersModal(user) {
         }
         return;
       }
-      if (blocks.length === 0) {
+      if (!blocks.length) {
         blockList.innerHTML = `<div style="color:#777;font-size:1.04em;margin:2.5em 0;">No users are currently blocked.</div>`;
         return;
       }
-      blockList.innerHTML = "";
+      blockList.innerHTML = '';
       blocks.forEach(bu => {
-        const row = document.createElement("div");
+        const row = document.createElement('div');
         row.style = `
           display:flex;align-items:center;gap:13px;padding:11px 0;border-bottom:1px solid #f1f1f1;
         `;
         row.innerHTML = `
-          <span style="font-size:1.07em;flex:1 1 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-            ${bu.name ? bu.name + " " : ""}<span style="color:#999;">@${bu.username}</span>
+          <span style="font-size:1.07em;flex:1 1 0;overflow:hidden;">
+            ${bu.name ? bu.name + ' ' : ''}<span style="color:#999;">@${bu.username}</span>
           </span>
           <button class="blockUnblock"
             style="background:#e74c3c;color:#fff;padding:6px 13px;border:none;border-radius:7px;font-size:1em;cursor:pointer;">
@@ -99,13 +92,13 @@ export function showBlockedUsersModal(user) {
             const token = await user.firebaseUser.getIdToken();
             const resp = await fetch('https://fr-li.nafil-8895-s.workers.dev/api/friends/unblock', {
               method: "POST",
-              headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+              headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
               body: JSON.stringify({ username: bu.username })
             });
             const out = await resp.json();
             if (out.ok) {
               row.remove();
-              if (blockList.children.length === 0)
+              if (!blockList.children.length)
                 blockList.innerHTML = `<div style="color:#777;font-size:1.04em;margin:2.5em 0;">No users are currently blocked.</div>`;
             } else {
               btn.textContent = "Unblock";
@@ -121,7 +114,7 @@ export function showBlockedUsersModal(user) {
         blockList.appendChild(row);
       });
     } catch (e) {
-      modal.querySelector("#blockList").innerHTML = `<div style="color:#d12020;text-align:center;">Network: ${e.message}</div>`;
+      blockList.innerHTML = `<div style="color:#d12020;text-align:center;">Network: ${e.message}</div>`;
     }
   })();
 }
