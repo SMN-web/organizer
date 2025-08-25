@@ -8,11 +8,9 @@ export function showFriendsList(container, user) {
   let allFriends = [];
 
   function renderHeader() {
-    // Clear any old header
     const old = container.querySelector('.panelHeaderRow');
     if (old) old.remove();
 
-    // Create header row
     const headerRow = document.createElement('div');
     headerRow.className = "panelHeaderRow";
     headerRow.style = `
@@ -23,12 +21,102 @@ export function showFriendsList(container, user) {
     titleEl.textContent = "My Friends";
     titleEl.style = "font-weight:600;font-size:1.13em;line-height:1.6;letter-spacing:.03em;";
 
-    // Three-dot menu
     const menuBtn = showFriendsMenu(container, user);
     headerRow.appendChild(titleEl);
     headerRow.appendChild(menuBtn);
 
     container.prepend(headerRow);
+  }
+
+  // Improved dropdown: always overlays, no scroll clipping, closes on any click outside
+  function createDropdown(friend, parentRow, event) {
+    // Remove any previous dropdowns
+    for (let el of document.querySelectorAll('.friendDropdown')) el.remove();
+
+    // Get viewport position for placement
+    const rect = event.target.getBoundingClientRect();
+    const scrollY = window.scrollY;
+    const scrollX = window.scrollX;
+
+    const dd = document.createElement('div');
+    dd.className = 'friendDropdown';
+    dd.style = `
+      position:absolute;
+      top:${rect.bottom + scrollY + 4}px;
+      left:${rect.left + scrollX - 110 + rect.width}px;
+      min-width:130px;
+      background:#fff;
+      border:1px solid #eee;
+      box-shadow:0 2px 12px #0003;
+      border-radius:10px;
+      padding:7px 0;
+      font-size:1em;
+      z-index:99999;
+      overflow:hidden;
+      word-break:break-word;
+    `;
+    dd.innerHTML = `
+      <div style="padding:11px 17px;cursor:pointer;" class="ddUnfriend">Unfriend</div>
+      <div style="padding:11px 17px;cursor:pointer;color:#b22;" class="ddBlock">Block</div>
+    `;
+    // Overlay: Append to body, not just parent row
+    document.body.appendChild(dd);
+
+    // Click option handlers (replace with real logic as desired)
+    dd.querySelector('.ddUnfriend').onclick = async () => {
+      dd.innerHTML = `<div style="padding:13px;text-align:center;">Unfriending...</div>`;
+      showSpinner(dd); await delay(500);
+      try {
+        const token = await user.firebaseUser.getIdToken();
+        const resp = await fetch('https://fr-li.nafil-8895-s.workers.dev/api/friends/unfriend', {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ username: friend.username })
+        });
+        const out = await resp.json();
+        if (out.ok) {
+          parentRow.remove();
+        } else {
+          dd.innerHTML = `<div style="padding:13px;text-align:center;color:#d12020;">${out.error || "Error"}</div>`;
+        }
+      } catch (e) {
+        dd.innerHTML = `<div style="padding:13px;text-align:center;color:#d12020;">${e.message}</div>`;
+      }
+      setTimeout(() => dd.remove(), 800);
+    };
+    dd.querySelector('.ddBlock').onclick = async () => {
+      dd.innerHTML = `<div style="padding:13px;text-align:center;">Blocking...</div>`;
+      showSpinner(dd); await delay(500);
+      try {
+        const token = await user.firebaseUser.getIdToken();
+        const resp = await fetch('https://fr-li.nafil-8895-s.workers.dev/api/friends/block', {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ username: friend.username })
+        });
+        const out = await resp.json();
+        if (out.ok) {
+          parentRow.remove();
+        } else {
+          dd.innerHTML = `<div style="padding:13px;text-align:center;color:#d12020;">${out.error || "Error"}</div>`;
+        }
+      } catch (e) {
+        dd.innerHTML = `<div style="padding:13px;text-align:center;color:#d12020;">${e.message}</div>`;
+      }
+      setTimeout(() => dd.remove(), 800);
+    };
+    // Hide menu when clicking elsewhere
+    setTimeout(() => {
+      function hideMenu(ev) {
+        if (dd && !dd.contains(ev.target)) {
+          dd.remove();
+          document.removeEventListener('mousedown', hideMenu, true);
+          document.removeEventListener('touchstart', hideMenu, true);
+        }
+      }
+      document.addEventListener('mousedown', hideMenu, true);
+      document.addEventListener('touchstart', hideMenu, true);
+    }, 50);
   }
 
   function render(filterTerm = "") {
@@ -77,6 +165,12 @@ export function showFriendsList(container, user) {
         </div>
         <span class="friendMoreBtn" style="font-size:1.45em;cursor:pointer;color:#bbb;padding:4px 8px;">&#8942;</span>
       `;
+      const moreBtn = row.querySelector('.friendMoreBtn');
+      // For desktop/touch, always show overlay menu
+      moreBtn.onclick = moreBtn.ontouchstart = (e) => {
+        e.preventDefault(); e.stopPropagation();
+        createDropdown(friend, row, e);
+      };
       friendList.appendChild(row);
     });
   }
