@@ -1,7 +1,7 @@
 // showBlockedUsers.js
 
 export function showBlockedUsersModal(user) {
-  // Remove any previous modal
+  // Remove previous modal
   const prev = document.getElementById('blockedUsersModal');
   if (prev) prev.remove();
 
@@ -47,7 +47,7 @@ export function showBlockedUsersModal(user) {
     let blockList = modal.querySelector("#blockList");
     try {
       if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function') {
-        blockList.innerHTML = `<div style="color:#d12020;text-align:center;">Please log in.</div>`;
+        blockList.innerHTML = `<div style="color:#d12020;text-align:center;font-size:1.15em;margin:1.6em 0;">Please log in.</div>`;
         return;
       }
       const token = await user.firebaseUser.getIdToken();
@@ -56,7 +56,7 @@ export function showBlockedUsersModal(user) {
       });
       const text = await res.text();
       let blocks = [];
-      try { blocks = JSON.parse(text); } catch (e) { /* leave as [] */ }
+      try { blocks = JSON.parse(text); } catch (e) {}
       if (!Array.isArray(blocks)) {
         if (blocks && blocks.error) {
           blockList.innerHTML = `<div style="color:#d12020;text-align:center;">Backend: ${blocks.error}</div>`;
