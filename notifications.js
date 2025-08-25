@@ -14,8 +14,9 @@ export async function fetchNotificationsBadge(user, parent) {
     dropdown.id = "notifyDropdown";
     dropdown.style.cssText = `
       display:none;
-      position:fixed;top:65px;right:22px;
-      min-width:272px;max-width:96vw;
+      position:fixed;
+      top:65px; right:22px;
+      min-width:272px; max-width:96vw;
       background:#fff;
       border-radius:17px;
       box-shadow:0 8px 36px #0003, 0 2px 7px #0001;
@@ -25,10 +26,10 @@ export async function fetchNotificationsBadge(user, parent) {
       opacity:0.01;
       transition:opacity .18s cubic-bezier(.5,.6,.4,1),transform .22s cubic-bezier(.5,1.4,.45,1.05);
     `;
-    // Animate dropdown
     document.body.appendChild(dropdown);
     renderingSetupDone = true;
 
+    // Accepts a callback in mountNotifications signature below!
     parent.querySelector("#notifyIcon").onclick = () => {
       renderDropdown();
       if (dropdown.style.display === "block") {
@@ -47,7 +48,7 @@ export async function fetchNotificationsBadge(user, parent) {
           item.onclick = async () => {
             const id = Number(item.dataset.id);
             const type = item.dataset.type;
-            // Show spinner only for friend_request redirect
+
             if (type === "friend_request") showSpinner(document.body);
             if (user?.firebaseUser) {
               const token = await user.firebaseUser.getIdToken();
@@ -67,8 +68,10 @@ export async function fetchNotificationsBadge(user, parent) {
             dropdown.style.opacity = "0.01";
             dropdown.style.transform = "translateY(-12px) scale(.99)";
             setTimeout(() => dropdown.style.display = "none", 120);
-            if (typeof navigateToTarget === "function" && type === "friend_request") {
-              navigateToTarget(type);
+
+            // Only friend_request redirects to Inbox tab, using supplied callback
+            if (typeof window._notificationRedirect === "function" && type === "friend_request") {
+              window._notificationRedirect(type);
             }
           };
         });
@@ -97,22 +100,25 @@ export async function fetchNotificationsBadge(user, parent) {
   renderBadge();
 }
 
+// Helper to update badge
 function renderBadge() {
   if (!notifyCount) return;
   const unread = notifications.filter(n => !n.read).length;
   notifyCount.textContent = unread ? unread : '';
 }
 
+// Helper to render dropdown
 function renderDropdown() {
   dropdown.innerHTML = notifications.length
     ? notifications.map((n, i) => {
         const isUnread = !n.read;
-        const dark = "#222";
-        const mid = "#4e5560";
-        const bgUnread = "linear-gradient(90deg,#f0f5fd 0%,#e8f0fc 80%)";
+        const dark = "#23272c";
+        const mid = "#556070";
+        const bgUnread = "linear-gradient(90deg,#f0f6fa 0%,#e9f1ff 100%)";
         const bgRead = "#fafbfc";
         const fontWeight = isUnread ? 600 : 400;
-        const fadeIn = `animation:ndropfade .32s cubic-bezier(.23,1,.29,1.01) both;animation-delay:${i*0.02}s;`;
+        const fadeIn = `animation:ndropfade .32s cubic-bezier(.23,1,.29,1.01) both;animation-delay:${i*0.019}s;`;
+
         let text = "";
         if (n.type === 'friend_request') {
           text = `<b style="font-weight:700;">${escapeHtml(JSON.parse(n.data).from)}</b> sent you a friend request`;
@@ -142,4 +148,10 @@ function renderDropdown() {
 function escapeHtml(str) {
   return String(str).replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
+}
+
+// Mount notifications: set up redirect logic globally so dropdown's click handler can access it
+export function mountNotifications(parent, user, notificationRedirectCallback) {
+  window._notificationRedirect = notificationRedirectCallback;
+  fetchNotificationsBadge(user, parent);
 }
