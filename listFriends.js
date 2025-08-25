@@ -8,106 +8,32 @@ export function showFriendsList(container, user) {
   let allFriends = [];
 
   function renderHeader() {
+    // Clear any old header
     const old = container.querySelector('.panelHeaderRow');
     if (old) old.remove();
 
+    // Create header row
     const headerRow = document.createElement('div');
     headerRow.className = "panelHeaderRow";
     headerRow.style = `
-      display:flex; justify-content:space-between; align-items:center;
-      margin-bottom:10px; min-height:36px; padding-top:8px; padding-bottom:2px;
+      display:flex;justify-content:space-between;align-items:center;
+      margin-bottom:10px;min-height:36px;padding-top:8px;padding-bottom:2px;
     `;
     const titleEl = document.createElement('div');
     titleEl.textContent = "My Friends";
     titleEl.style = "font-weight:600;font-size:1.13em;line-height:1.6;letter-spacing:.03em;";
 
-    // Three-dot menu button (now delegated)
+    // Three-dot menu
     const menuBtn = showFriendsMenu(container, user);
-
     headerRow.appendChild(titleEl);
     headerRow.appendChild(menuBtn);
 
     container.prepend(headerRow);
   }
 
-  function createDropdown(friend, parentRow) {
-    for (let el of document.querySelectorAll('.friendDropdown')) el.remove();
-    const dd = document.createElement('div');
-    dd.className = 'friendDropdown';
-    dd.style = `
-      position:absolute;top:40px;right:0;
-      min-width:130px;max-width:80vw;
-      background:#fff;
-      border:1px solid #eee;
-      box-shadow:0 2px 12px #0002;
-      border-radius:10px;
-      padding:7px 0;
-      font-size:1em;
-      z-index:999999;
-      word-break:break-word;
-      overflow:hidden;`;
-    dd.innerHTML = `
-      <div style="padding:11px 17px;cursor:pointer;" class="ddUnfriend">Unfriend</div>
-      <div style="padding:11px 17px;cursor:pointer;color:#b22;" class="ddBlock">Block</div>
-    `;
-    dd.querySelector('.ddUnfriend').onclick = async () => {
-      dd.innerHTML = `<div style="padding:13px;text-align:center;">Unfriending...</div>`;
-      showSpinner(parentRow); await delay(800);
-      try {
-        const token = await user.firebaseUser.getIdToken();
-        const resp = await fetch('https://fr-li.nafil-8895-s.workers.dev/api/friends/unfriend', {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-          body: JSON.stringify({ username: friend.username })
-        });
-        hideSpinner(parentRow);
-        const out = await resp.json();
-        if (out.ok) {
-          parentRow.remove();
-        } else {
-          dd.innerHTML = `<div style="padding:13px;text-align:center;color:#d12020;">${out.error || "Error"}</div>`;
-        }
-      } catch (e) {
-        hideSpinner(parentRow);
-        dd.innerHTML = `<div style="padding:13px;text-align:center;color:#d12020;">${e.message}</div>`;
-      }
-    };
-    dd.querySelector('.ddBlock').onclick = async () => {
-      dd.innerHTML = `<div style="padding:13px;text-align:center;">Blocking...</div>`;
-      showSpinner(parentRow); await delay(800);
-      try {
-        const token = await user.firebaseUser.getIdToken();
-        const resp = await fetch('https://fr-li.nafil-8895-s.workers.dev/api/friends/block', {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-          body: JSON.stringify({ username: friend.username })
-        });
-        hideSpinner(parentRow);
-        const out = await resp.json();
-        if (out.ok) {
-          parentRow.remove();
-        } else {
-          dd.innerHTML = `<div style="padding:13px;text-align:center;color:#d12020;">${out.error || "Error"}</div>`;
-        }
-      } catch (e) {
-        hideSpinner(parentRow);
-        dd.innerHTML = `<div style="padding:13px;text-align:center;color:#d12020;">${e.message}</div>`;
-      }
-    };
-    setTimeout(() => {
-      function handle(e) {
-        if (!dd.contains(e.target)) {
-          dd.remove();
-          document.removeEventListener('touchstart', handle);
-        }
-      }
-      document.addEventListener('touchstart', handle);
-    }, 1);
-    parentRow.appendChild(dd);
-  }
-
   function render(filterTerm = "") {
     renderHeader();
+
     const filterHtml = `
       <input id="friendFilter" type="text" placeholder="Filter by name or username"
         style="width:98%;max-width:330px;margin-bottom:17px;padding:0.5em 1em;border-radius:7px;
@@ -151,14 +77,6 @@ export function showFriendsList(container, user) {
         </div>
         <span class="friendMoreBtn" style="font-size:1.45em;cursor:pointer;color:#bbb;padding:4px 8px;">&#8942;</span>
       `;
-      row.querySelector('.friendMoreBtn').ontouchstart = e => {
-        createDropdown(friend, row);
-        e.stopPropagation();
-      };
-      row.querySelector('.friendMoreBtn').onclick = e => {
-        createDropdown(friend, row);
-        e.stopPropagation();
-      };
       friendList.appendChild(row);
     });
   }
