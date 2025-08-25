@@ -1,10 +1,7 @@
 // friendsMenu.js
 import { showBlockedUsersModal } from './showBlockedUsers.js';
 
-export function showFriendsMenuDropdown(e, container) {
-  // Always get the latest user reference at click time
-  const user = window._globalUser;
-
+export function showFriendsMenuDropdown(e, container, user) {
   for (let el of document.querySelectorAll('.headerMenuDropdown')) el.remove();
 
   const btn = e?.currentTarget || e?.target || document.getElementById('headerDotsBtn');
@@ -48,7 +45,7 @@ export function showFriendsMenuDropdown(e, container) {
 
   menu.querySelector("#menuUnblockUser").onclick = () => {
     menu.remove();
-    showBlockedUsersModal(user);
+    showBlockedUsersModal(user); // <- pass the caller's user, always!
   };
 
   setTimeout(() => {
