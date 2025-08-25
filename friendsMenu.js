@@ -1,4 +1,4 @@
-import { showBlockedUsersSheet } from './showBlockedUsers.js';
+import { showBlockedUsersModal } from './showBlockedUsers.js';
 
 export function showFriendsMenuDropdown(e, container, user) {
   for (let el of document.querySelectorAll('.headerMenuDropdown')) el.remove();
@@ -44,7 +44,7 @@ export function showFriendsMenuDropdown(e, container, user) {
 
   menu.querySelector("#menuUnblockUser").onclick = () => {
     menu.remove();
-    showBlockedUsersSheet(container, user);
+    showBlockedUsersModal(user);
   };
 
   setTimeout(() => {
