@@ -1,14 +1,11 @@
-// friendsMenu.js
-import { showBlockedUsers } from './showBlockedUsers.js';
-
+// friendsMenu.js (handles menu, currently just shows a message on selection)
 export function showFriendsMenu(container, user) {
-  // Remove any existing menu modals (cleanup)
+  // Remove any preexisting modal (for safety)
   function removeModal() {
     let modal = document.getElementById('mobActionsModal');
     if (modal) modal.remove();
   }
 
-  // Create the three-dot menu button
   const dotsBtn = document.createElement("button");
   dotsBtn.type = "button";
   dotsBtn.className = "friendDots";
@@ -23,7 +20,7 @@ export function showFriendsMenu(container, user) {
   dotsBtn.onclick = e => {
     removeModal();
 
-    let modal = document.createElement('div');
+    const modal = document.createElement('div');
     modal.id = 'mobActionsModal';
     modal.style = `
       position:fixed;left:50%;top:92px;transform:translateX(-50%);
@@ -40,7 +37,6 @@ export function showFriendsMenu(container, user) {
     `;
     document.body.appendChild(modal);
 
-    // Dismiss modal on outside touch/click
     setTimeout(() => {
       function esc(ev) {
         if (!modal.contains(ev.target) && ev.target !== dotsBtn) {
@@ -53,10 +49,17 @@ export function showFriendsMenu(container, user) {
       document.addEventListener('mousedown', esc, true);
     }, 20);
 
+    // For now: just show a custom message on click
     modal.querySelector("#mobBlockedBtn").onclick = () => {
       modal.remove();
-      window._showFriendsMainView = () => import('./listFriends.js').then(m => m.showFriendsList(container, user));
-      showBlockedUsers(container, user);
+      // Show message in container
+      container.innerHTML = `
+        <div style="margin:3em auto;max-width:330px;text-align:center;">
+          <div style="font-size:2.1em;margin-bottom:0.6em;">🔒</div>
+          <div style="font-size:1.22em;margin-bottom:0.5em;font-weight:bold;">Blocked Users Coming Soon</div>
+          <div style="color:#888;font-size:1.08em;">Your blocked users panel will appear here soon. <br><br>Use the menu above to navigate to future features.</div>
+        </div>
+      `;
     };
   };
 
