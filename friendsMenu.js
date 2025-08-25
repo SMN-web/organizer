@@ -9,7 +9,6 @@ export function showFriendsMenuDropdown(e, container, user) {
   const rect = btn.getBoundingClientRect();
   const scrollY = window.scrollY, scrollX = window.scrollX;
 
-  // Prevent menu from overflowing right edge
   const menuWidth = 165;
   const padding = 12;
   let left = rect.left + scrollX;
@@ -47,7 +46,7 @@ export function showFriendsMenuDropdown(e, container, user) {
 
   menu.querySelector("#menuUnblockUser").onclick = () => {
     menu.remove();
-    showBlockedUsersSheet(container, user); // Render sheet INSIDE the friends panel
+    showBlockedUsersSheet(container, user);
   };
 
   setTimeout(() => {
