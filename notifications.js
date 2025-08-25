@@ -28,7 +28,7 @@ export async function fetchNotificationsBadge(user, parent) {
     `;
     document.body.appendChild(dropdown);
     renderingSetupDone = true;
-
+ 
     // Accepts a callback in mountNotifications signature below!
     parent.querySelector("#notifyIcon").onclick = () => {
       renderDropdown();
