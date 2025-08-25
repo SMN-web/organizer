@@ -2,18 +2,17 @@
 
 import { showBlockedUsers } from './showBlockedUsers.js';
 
-// e: event, container: target DOM inside My Friends panel, user: user context
+// e: click event from header three-dot; container: inner panel container; user: user context
 export function showFriendsMenuDropdown(e, container, user) {
-  // Remove any previous
   for (let el of document.querySelectorAll('.headerMenuDropdown')) el.remove();
 
   const btn = e?.currentTarget || e?.target || document.getElementById('headerDotsBtn');
   const rect = btn.getBoundingClientRect();
   const scrollY = window.scrollY, scrollX = window.scrollX;
 
-  // Prevent going off right edge
-  const menuWidth = 180;
-  const padding = 16; // px
+  // Ensure menu doesn't overflow screen right edge
+  const menuWidth = 170;
+  const padding = 16;
   let left = rect.left + scrollX;
   if (left + menuWidth + padding > window.innerWidth) {
     left = window.innerWidth - menuWidth - padding;
@@ -27,27 +26,29 @@ export function showFriendsMenuDropdown(e, container, user) {
     top:${rect.bottom + scrollY + 6}px;
     min-width:${menuWidth}px;max-width:96vw;
     background:#fff;
-    border:1.5px solid #e4e4e4;
+    border:1.6px solid #e4e4e4;
     box-shadow:0 6px 34px #0002,0 2px 8px #0001;
-    border-radius:14px;
+    border-radius:13px;
     z-index:999999;
-    font-size:1.09em;
-    padding:5px 0 5px 0;
+    font-size:0.96em;
+    padding:4px 0 6px 0;
     font-family:inherit;
     overflow:hidden;
     text-align:left;
   `;
 
   menu.innerHTML = `
-    <button id="menuUnblock" style="
-      background:none;border:none;padding:14px 22px 14px 22px;display:block;width:100%;text-align:left;font-size:1.07em;cursor:pointer;color:#1B57C0"
-    >Unblock</button>
+    <button id="menuUnblockUser" style="
+      background:none;border:none;padding:12px 22px 12px 22px;display:block;width:100%;text-align:left;
+      font-size:0.95em;cursor:pointer;color:#1761a0;letter-spacing:0.01em;">
+      Unblock User
+    </button>
   `;
   document.body.appendChild(menu);
 
-  menu.querySelector("#menuUnblock").onclick = () => {
+  menu.querySelector("#menuUnblockUser").onclick = () => {
     menu.remove();
-    showBlockedUsers(container, user); // Now renders INSIDE the panel!
+    showBlockedUsers(container, user); // Now renders inline in the panel!
   };
 
   setTimeout(() => {
