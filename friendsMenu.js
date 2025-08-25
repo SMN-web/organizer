@@ -1,8 +1,5 @@
 import { showBlockedUsersModal } from './showBlockedUsers.js';
 
-// Attach this to the 3-dot button in your friends panel:
-// container.querySelector("#headerDotsBtn").onclick = e => showFriendsMenuDropdown(e, container, user);
-
 export function showFriendsMenuDropdown(e, container, user) {
   // Remove any previous dropdown
   for (let el of document.querySelectorAll('.headerMenuDropdown')) el.remove();
@@ -48,6 +45,7 @@ export function showFriendsMenuDropdown(e, container, user) {
 
   menu.querySelector("#menuUnblockUser").onclick = () => {
     menu.remove();
+    // Set the global function for back navigation
     window._showFriendsMainView = () => window.showFriendsList && window.showFriendsList(container, user);
     showBlockedUsersModal(container, user);
   };
