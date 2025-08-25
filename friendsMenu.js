@@ -1,44 +1,54 @@
 // friendsMenu.js
-export function showFriendsMenu(container, user) {
-  function removeModal() {
-    let modal = document.getElementById('mobActionsModal');
-    if (modal) modal.remove();
-  }
 
-  const dotsBtn = document.createElement("button");
-  dotsBtn.type = "button";
-  dotsBtn.className = "friendDots";
-  dotsBtn.innerHTML = '<span style="font-size:2em;font-weight:700;color:#232323;">&#8942;</span>';
-  dotsBtn.style = `
-    background:none;border:none;margin:0 2px 0 0;padding:0;
-    cursor:pointer;outline:none;line-height:1;
-    display:flex;align-items:center;justify-content:center;
-    min-width:30px;min-height:30px;height:34px;
+// Call this from your header three-dot's onClick, passing the event
+export function showFriendsMenuDropdown(triggerEvent) {
+  // Remove any previously open menu
+  for (let el of document.querySelectorAll('.headerMenuDropdown')) el.remove();
+
+  const rect = triggerEvent.target.getBoundingClientRect();
+  const scrollY = window.scrollY, scrollX = window.scrollX;
+
+  const menu = document.createElement('div');
+  menu.className = 'headerMenuDropdown';
+  menu.style = `
+    position:absolute;
+    left:${rect.left + scrollX}px;
+    top:${rect.bottom + scrollY + 3}px;
+    min-width:180px;max-width:96vw;
+    background:#fff;
+    border:1.8px solid #e4e4e4;
+    box-shadow:0 6px 34px #0002,0 2px 8px #0001;
+    border-radius:14px;
+    z-index:999999;
+    font-size:1.08em;
+    animation:fadein .13s;
+    padding:5px 0 7px 0;
+    font-family:inherit;
+    overflow:hidden;
+    text-align:left;
   `;
 
-  dotsBtn.onclick = () => {
-    removeModal();
-    const modal = document.createElement('div');
-    modal.id = 'mobActionsModal';
-    modal.style = `
-      position:fixed;left:50%;top:92px;transform:translateX(-50%);
-      background:#fff;border-radius:14px;box-shadow:0 1px 16px #0002;border:1px solid #eee;
-      min-width:170px;max-width:90vw;padding:14px 0 6px 0;z-index:130000;
-      text-align:center;font-size:1.13em;`;
-    modal.innerHTML = `<div style="padding:17px">Custom message shown!</div>`;
-    document.body.appendChild(modal);
+  menu.innerHTML = `
+    <div style="padding:18px 22px;font-weight:600;font-size:1.1em;color:#232323;">Menu</div>
+    <div style="padding:12px 22px;color:#525;opacity:0.88;">Custom message: Friends menu coming soon!</div>
+    <hr style="opacity:.20;margin:7px 0 4px 0;">
+    <button style="
+      background:none;border:none;padding:9px 22px;width:100%;text-align:left;font-size:1em;cursor:pointer;color:#237"
+      onclick="this.closest('.headerMenuDropdown').remove()"
+    >Close</button>
+  `;
 
-    setTimeout(() => {
-      function esc(ev) {
-        if (!modal.contains(ev.target) && ev.target !== dotsBtn) {
-          modal.remove();
-          document.removeEventListener('mousedown', esc, true);
-          document.removeEventListener('touchstart', esc, true);
-        }
+  document.body.appendChild(menu);
+
+  setTimeout(() => {
+    function esc(ev) {
+      if (!menu.contains(ev.target) && ev.target !== triggerEvent.target) {
+        menu.remove();
+        document.removeEventListener('mousedown', esc, true);
+        document.removeEventListener('touchstart', esc, true);
       }
-      document.addEventListener('mousedown', esc, true);
-      document.addEventListener('touchstart', esc, true);
-    }, 10);
-  };
-  return dotsBtn;
+    }
+    document.addEventListener('mousedown', esc, true);
+    document.addEventListener('touchstart', esc, true);
+  }, 10);
 }
