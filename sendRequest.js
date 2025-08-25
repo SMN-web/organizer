@@ -8,7 +8,6 @@ export function showSendRequest(container, user, showInboxCallback) {
     <button id="searchBtn" style="background:#3498db;color:#fff;border:none;border-radius:6px;padding:0.6em 1.4em;cursor:pointer;font-size:1em;">Search</button>
     <div id="searchResult" style="margin-top:22px;"></div>
   `;
-
   container.querySelector("#searchBtn").onclick = async () => {
     const input = container.querySelector("#friendUsername").value.trim().toLowerCase();
     const resultDiv = container.querySelector("#searchResult");
@@ -32,6 +31,7 @@ export function showSendRequest(container, user, showInboxCallback) {
       hideSpinner(container);
       if (!res.ok) throw new Error(await res.text());
       const result = await res.json();
+      const myUsername = (user.firebaseUser.displayName || user.firebaseUser.email || '').toLowerCase();
 
       if (!result.exists) {
         resultDiv.innerHTML = `<div style='color:#d12020;'>User not found.</div>`;
@@ -45,7 +45,6 @@ export function showSendRequest(container, user, showInboxCallback) {
         resultDiv.innerHTML = `<div style='padding:10px;background:#e8fce5;border-radius:6px;color:#178d3c;'>Already friends with <b>${result.name || result.username}</b>.</div>`;
         return;
       }
-      const myUsername = (user.firebaseUser.displayName || user.firebaseUser.email || '').toLowerCase();
       if (result.username.toLowerCase() === myUsername) {
         resultDiv.innerHTML = `<div style="color:#d12020;background:#ffe6e6;padding:10px 12px;border-radius:6px;">You cannot send a friend request to yourself.</div>`;
         return;
@@ -71,7 +70,6 @@ export function showSendRequest(container, user, showInboxCallback) {
               resultDiv.innerHTML = `<div style="color:#d12020;">Failed to cancel request.</div>`;
               return;
             }
-            // Success - show clean message, cannot click again
             resultDiv.innerHTML = `<div style='color:#178d3c;padding:12px 14px;background:#e8fce5;border-radius:7px;'>Friend request cancelled.</div>`;
           } catch (e) {
             hideSpinner(container);
