@@ -50,7 +50,6 @@ export function showFriendsMenu(container, user) {
 
     modal.querySelector("#mobBlockedBtn").onclick = () => {
       modal.remove();
-      // Show a demo message (replace with real function later)
       container.innerHTML = `
         <div style="margin:3em auto;max-width:330px;text-align:center;">
           <div style="font-size:2.1em;margin-bottom:0.6em;">🔒</div>
@@ -63,7 +62,7 @@ export function showFriendsMenu(container, user) {
         </div>
       `;
       container.querySelector("#backToFriendsPanel").onclick = () => {
-        location.reload(); // or rerun showFriendsList(container, user), or set up global handler
+        location.reload(); // Replace with: showFriendsList(container, user) if available!
       };
     };
   };
