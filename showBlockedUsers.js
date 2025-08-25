@@ -1,4 +1,4 @@
-// blockedUsers.js (or blockUsers.js)
+// showBlockedUsers.js
 import { showSpinner, hideSpinner, delay } from './spinner.js';
 
 export function showBlockedUsers(container, user) {
