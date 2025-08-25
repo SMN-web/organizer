@@ -1,8 +1,10 @@
 // friendsMenu.js
 import { showBlockedUsersModal } from './showBlockedUsers.js';
 
-export function showFriendsMenuDropdown(e, container, user) {
-  // Remove any previous dropdown
+export function showFriendsMenuDropdown(e, container) {
+  // Always get the latest user reference at click time
+  const user = window._globalUser;
+
   for (let el of document.querySelectorAll('.headerMenuDropdown')) el.remove();
 
   const btn = e?.currentTarget || e?.target || document.getElementById('headerDotsBtn');
