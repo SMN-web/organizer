@@ -1,4 +1,5 @@
 import { showSpinner, hideSpinner, delay } from './spinner.js';
+import { showFriendsMenuDropdown } from './friendsMenu.js';
 
 export function showFriendsList(container, user) {
   container.innerHTML = '';
@@ -6,62 +7,9 @@ export function showFriendsList(container, user) {
 
   let allFriends = [];
 
-  // Header menu: actionsheet directly below button, like dropdown
-  function showHeaderMenu(event) {
-    // Remove any existing menu
-    let modal = document.getElementById('headerMenuSheet');
-    if (modal) modal.remove();
-
-    const rect = event.target.getBoundingClientRect();
-    const scrollY = window.scrollY;
-    const scrollX = window.scrollX;
-
-    modal = document.createElement('div');
-    modal.id = 'headerMenuSheet';
-    modal.style = `
-      position:absolute;
-      left:${rect.left + scrollX - 130 + rect.width}px;
-      top:${rect.bottom + scrollY + 4}px;
-      min-width:180px;max-width:90vw;
-      background:#fff;
-      border:1.5px solid #eee;
-      box-shadow:0 2px 14px #0002,0 2px 8px #0001;
-      border-radius:12px;
-      z-index:202000;
-      font-size:1.09em;
-      text-align:left;
-      animation:fadein .13s;
-      padding-top:6px;
-      padding-bottom:6px;
-    `;
-    modal.innerHTML = `
-      <div style="padding:13px 23px;font-weight:600;font-size:1.1em;color:#232323;">Menu</div>
-      <div style="padding:10px 23px;color:#525;opacity:0.85;">Friends menu (custom message or more features coming soon)</div>
-      <hr style="opacity:.18;margin:8px 0 6px 0;">
-      <button style="
-        background:none;border:none;padding:9px 23px;width:100%;text-align:left;font-size:0.97em;cursor:pointer;color:#1B57C0;" onclick="document.getElementById('headerMenuSheet').remove();"
-      >Close</button>
-    `;
-    document.body.appendChild(modal);
-
-    // Dismiss on outside interaction
-    setTimeout(() => {
-      function esc(ev) {
-        if (!modal.contains(ev.target) && ev.target !== event.target) {
-          modal.remove();
-          document.removeEventListener('mousedown', esc, true);
-          document.removeEventListener('touchstart', esc, true);
-        }
-      }
-      document.addEventListener('mousedown', esc, true);
-      document.addEventListener('touchstart', esc, true);
-    }, 10);
-  }
-
-  // Per-friend dropdown menu (unchanged)
+  // Per-friend dropdown menu (unchanged from before)
   function createDropdown(friend, parentRow, event) {
     for (let el of document.querySelectorAll('.friendDropdown')) el.remove();
-
     const rect = event.target.getBoundingClientRect();
     const scrollY = window.scrollY;
     const scrollX = window.scrollX;
@@ -111,7 +59,7 @@ export function showFriendsList(container, user) {
       } catch (e) {
         dd.innerHTML = `<div style="padding:18px;text-align:center;color:#d12020;">${e.message}</div>`;
       }
-      setTimeout(() => dd.remove(), 900);
+      setTimeout(() => dd.remove(), 880);
     };
 
     dd.querySelector('.ddBlock').onclick = async () => {
@@ -133,7 +81,7 @@ export function showFriendsList(container, user) {
       } catch (e) {
         dd.innerHTML = `<div style="padding:18px;text-align:center;color:#d12020;">${e.message}</div>`;
       }
-      setTimeout(() => dd.remove(), 900);
+      setTimeout(() => dd.remove(), 880);
     };
 
     setTimeout(() => {
@@ -163,7 +111,7 @@ export function showFriendsList(container, user) {
         border:1px solid #dde;display:block;margin-left:auto;margin-right:auto;">
       <div id="friendList" style="max-height:54vh;overflow-y:auto;"></div>
     `;
-    container.querySelector("#headerDotsBtn").onclick = showHeaderMenu;
+    container.querySelector("#headerDotsBtn").onclick = e => showFriendsMenuDropdown(e);
 
     const friendList = container.querySelector("#friendList");
     container.querySelector('#friendFilter').oninput = e => render(e.target.value);
@@ -246,7 +194,7 @@ export function showFriendsList(container, user) {
         </div>
         <div style="color:#d12020;font-size:1.1em;margin:2em 0;text-align:center;">${errMsg}</div>
       `;
-      container.querySelector("#headerDotsBtn").onclick = showHeaderMenu;
+      container.querySelector("#headerDotsBtn").onclick = e => showFriendsMenuDropdown(e);
       return;
     }
     allFriends = list;
