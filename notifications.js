@@ -4,10 +4,10 @@ let notifications = [];
 let notifyCount;
 let dropdown;
 let renderingSetupDone = false;
+let inboxRouteTimer = null;
 
 export async function fetchNotificationsBadge(user, parent) {
   if (!user?.firebaseUser) return;
-
   if (!renderingSetupDone) {
     notifyCount = parent.querySelector("#notifyCount");
     dropdown = document.createElement('div');
@@ -15,21 +15,15 @@ export async function fetchNotificationsBadge(user, parent) {
     dropdown.style.cssText = `
       display:none;
       position:fixed;
-      top:65px; right:22px;
-      min-width:272px; max-width:96vw;
-      background:#fff;
-      border-radius:17px;
+      top:65px;right:22px;
+      min-width:272px;max-width:96vw;
+      background:#fff;border-radius:17px;
       box-shadow:0 8px 36px #0003, 0 2px 7px #0001;
-      z-index:220;
-      overflow:hidden;
-      transform:translateY(-12px) scale(.99);
-      opacity:0.01;
-      transition:opacity .18s cubic-bezier(.5,.6,.4,1),transform .22s cubic-bezier(.5,1.4,.45,1.05);
-    `;
+      z-index:220;overflow:hidden;
+      transform:translateY(-12px) scale(.99);opacity:0.01;
+      transition:opacity .18s cubic-bezier(.5,.6,.4,1),transform .22s cubic-bezier(.5,1.4,.45,1.05);`;
     document.body.appendChild(dropdown);
     renderingSetupDone = true;
- 
-    // Accepts a callback in mountNotifications signature below!
     parent.querySelector("#notifyIcon").onclick = () => {
       renderDropdown();
       if (dropdown.style.display === "block") {
@@ -48,7 +42,6 @@ export async function fetchNotificationsBadge(user, parent) {
           item.onclick = async () => {
             const id = Number(item.dataset.id);
             const type = item.dataset.type;
-
             if (type === "friend_request") showSpinner(document.body);
             if (user?.firebaseUser) {
               const token = await user.firebaseUser.getIdToken();
@@ -68,8 +61,6 @@ export async function fetchNotificationsBadge(user, parent) {
             dropdown.style.opacity = "0.01";
             dropdown.style.transform = "translateY(-12px) scale(.99)";
             setTimeout(() => dropdown.style.display = "none", 120);
-
-            // Only friend_request redirects to Inbox tab, using supplied callback
             if (typeof window._notificationRedirect === "function" && type === "friend_request") {
               window._notificationRedirect(type);
             }
@@ -77,7 +68,6 @@ export async function fetchNotificationsBadge(user, parent) {
         });
       }, 12);
     };
-
     document.addEventListener('click', function handler(e) {
       if (!dropdown.contains(e.target) && e.target !== parent.querySelector("#notifyIcon")) {
         dropdown.style.opacity = "0.01";
@@ -86,7 +76,6 @@ export async function fetchNotificationsBadge(user, parent) {
       }
     });
   }
-
   showSpinner(document.body);
   const start = Date.now();
   const token = await user.firebaseUser.getIdToken();
@@ -100,14 +89,12 @@ export async function fetchNotificationsBadge(user, parent) {
   renderBadge();
 }
 
-// Helper to update badge
 function renderBadge() {
   if (!notifyCount) return;
   const unread = notifications.filter(n => !n.read).length;
   notifyCount.textContent = unread ? unread : '';
 }
 
-// Helper to render dropdown
 function renderDropdown() {
   dropdown.innerHTML = notifications.length
     ? notifications.map((n, i) => {
@@ -118,7 +105,6 @@ function renderDropdown() {
         const bgRead = "#fafbfc";
         const fontWeight = isUnread ? 600 : 400;
         const fadeIn = `animation:ndropfade .32s cubic-bezier(.23,1,.29,1.01) both;animation-delay:${i*0.019}s;`;
-
         let text = "";
         if (n.type === 'friend_request') {
           text = `<b style="font-weight:700;">${escapeHtml(JSON.parse(n.data).from)}</b> sent you a friend request`;
@@ -150,8 +136,23 @@ function escapeHtml(str) {
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
 }
 
-// Mount notifications: set up redirect logic globally so dropdown's click handler can access it
 export function mountNotifications(parent, user, notificationRedirectCallback) {
-  window._notificationRedirect = notificationRedirectCallback;
+  window._notificationRedirect = (type) => {
+    if (type === "friend_request") {
+      const friendsBtn = document.querySelector("#friends");
+      if (friendsBtn) friendsBtn.click();
+      let t0 = Date.now();
+      function tryClickInbox() {
+        const inboxBtn = document.querySelector("#tabInbox");
+        if (inboxBtn) {
+          inboxBtn.click();
+        } else if (Date.now() - t0 < 2500) {
+          if (inboxRouteTimer) clearTimeout(inboxRouteTimer);
+          inboxRouteTimer = setTimeout(tryClickInbox, 40);
+        }
+      }
+      tryClickInbox();
+    }
+  };
   fetchNotificationsBadge(user, parent);
 }
