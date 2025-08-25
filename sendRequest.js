@@ -1,6 +1,6 @@
 import { showSpinner, hideSpinner, delay } from './spinner.js';
 
-export function showSendRequest(container, user) {
+export function showSendRequest(container, user, showInboxCallback) {
   container.innerHTML = `
     <h3>Send Friend Request</h3>
     <input id="friendUsername" type="text" placeholder="Enter a friend's username" autocomplete="off" style="
@@ -8,7 +8,6 @@ export function showSendRequest(container, user) {
     <button id="searchBtn" style="background:#3498db;color:#fff;border:none;border-radius:6px;padding:0.6em 1.4em;cursor:pointer;font-size:1em;">Search</button>
     <div id="searchResult" style="margin-top:22px;"></div>
   `;
-
   container.querySelector("#searchBtn").onclick = async () => {
     const input = container.querySelector("#friendUsername").value.trim().toLowerCase();
     const resultDiv = container.querySelector("#searchResult");
@@ -25,10 +24,7 @@ export function showSendRequest(container, user) {
       const token = await user.firebaseUser.getIdToken();
       const res = await fetch('https://se-re.nafil-8895-s.workers.dev/api/friends/search-status', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ target: input })
       });
       hideSpinner(container);
@@ -39,23 +35,68 @@ export function showSendRequest(container, user) {
         resultDiv.innerHTML = `<div style='color:#d12020;'>User not found.</div>`;
         return;
       }
+
       if (result.status === 'blocked') {
-        resultDiv.innerHTML = `<div style='color:#d12020;'>Blocked: You cannot interact with this user.</div>`;
+        resultDiv.innerHTML = `<div style="color:#d12020;">Cannot send friend request to blocked person.</div>`;
         return;
       }
       if (result.status === 'friends') {
         resultDiv.innerHTML = `<div style='padding:10px;background:#e8fce5;border-radius:6px;color:#178d3c;'>Already friends with <b>${result.name || result.username}</b>.</div>`;
         return;
       }
-      if (result.status === 'pending') {
-        resultDiv.innerHTML = `<div style='padding:10px;background:#fff4e0;border-radius:6px;color:#ad670f;'>Friend request already sent to <b>${result.name || result.username}</b>.</div>`;
-        return;
-      }
-      const myUsername = user.firebaseUser.displayName?.toLowerCase() || user.firebaseUser.email?.toLowerCase() || '';
+      const myUsername = (user.firebaseUser.displayName || user.firebaseUser.email || '').toLowerCase();
       if (result.username.toLowerCase() === myUsername) {
         resultDiv.innerHTML = `<div style="color:#d12020;background:#ffe6e6;padding:10px 12px;border-radius:6px;">You cannot send a friend request to yourself.</div>`;
         return;
       }
+      // Pending logic, now direction-aware
+      if (result.status === 'pending' && result.direction === 'outgoing') {
+        resultDiv.innerHTML = `
+          <div style='padding:10px 14px;background:#fff4e0;border-radius:6px;color:#ad670f;display:flex;align-items:center;gap:10px;'>
+            Friend request already sent to <b>${result.name || result.username}</b>.
+            <button id="cancelRequestBtn" style="margin-left:12px;background:#e25c41;color:#fff;border:none;border-radius:5px;padding:0.35em 0.9em;cursor:pointer;font-size:0.97em;">Cancel</button>
+          </div>
+          <div id="cancelMsg" style="margin-top:7px;font-size:1em;"></div>
+        `;
+        container.querySelector("#cancelRequestBtn").onclick = async () => {
+          showSpinner(container); await delay(750);
+          try {
+            const cancelToken = await user.firebaseUser.getIdToken();
+            const cancelRes = await fetch('https://se-re.nafil-8895-s.workers.dev/api/friends/cancel', {
+              method: "POST",
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cancelToken}` },
+              body: JSON.stringify({ to: result.username })
+            });
+            hideSpinner(container);
+            if (!cancelRes.ok) {
+              container.querySelector("#cancelMsg").textContent = "Failed to cancel request.";
+              container.querySelector("#cancelMsg").style.color = "#d12020";
+              return;
+            }
+            container.querySelector("#cancelMsg").textContent = "Friend request cancelled.";
+            container.querySelector("#cancelMsg").style.color = "#178d3c";
+            // Optionally, reload status here
+          } catch (e) {
+            hideSpinner(container);
+            container.querySelector("#cancelMsg").textContent = e.message;
+            container.querySelector("#cancelMsg").style.color = "#d12020";
+          }
+        };
+        return;
+      }
+      if (result.status === 'pending' && result.direction === 'incoming') {
+        resultDiv.innerHTML = `
+          <div style='padding:10px 14px;background:#ffeac5;border-radius:6px;color:#a77010;display:flex;align-items:center;gap:10px;'>
+            <b>${result.name || result.username}</b> already sent you a friend request.
+            <button id="goInboxBtn" style="margin-left:7px;background:#3271d0;color:#fff;border:none;border-radius:5px;padding:0.3em 1em;font-size:0.97em;cursor:pointer;">Go to Inbox</button>
+          </div>
+        `;
+        container.querySelector("#goInboxBtn").onclick = () => {
+          if (typeof showInboxCallback === "function") showInboxCallback();
+        };
+        return;
+      }
+      // Not friends, not blocked, no pending request: can send
       resultDiv.innerHTML = `
         <div style="padding:12px 16px;background:#f5f6fa;border-radius:6px;display:flex;align-items:center;gap:12px;">
           <span style="font-weight:500;font-size:1.1em;">${result.name || result.username}</span>
@@ -70,21 +111,14 @@ export function showSendRequest(container, user) {
           const newToken = await user.firebaseUser.getIdToken();
           const req = await fetch('https://se-re.nafil-8895-s.workers.dev/api/friends/send', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${newToken}`
-            },
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${newToken}` },
             body: JSON.stringify({ to: result.username })
           });
           hideSpinner(container);
           if (!req.ok) {
             const err = await req.text();
             let msg = '';
-            if (err.includes('Cannot friend yourself')) {
-              msg = "You cannot send a friend request to yourself.";
-            } else {
-              msg = (JSON.parse(err).error || err);
-            }
+            try { msg = (JSON.parse(err).error || err); } catch { msg = err; }
             container.querySelector("#sendMsg").textContent = msg;
             container.querySelector("#sendMsg").style.color = "#d12020";
             return;
