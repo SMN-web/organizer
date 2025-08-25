@@ -1,13 +1,20 @@
 import { showSpinner, hideSpinner, delay } from './spinner.js';
 
-export function showBlockedUsersModal(container, user) {
-  container.innerHTML = `<div style="text-align:center;font-size:1.13em;padding-top:2.6em;">Loading blocked users...</div>`;
+export function showBlockedUsersPanel(container, user) {
+  // Remove overlays/menus before showing this panel
+  for (let el of document.querySelectorAll('.headerMenuDropdown,.friendDropdown')) el.remove();
+  container.style.display = "";
+  container.style.zIndex = "";
+
+  showSpinner(container);
+
   (async function() {
     let error = '';
     let blocks = [];
     try {
       if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function') {
         await delay(400);
+        hideSpinner(container);
         container.innerHTML = `<div style="color:#d12020;margin:2em;text-align:center;">Please log in.</div>`;
         return;
       }
@@ -16,11 +23,8 @@ export function showBlockedUsersModal(container, user) {
         headers: { Authorization: "Bearer " + token }
       });
       const text = await res.text();
-      try {
-        blocks = JSON.parse(text);
-      } catch (e) {
-        error = "Invalid backend: " + text;
-      }
+      try { blocks = JSON.parse(text); }
+      catch (e) { error = "Invalid backend: " + text; }
       if (!Array.isArray(blocks)) {
         if (blocks && blocks.error) error = "Backend: " + blocks.error;
         else error = "Unexpected error: " + text;
@@ -28,6 +32,8 @@ export function showBlockedUsersModal(container, user) {
     } catch (e) {
       error = "Network: " + e.message;
     }
+
+    hideSpinner(container);
 
     if (error) {
       container.innerHTML = `<div style="color:#d12020;text-align:center;margin-top:2em;">${error}</div>`;
