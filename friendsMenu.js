@@ -1,5 +1,7 @@
-// friendsMenu.js
 import { showBlockedUsersModal } from './showBlockedUsers.js';
+
+// Called from your friends panel, e.g.:
+// container.querySelector("#headerDotsBtn").onclick = e => showFriendsMenuDropdown(e, container, user);
 
 export function showFriendsMenuDropdown(e, container, user) {
   // Remove any previous dropdown
@@ -39,14 +41,15 @@ export function showFriendsMenuDropdown(e, container, user) {
       background:none;border:none;padding:12px 20px 12px 22px;
       display:block;width:100%;text-align:left;
       font-size:0.95em;cursor:pointer;color:#1761a0;">
-      Unblock User
+      Blocked Users
     </button>
   `;
   document.body.appendChild(menu);
 
   menu.querySelector("#menuUnblockUser").onclick = () => {
     menu.remove();
-    showBlockedUsersModal(container, user); // pass both!
+    window._showFriendsMainView = () => window.showFriendsList && window.showFriendsList(container, user);
+    showBlockedUsersModal(container, user);
   };
 
   setTimeout(() => {
