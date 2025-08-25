@@ -1,7 +1,6 @@
 import { showSpinner, hideSpinner, delay } from './spinner.js';
 
 export function showBlockedUsersPanel(container, user) {
-  // Remove any menu/overlay before showing this
   for (let el of document.querySelectorAll('.headerMenuDropdown,.friendDropdown')) el.remove();
   container.style.display = "";
   container.style.zIndex = "";
@@ -47,11 +46,8 @@ export function showBlockedUsersPanel(container, user) {
       </div>
       <div id="blockList" style="margin-top:18px;"></div>
     `;
-    // The back button always restores the Friends List!
     container.querySelector("#bbBack").onclick = () => {
-      if (typeof window._showFriendsMainView === 'function') {
-        window._showFriendsMainView();
-      }
+      if (typeof window._showFriendsMainView === 'function') window._showFriendsMainView();
     };
 
     const blockList = container.querySelector("#blockList");
