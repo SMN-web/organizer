@@ -7,7 +7,6 @@ export function showFriendsList(container, user) {
 
   let allFriends = [];
 
-  // Per-friend dropdown menu (unchanged from before)
   function createDropdown(friend, parentRow, event) {
     for (let el of document.querySelectorAll('.friendDropdown')) el.remove();
     const rect = event.target.getBoundingClientRect();
@@ -111,7 +110,7 @@ export function showFriendsList(container, user) {
         border:1px solid #dde;display:block;margin-left:auto;margin-right:auto;">
       <div id="friendList" style="max-height:54vh;overflow-y:auto;"></div>
     `;
-    container.querySelector("#headerDotsBtn").onclick = e => showFriendsMenuDropdown(e);
+    container.querySelector("#headerDotsBtn").onclick = e => showFriendsMenuDropdown(e, container, user);
 
     const friendList = container.querySelector("#friendList");
     container.querySelector('#friendFilter').oninput = e => render(e.target.value);
