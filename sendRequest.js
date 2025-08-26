@@ -66,9 +66,8 @@ export function showSendRequest(container, user, showInboxCallback) {
               body: JSON.stringify({ to: result.username })
             });
             hideSpinner(container);
-            const cancelResult = await cancelRes.json();
-            if (!cancelRes.ok || cancelResult.error) {
-              resultDiv.innerHTML = `<div style="color:#d12020;">${cancelResult.error || 'Failed to cancel request.'}</div>`;
+            if (!cancelRes.ok) {
+              resultDiv.innerHTML = `<div style="color:#d12020;">Failed to cancel request.</div>`;
               return;
             }
             resultDiv.innerHTML += `<div style='color:#178d3c;padding:12px 14px;background:#e8fce5;border-radius:7px;'>Friend request cancelled.</div>`;
@@ -102,12 +101,13 @@ export function showSendRequest(container, user, showInboxCallback) {
           const req = await fetch('https://se-re.nafil-8895-s.workers.dev/api/friends/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${newToken}` },
-            body: JSON.stringify({ target: result.username })
+            body: JSON.stringify({ to: result.username })
           });
           hideSpinner(container);
-          const sendResult = await req.json();
-          if (!req.ok || sendResult.error) {
-            const msg = (sendResult.error || 'Friend request failed');
+          if (!req.ok) {
+            const err = await req.text();
+            let msg = '';
+            try { msg = (JSON.parse(err).error || err); } catch { msg = err; }
             container.querySelector("#sendMsg").textContent = msg;
             container.querySelector("#sendMsg").style.color = "#d12020";
             return;
