@@ -71,6 +71,7 @@ export function showSendRequest(container, user, showInboxCallback) {
               return;
             }
             resultDiv.innerHTML += `<div style='color:#178d3c;padding:12px 14px;background:#e8fce5;border-radius:7px;'>Friend request cancelled.</div>`;
+            container.querySelector("#sendMsg").textContent = "";
           } catch (e) {
             hideSpinner(container);
             resultDiv.innerHTML += `<div style="color:#d12020;">${e.message}</div>`;
