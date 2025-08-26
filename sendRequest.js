@@ -11,12 +11,17 @@ export function showSendRequest(container, user, showInboxCallback) {
   container.querySelector("#searchBtn").onclick = async () => {
     const input = container.querySelector("#friendUsername").value.trim().toLowerCase();
     const resultDiv = container.querySelector("#searchResult");
-    // --- DEBUG who is searching for whom
+    const myUsername = (user.firebaseUser.displayName || user.firebaseUser.email || '').toLowerCase();
     resultDiv.innerHTML = `<div style="color:#888;word-break:break-all;">
-      DEBUG: Searching for <b>${input}</b> as logged-in <b>${user?.firebaseUser?.displayName || user?.firebaseUser?.email || "[unknown]"}</b>
+      DEBUG: Searching for <b>${input}</b> as logged-in <b>${myUsername}</b>
     </div>`;
+
     if (!input) {
       resultDiv.innerHTML += `<div style="color:#d12020;">Please enter a username.</div>`;
+      return;
+    }
+    if (input === myUsername) {
+      resultDiv.innerHTML += `<div style="color:#d12020;background:#ffe6e6;padding:10px 12px;border-radius:6px;">You cannot send a friend request to yourself.</div>`;
       return;
     }
     try {
@@ -34,11 +39,9 @@ export function showSendRequest(container, user, showInboxCallback) {
       });
       hideSpinner(container);
       const result = await res.json();
-      // DEBUG backend info
-      if(result.debug) {
+      if (result.debug) {
         resultDiv.innerHTML += `<pre style="background:#fafafa;border:1px solid #eee;border-radius:6px;color:#222;font-size:.94em;padding:7px 10px;margin:0 0 12px 0;">${JSON.stringify(result.debug, null, 2)}</pre>`;
       }
-      const myUsername = (user.firebaseUser.displayName || user.firebaseUser.email || '').toLowerCase();
       if (!result.exists) {
         resultDiv.innerHTML += `<div style='color:#d12020;'>User not found.</div>`;
         return;
@@ -49,10 +52,6 @@ export function showSendRequest(container, user, showInboxCallback) {
       }
       if (result.status === 'friends') {
         resultDiv.innerHTML += `<div style='padding:10px;background:#e8fce5;border-radius:6px;color:#178d3c;'>Already friends with <b>${result.name || result.username}</b>.</div>`;
-        return;
-      }
-      if (result.username.toLowerCase() === myUsername) {
-        resultDiv.innerHTML += `<div style="color:#d12020;background:#ffe6e6;padding:10px 12px;border-radius:6px;">You cannot send a friend request to yourself.</div>`;
         return;
       }
       if (result.status === 'pending' && result.direction === 'outgoing') {
