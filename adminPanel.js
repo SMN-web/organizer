@@ -1,4 +1,5 @@
 import { sendHeartbeat } from './heartbeat.js';
+import { showSpinner, hideSpinner } from './spinner.js';
 
 let heartbeatTimer = null;
 
@@ -11,27 +12,32 @@ export function showAdminPanel(container, auth) {
 
   // ---- Panel UI Rendering ----
   container.innerHTML = `
-    <h2>User Admin Panel</h2>
-   <button id="logoutBtn" style="padding:0.4em 1em;font-weight:bold;margin-left:1em;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;">Logout</button>
-    <div style="display:flex;align-items:center;gap:2em;flex-wrap:wrap;">
-      <div>
-        <label>Role: <select id="filterRole">
+    <h2 style="margin-bottom:0.7em;letter-spacing:0.01em;">User Admin Panel
+      <button id="logoutBtn" style="padding:0.4em 1em;font-weight:bold;float:right;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;box-shadow:0 1px 4px #e74c3c13;">Logout</button>
+    </h2>
+    <div class="admin-filters">
+      <label>Role
+        <select id="filterRole">
           <option value="">All</option>
           <option value="user">User</option>
           <option value="admin">Admin</option>
           <option value="moderator">Moderator</option>
-        </select></label>
-        <label>Email: <input type="text" id="filterEmail" placeholder="Email filter"></label>
-        <label>Name: <input type="text" id="filterName" placeholder="Name filter"></label>
-      </div>
+        </select>
+      </label>
+      <label>Email
+        <input type="text" id="filterEmail" placeholder="Email filter">
+      </label>
+      <label>Name
+        <input type="text" id="filterName" placeholder="Name filter">
+      </label>
       <div>
         <span style="font-weight:bold;">Pending approvals:</span>
-        <span id="pendingBadge" style="background:#e74c3c;color:white;border-radius:1em;padding:0.3em 0.8em;">0</span>
+        <span id="pendingBadge" class="admin-badge">0</span>
       </div>
     </div>
-    <h3 style="margin-top:1.2em;">All Users</h3>
-    <div style="overflow-x:auto;">
-      <table id="usersTable" border="1" style="width:100%;min-width:600px;">
+    <h3 style="margin-top:1.5em;">All Users</h3>
+    <div class="admin-table-scroll">
+      <table id="usersTable">
         <thead>
           <tr>
             <th>Name</th><th>Email</th><th>Username</th><th>Role</th><th>Status</th><th>Created At</th><th>Change Role</th><th>Delete</th>
@@ -40,21 +46,19 @@ export function showAdminPanel(container, auth) {
         <tbody id="usersRows"></tbody>
       </table>
     </div>
-    <h3 style="margin-top:1.2em;">Pending User Approvals</h3>
+    <h3 style="margin-top:1.7em;">Pending User Approvals</h3>
     <div id="pendingApprovalSection"></div>
     <div id="adminPanelMsg" style="color:#e74c3c;margin-top:1em;"></div>
   `;
-  
+
   document.getElementById('logoutBtn').onclick = async () => {
     try {
-      // Call backend to record logout
       const token = await auth.currentUser.getIdToken();
       await fetch('https://ad-api.nafil-8895-s.workers.dev/api/logout', { method: 'POST', headers: { "Authorization": "Bearer " + token } });
-    } catch { /* ignore */ }
+    } catch { }
     await auth.signOut();
     window.location.hash = "#login";
   };
-
 
   // --- HEARTBEAT LOGIC ---
   async function getFreshToken() {
@@ -65,31 +69,26 @@ export function showAdminPanel(container, auth) {
   async function doHeartbeat() {
     try {
       const token = await getFreshToken();
-      sendHeartbeat(token); // Sends to /api/heartbeat
-    } catch (e) {/* ignore if logged out */}
+      sendHeartbeat(token);
+    } catch (e) {}
   }
-
   function startHeartbeat() {
     clearHeartbeat();
-    doHeartbeat(); // fire immediately
-    heartbeatTimer = setInterval(doHeartbeat, 2 * 60 * 1000); // every 2 minutes
+    doHeartbeat();
+    heartbeatTimer = setInterval(doHeartbeat, 2 * 60 * 1000);
   }
-
   function clearHeartbeat() {
     if (heartbeatTimer) clearInterval(heartbeatTimer);
     heartbeatTimer = null;
   }
-
-  // Start heartbeat when panel loaded
   startHeartbeat();
-  // Stop it when navigating away (optional safety, keeps only 1 timer alive)
   window.addEventListener("hashchange", clearHeartbeat, { once: true });
 
-  // --- Rest of adminPanel code: fetching, rendering, etc. ---
+  // --- UI-animated fetch spinner, rendering
   async function fetchUsersAndRender() {
     let token;
-    try { token = await getFreshToken(); } catch (e) { showErrorPage("Not logged in."); return; }
-    // Heartbeat is handled by timer, no need to call here
+    showSpinner(container);
+    try { token = await getFreshToken(); } catch (e) { hideSpinner(container); showErrorPage("Not logged in."); return; }
     const role = document.getElementById('filterRole').value;
     const email = document.getElementById('filterEmail').value.trim();
     const name = document.getElementById('filterName').value.trim();
@@ -102,6 +101,7 @@ export function showAdminPanel(container, auth) {
       const res = await fetch('https://ad-api.nafil-8895-s.workers.dev/api/users?' + params.toString(), {
         headers: { "Authorization": "Bearer " + token }
       });
+      hideSpinner(container);
       if (!res.ok) {
         let msg = "";
         try {
@@ -134,7 +134,6 @@ export function showAdminPanel(container, auth) {
           </td>
           <td>
             <button data-username="${u.username}" class="deleteBtn"
-                style="color:white;background:#e74c3c;border:none;"
                 ${u.role==="admin" ? "disabled title='Admin cannot be deleted'" : ""}>
               Delete
             </button>
@@ -144,6 +143,7 @@ export function showAdminPanel(container, auth) {
       [...container.querySelectorAll('.roleSelect')].forEach(sel => {
         sel.onchange = async e => {
           let token; try { token = await getFreshToken(); } catch (e) { showErrorPage("Not logged in."); return; }
+          showSpinner(container);
           const username = e.target.getAttribute('data-username');
           const newRole = e.target.value;
           const res = await fetch('https://ad-api.nafil-8895-s.workers.dev/api/user/change-role', {
@@ -151,6 +151,7 @@ export function showAdminPanel(container, auth) {
             headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
             body: JSON.stringify({ username, newRole })
           });
+          hideSpinner(container);
           const json = await res.json();
           document.getElementById('adminPanelMsg').textContent =
             res.ok ? "Role updated." : (json.error || "") + (json.detail ? " | " + json.detail : "");
@@ -162,6 +163,7 @@ export function showAdminPanel(container, auth) {
           if (btn.disabled) return;
           let token; try { token = await getFreshToken(); } catch (e) { showErrorPage("Not logged in."); return; }
           if (confirm("Delete user from DB and Firebase Auth? This cannot be undone.")) {
+            showSpinner(container);
             const username = btn.getAttribute('data-username');
             document.getElementById("adminPanelMsg").textContent = "Deleting...";
             const res = await fetch('https://ad-api.nafil-8895-s.workers.dev/api/user/delete', {
@@ -169,6 +171,7 @@ export function showAdminPanel(container, auth) {
               headers: { "Content-Type":"application/json", "Authorization": "Bearer " + token },
               body: JSON.stringify({ username })
             });
+            hideSpinner(container);
             const json = await res.json();
             document.getElementById("adminPanelMsg").textContent =
               res.ok ? "User deleted successfully." : (json.error || "") + (json.detail ? " | " + json.detail : "");
@@ -180,23 +183,27 @@ export function showAdminPanel(container, auth) {
       const pendingUsers = users.filter(u => u.adminApproval === "pending");
       document.getElementById('pendingApprovalSection').innerHTML = pendingUsers.length
         ? pendingUsers.map(u => `
-            <div style="border:1px solid #ccc;padding:1em;margin-bottom:0.7em;">
+            <div class="pendingUserCard">
               <b>${u.name}</b> (${u.email}, Username: ${u.username}), Created: ${new Date(u.createdAt).toLocaleString()}<br>
               Role: ${u.role}
-              <button class="approveBtn" data-username="${u.username}">Approve</button>
-              <button class="rejectBtn" data-username="${u.username}">Reject</button>
+              <div style="margin-top:0.7em;">
+                <button class="approveBtn" data-username="${u.username}">Approve</button>
+                <button class="rejectBtn" data-username="${u.username}">Reject</button>
+              </div>
             </div>
           `).join('')
         : "<p>No pending users.</p>";
       [...container.querySelectorAll('.approveBtn')].forEach(btn => {
         btn.onclick = async () => {
           let token; try { token = await getFreshToken(); } catch (e) { showErrorPage("Not logged in."); return; }
+          showSpinner(container);
           const username = btn.getAttribute('data-username');
-          const res = await fetch('https://ad-api.nafil-8895-s.workers.dev/api/user/approve', {
+          await fetch('https://ad-api.nafil-8895-s.workers.dev/api/user/approve', {
             method:"POST",
             headers:{"Content-Type":"application/json", "Authorization": "Bearer " + token },
             body: JSON.stringify({username})
           });
+          hideSpinner(container);
           fetchUsersAndRender();
         };
       });
@@ -204,18 +211,21 @@ export function showAdminPanel(container, auth) {
         btn.onclick = async () => {
           let token; try { token = await getFreshToken(); } catch (e) { showErrorPage("Not logged in."); return; }
           if (confirm("Reject user and delete from both DB and Firebase Auth?")) {
+            showSpinner(container);
             const username = btn.getAttribute('data-username');
             document.getElementById("adminPanelMsg").textContent = "Deleting...";
-            const res = await fetch('https://ad-api.nafil-8895-s.workers.dev/api/user/delete', {
+            await fetch('https://ad-api.nafil-8895-s.workers.dev/api/user/delete', {
               method:"POST",
               headers:{"Content-Type":"application/json", "Authorization": "Bearer " + token },
               body: JSON.stringify({username})
             });
+            hideSpinner(container);
             fetchUsersAndRender();
           }
         };
       });
     } catch(e) {
+      hideSpinner(container);
       container.innerHTML = `<div style="color:#b71c1c">UI/frontend error: ${e && e.message ? e.message : e}</div>`;
     }
   }
