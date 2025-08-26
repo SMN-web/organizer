@@ -10,7 +10,6 @@ import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.23.
 
 
 export function showLogin(container) {
-  const auth = window.firebaseAuth;
   if (window.firebaseAuth && window.firebaseAuth.currentUser) {
     sessionRedirect(window.firebaseAuth, container);
     return; 
