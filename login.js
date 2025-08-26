@@ -5,8 +5,6 @@ import {
   browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { sessionRedirect } from './session.js';
-
-// --- ADD THIS IMPORT ---
 import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js";
 
 export function showLogin(container) {
@@ -51,7 +49,7 @@ export function showLogin(container) {
         keepSignedInCheckbox = container.querySelector("#keepSignedIn"),
         forgotLink = container.querySelector("#forgotLink");
 
-  // --- PASSWORD TOGGLE LOGIC ---
+  // PASSWORD TOGGLE LOGIC
   const pwdToggleBtn = container.querySelector("#toggleLoginPassword");
   const eyeIcon = container.querySelector("#eyeIconLoginPwd");
   eyeIcon.innerHTML = getEyeSvg(false);
@@ -83,7 +81,7 @@ export function showLogin(container) {
         </svg>`;
   }
 
-  // --- LOGIN FORM HANDLING ---
+  // LOGIN FORM HANDLING
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     errBox.textContent = idErr.textContent = pwdErr.textContent = "";
@@ -146,26 +144,26 @@ export function showLogin(container) {
         }
         await sessionRedirect(auth, container);
 
-        // --- PUSH REGISTRATION & TOKEN SAVING ---
+        // -- Secure FCM registration: --
         try {
           const reg = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
           const perm = await Notification.requestPermission();
           if (perm === "granted") {
             const messaging = getMessaging();
-            const vapidKey = "BNsBdePtEeGZPBbTvE9MxHtq0EYzM6H8OYhHC_M46jDYCFSDyqN2NKEBXVpjU1MBMbY1lChkyVrCRP2bGc4ISZQ"; // <--- add your VAPID key here
+            const vapidKey = "BNsBdePtEeGZPBbTvE9MxHtq0EYzM6H8OYhHC_M46jDYCFSDyqN2NKEBXVpjU1MBMbY1lChkyVrCRP2bGc4ISZQ"; // <- put your real key here
             const fcmToken = await getToken(messaging, {
               vapidKey,
               serviceWorkerRegistration: reg
             });
-            // Save FCM token to backend for signed-in user
-            if (fcmToken && auth.currentUser && auth.currentUser.uid) {
-              await fetch('https://pu-no.nafil-8895-s.workers.dev/save-user-token', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  userId: auth.currentUser.uid,
-                  fcmToken
-                })
+            if (fcmToken && auth.currentUser) {
+              const idToken = await auth.currentUser.getIdToken(true);
+              await fetch("https://pu-no.nafil-8895-s.workers.dev/api/save-user-token", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": "Bearer " + idToken
+                },
+                body: JSON.stringify({ fcmToken })
               });
             }
             window.currentFcmToken = fcmToken;
