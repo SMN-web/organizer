@@ -1,4 +1,3 @@
-
 import {
   signInWithEmailAndPassword,
   setPersistence,
@@ -38,7 +37,6 @@ export function showLogin(container) {
       <a href="#signup" style="font-size:0.97em;color:#3498db;cursor:pointer;">Create an account</a>
     </div>
   `;
-  // password toggle omitted for brevity
 
   const loginForm = container.querySelector("#loginForm"),
         idInput = container.querySelector("#loginId"),
@@ -50,6 +48,40 @@ export function showLogin(container) {
         keepSignedInCheckbox = container.querySelector("#keepSignedIn"),
         forgotLink = container.querySelector("#forgotLink");
 
+  // --- PASSWORD TOGGLE LOGIC ---
+  const pwdToggleBtn = container.querySelector("#toggleLoginPassword");
+  const eyeIcon = container.querySelector("#eyeIconLoginPwd");
+  eyeIcon.innerHTML = getEyeSvg(false);
+
+  pwdToggleBtn.onclick = function(e) {
+    e.preventDefault();
+    if (pwdInput.type === "password") {
+      pwdInput.type = "text";
+      eyeIcon.innerHTML = getEyeSvg(true);
+      pwdToggleBtn.setAttribute('aria-label', 'Hide Password');
+    } else {
+      pwdInput.type = "password";
+      eyeIcon.innerHTML = getEyeSvg(false);
+      pwdToggleBtn.setAttribute('aria-label', 'Show Password');
+    }
+    pwdInput.focus();
+  };
+
+  function getEyeSvg(isOpen) {
+    // Returns SVG for open (shown) or closed (hidden) eye
+    return isOpen
+      ? `<svg height="21" stroke="#444" viewBox="0 0 24 24" width="23" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="12" cy="12" rx="7" ry="5.5" stroke-width="1.7"/>
+          <circle cx="12" cy="12" r="2.5" fill="#444" />
+        </svg>`
+      : `<svg height="21" stroke="#444" viewBox="0 0 24 24" width="23" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="12" cy="12" rx="7" ry="5.5" stroke-width="1.7"/>
+          <circle cx="12" cy="12" r="2.5" fill="#fff" />
+          <line x1="4" y1="20" x2="20" y2="4" stroke="#b33" stroke-width="2"/>
+        </svg>`;
+  }
+
+  // --- LOGIN FORM HANDLING ---
   loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     errBox.textContent = idErr.textContent = pwdErr.textContent = "";
@@ -62,7 +94,7 @@ export function showLogin(container) {
     loginBtn.classList.add("loading");
     loginBtn.innerHTML = `<span class="spinner"></span>Logging in...`;
     try {
-      // 1. Backend approval, get canonical email only!
+      // Backend login-lookup
       const resp = await fetch(
         "https://lucky-dawn-90bb.nafil-8895-s.workers.dev/api/login-lookup",
         {
@@ -93,7 +125,7 @@ export function showLogin(container) {
         loginBtn.innerHTML = "Login";
         return;
       }
-      // 2. Firebase Auth with persistence
+      // Firebase Auth with persistence
       const auth = window.firebaseAuth;
       const persistenceType = keepSignedInCheckbox.checked
         ? browserLocalPersistence
@@ -110,7 +142,6 @@ export function showLogin(container) {
           loginBtn.innerHTML = "Login";
           return;
         }
-        // 3. After successful login/emailVerified — let session.js handle ALL routing!
         await sessionRedirect(auth, container);
       } catch (firebaseErr) {
         errBox.textContent = "Incorrect username/email or password.";
