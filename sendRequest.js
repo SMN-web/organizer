@@ -11,17 +11,14 @@ export function showSendRequest(container, user, showInboxCallback) {
   container.querySelector("#searchBtn").onclick = async () => {
     const input = container.querySelector("#friendUsername").value.trim().toLowerCase();
     const resultDiv = container.querySelector("#searchResult");
-
-    // Debug: who is searching for whom?
+    // --- DEBUG who is searching for whom
     resultDiv.innerHTML = `<div style="color:#888;word-break:break-all;">
       DEBUG: Searching for <b>${input}</b> as logged-in <b>${user?.firebaseUser?.displayName || user?.firebaseUser?.email || "[unknown]"}</b>
     </div>`;
-
     if (!input) {
       resultDiv.innerHTML += `<div style="color:#d12020;">Please enter a username.</div>`;
       return;
     }
-
     try {
       if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function') {
         resultDiv.innerHTML += `<div style="color:#d12020;">Please log in first.</div>`;
@@ -37,14 +34,11 @@ export function showSendRequest(container, user, showInboxCallback) {
       });
       hideSpinner(container);
       const result = await res.json();
-
-      // Show backend debug always
+      // DEBUG backend info
       if(result.debug) {
-        resultDiv.innerHTML += `<pre style="background:#fafafa;border:1px solid #eee;border-radius:6px;color:#222;font-size:.94em;padding:7px 10px;margin:0 0 12px 0;">${JSON.stringify(result.debug,null,2)}</pre>`;
+        resultDiv.innerHTML += `<pre style="background:#fafafa;border:1px solid #eee;border-radius:6px;color:#222;font-size:.94em;padding:7px 10px;margin:0 0 12px 0;">${JSON.stringify(result.debug, null, 2)}</pre>`;
       }
-
       const myUsername = (user.firebaseUser.displayName || user.firebaseUser.email || '').toLowerCase();
-
       if (!result.exists) {
         resultDiv.innerHTML += `<div style='color:#d12020;'>User not found.</div>`;
         return;
