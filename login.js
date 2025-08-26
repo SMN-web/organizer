@@ -7,17 +7,14 @@ import {
 import { sessionRedirect } from './session.js';
 import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js";
 
-import { sessionRedirect } from './session.js';
+
 
 export function showLogin(container) {
-  // If already authenticated, redirect using session logic BEFORE rendering login form
-  if (window.firebaseAuth && window.firebaseAuth.currentUser) {
-    sessionRedirect(window.firebaseAuth, container);
+  const auth = window.firebaseAuth;
+  if (auth && auth.currentUser) {
+    await sessionRedirect(auth, container);
     return;
   }
-
-
-export function showLogin(container) {
   container.innerHTML = `
     <h2>Login</h2>
     <form id="loginForm" novalidate>
