@@ -6,6 +6,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 import { sessionRedirect } from './session.js';
 
+// --- ADD THIS IMPORT ---
+import { getMessaging, getToken } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging.js";
+
 export function showLogin(container) {
   container.innerHTML = `
     <h2>Login</h2>
@@ -68,7 +71,6 @@ export function showLogin(container) {
   };
 
   function getEyeSvg(isOpen) {
-    // Returns SVG for open (shown) or closed (hidden) eye
     return isOpen
       ? `<svg height="21" stroke="#444" viewBox="0 0 24 24" width="23" fill="none" xmlns="http://www.w3.org/2000/svg">
           <ellipse cx="12" cy="12" rx="7" ry="5.5" stroke-width="1.7"/>
@@ -143,6 +145,35 @@ export function showLogin(container) {
           return;
         }
         await sessionRedirect(auth, container);
+
+        // --- PUSH REGISTRATION & TOKEN SAVING ---
+        try {
+          const reg = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+          const perm = await Notification.requestPermission();
+          if (perm === "granted") {
+            const messaging = getMessaging();
+            const vapidKey = "BNsBdePtEeGZPBbTvE9MxHtq0EYzM6H8OYhHC_M46jDYCFSDyqN2NKEBXVpjU1MBMbY1lChkyVrCRP2bGc4ISZQ"; // <--- add your VAPID key here
+            const fcmToken = await getToken(messaging, {
+              vapidKey,
+              serviceWorkerRegistration: reg
+            });
+            // Save FCM token to backend for signed-in user
+            if (fcmToken && auth.currentUser && auth.currentUser.uid) {
+              await fetch('https://pu-no.nafil-8895-s.workers.dev/save-user-token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: auth.currentUser.uid,
+                  fcmToken
+                })
+              });
+            }
+            window.currentFcmToken = fcmToken;
+          }
+        } catch (err) {
+          // Optionally handle push registration error
+        }
+
       } catch (firebaseErr) {
         errBox.textContent = "Incorrect username/email or password.";
         loginBtn.classList.remove("loading");
