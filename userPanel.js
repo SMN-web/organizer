@@ -2,12 +2,10 @@ import { showDashboard } from './dashboard.js';
 import { showManageSpend } from './manageSpend.js';
 import { showFriends } from './friends.js';
 import { showUserProfile } from './userProfile.js';
-import { fetchNotificationsBadge } from './notifications.js';
+import { fetchNotificationsBadge, mountNotifications } from './notifications.js';
 import { sendHeartbeat } from './heartbeat.js';
 
 let heartbeatTimer = null;
-
-// NOTE: mountNotifications is now "internal" to notifications.js, see how it's used below
 
 export async function showUserPanel(container, auth) {
   container.innerHTML = `
@@ -184,19 +182,28 @@ export async function showUserPanel(container, auth) {
     simpleMenu.style.pointerEvents = "none";
   }
 
-  // Notifications bell, badge, and navigation
-  // (the export from notifications.js wires up bell click to show the dropdown and handle marking read, not fetch or redirect except on friend requests)
-  import('./notifications.js').then(({ default: mountNotifications }) => {
-    mountNotifications(document.getElementById('notifyBell'), userContext, (type) => {
-      if (type === "friend_request") {
-        // Switch Friends tab, then Inbox (as before)
-        const friendsBtn = document.querySelector("#friends");
-        if (friendsBtn) friendsBtn.click();
-        setTimeout(() => {
-          const inboxBtn = document.querySelector("#tabInbox");
-          if (inboxBtn) inboxBtn.click();
-        }, 120);
+  // --- Modern reliable notification -> friends inbox tab redirect ---
+  function showFriendsInbox(tabContainer, userContext) {
+    showFriends(tabContainer, userContext);
+    const t0 = Date.now();
+    function tryClickInbox() {
+      const inboxBtn = tabContainer.querySelector("#tabInbox");
+      if (inboxBtn) {
+        inboxBtn.click();
+      } else if (Date.now() - t0 < 2500) {
+        setTimeout(tryClickInbox, 40);
       }
-    });
-  });
+    }
+    tryClickInbox();
+  }
+
+  mountNotifications(
+    document.getElementById('notifyBell'),
+    userContext,
+    (type) => {
+      if (type === "friend_request") {
+        showFriendsInbox(mainContent, userContext);
+      }
+    }
+  );
 }
