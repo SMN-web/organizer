@@ -4,7 +4,6 @@ let notifications = [];
 let notifyCount;
 let dropdown;
 let renderingSetupDone = false;
-let inboxRouteTimer = null;
 
 export async function fetchNotificationsBadge(user, parent) {
   if (!user?.firebaseUser) return;
@@ -61,9 +60,7 @@ export async function fetchNotificationsBadge(user, parent) {
             dropdown.style.opacity = "0.01";
             dropdown.style.transform = "translateY(-12px) scale(.99)";
             setTimeout(() => dropdown.style.display = "none", 120);
-            if (typeof window._notificationRedirect === "function" && type === "friend_request") {
-              window._notificationRedirect(type);
-            }
+            if (typeof window._notificationRedirect === "function") window._notificationRedirect(type);
           };
         });
       }, 12);
@@ -137,22 +134,6 @@ function escapeHtml(str) {
 }
 
 export function mountNotifications(parent, user, notificationRedirectCallback) {
-  window._notificationRedirect = (type) => {
-    if (type === "friend_request") {
-      const friendsBtn = document.querySelector("#friends");
-      if (friendsBtn) friendsBtn.click();
-      let t0 = Date.now();
-      function tryClickInbox() {
-        const inboxBtn = document.querySelector("#tabInbox");
-        if (inboxBtn) {
-          inboxBtn.click();
-        } else if (Date.now() - t0 < 2500) {
-          if (inboxRouteTimer) clearTimeout(inboxRouteTimer);
-          inboxRouteTimer = setTimeout(tryClickInbox, 40);
-        }
-      }
-      tryClickInbox();
-    }
-  };
+  window._notificationRedirect = notificationRedirectCallback;
   fetchNotificationsBadge(user, parent);
 }
