@@ -232,3 +232,21 @@ html, body {
   align-items: center;
   justify-content: flex-start;
 }
+
+.toggle-btn {
+  background: transparent;
+  border: none;
+  outline: none;
+  position: absolute;
+  right: 8px;
+  top: 38px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#eyeIconLoginPwd svg { pointer-events: none; }
+
