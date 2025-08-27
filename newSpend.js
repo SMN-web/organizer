@@ -9,18 +9,23 @@ function getFriendById(id) { return FRIENDS.find(f => f.id === id); }
 function rup(val) { return Math.ceil(Number(val) || 0); }
 
 export function showNewSpend(container) {
-  let editing = true; // editing mode state
+  let editing = true;
+  let selectedFriends = [];
+  let payers = [];
+  let payerAmounts = {};
 
-  function renderMain(editingMode = true) {
-    editing = editingMode;
+  renderMain(true);
+
+  function renderMain(isEditing) {
+    editing = isEditing;
     container.innerHTML = `
       <div class="split-setup-panel">
         <div class="selector-group">
           <span class="selector-label">Friends Sharing:</span>
           <div class="custom-dropdown friends-dropdown">
-            <div class="dropdown-selected" tabindex="0" ${!editing ? 'style="pointer-events:none;opacity:.66;"' : ''}>Select friends...</div>
+            <div class="dropdown-selected"${!editing ? ' style="pointer-events:none;opacity:.6;"' : ''} tabindex="0">Select friends...</div>
             <div class="dropdown-menu" style="display:none;">
-              <input class="dropdown-search friends-search" ${!editing ? 'disabled' : ''} type="text" placeholder="Search friends..." autocomplete="off" />
+              <input class="dropdown-search friends-search" type="text" placeholder="Search friends..." autocomplete="off"${!editing ? ' disabled' : ''} />
               <div class="dropdown-options friends-options"></div>
             </div>
           </div>
@@ -31,39 +36,58 @@ export function showNewSpend(container) {
           <div class="chosen-list payers-chosen"></div>
         </div>
         <div class="total-display" id="totalDisplay"></div>
-        <button type="button" class="primary-btn calc-btn">${editingMode ? "Calculate" : "Edit"}</button>
+        <button type="button" class="primary-btn calc-btn">${editing ? "Calculate" : "Edit"}</button>
         <div class="custom-msg"></div>
       </div>
       <div class="split-results-container" style="margin-top:20px;"></div>
     `;
+
     renderFriendsOptions();
     renderFriendsChosen();
     renderPayerChips();
     updateTotalDisplay();
-    attachDropdownCloseHandler();
+    // Dropdown open logic always attached if in edit mode
+    attachDropdownHandlers(isEditing);
 
-    // Calculate/Edit button logic
+    // Button logic
     const calcBtn = container.querySelector('.calc-btn');
     if (editing) {
       calcBtn.onclick = () => attemptCalculate();
     } else {
       calcBtn.onclick = () => {
         if (confirm("Editing will clear the current split. Continue?")) {
-          renderMain(true); // revert to editable mode and clear split
+          // reset the split panel and re-enable form editing
+          container.querySelector('.split-results-container').innerHTML = '';
+          renderMain(true);
         }
       };
     }
   }
 
-  // Initial shared data state
-  let selectedFriends = [];
-  let payers = [];
-  let payerAmounts = {};
-
-  // FRIENDS list logic
-  function renderFriendsOptions() {
+  function attachDropdownHandlers(isEditing) {
     const dropdown = container.querySelector('.friends-dropdown');
-    const filter = container.querySelector('.friends-search') ? container.querySelector('.friends-search').value.toLowerCase() : '';
+    if (!dropdown) return;
+    const dropdownSelected = dropdown.querySelector('.dropdown-selected');
+    const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+    if (isEditing) {
+      dropdownSelected.onclick = (e) => {
+        e.stopPropagation();
+        dropdownMenu.style.display = 'block';
+        const search = dropdown.querySelector('.friends-search');
+        if (search) { search.value = ''; search.focus(); renderFriendsOptions(); }
+      };
+      // Hide dropdown on outside click
+      document.addEventListener('click', function closeFn(e) {
+        if (!dropdown.contains(e.target)) dropdownMenu.style.display = "none";
+      }, { once: true });
+    } else {
+      dropdownSelected.onclick = null;
+    }
+  }
+
+  function renderFriendsOptions() {
+    const search = container.querySelector('.friends-search');
+    const filter = search ? search.value.toLowerCase() : '';
     const opts = container.querySelector('.friends-options');
     opts.innerHTML = "";
     FRIENDS.filter(f => f.name.toLowerCase().includes(filter)).forEach(f => {
@@ -126,7 +150,7 @@ export function showNewSpend(container) {
       chip.innerHTML = `
         ${getFriendById(id).name}
         ${editing ? '<span class="chip-x" style="pointer-events:all;">×</span>' : ''}
-        <input type="number" class="payer-amt" min="0" step="1" ${editing ? '' : 'readonly'} value="${payerAmounts[id] ?? ''}" placeholder="Amt" />
+        <input type="number" class="payer-amt" min="0" step="1" value="${payerAmounts[id] ?? ''}" ${editing ? '' : 'readonly'} placeholder="Amt" />
       `;
       if (editing) {
         chip.onclick = e => {
@@ -158,15 +182,6 @@ export function showNewSpend(container) {
     }
   }
 
-  // clicking outside dropdown closes it
-  function attachDropdownCloseHandler() {
-    const dropdown = container.querySelector('.friends-dropdown');
-    document.addEventListener('click', function handler(e) {
-      if (!dropdown.contains(e.target)) dropdown.querySelector('.dropdown-menu').style.display = "none";
-    }, { once: true });
-  }
-
-  // --- Calculate button validation/trigger ---
   function attemptCalculate() {
     const msgBox = container.querySelector('.custom-msg');
     msgBox.textContent = "";
@@ -191,8 +206,7 @@ export function showNewSpend(container) {
       return;
     }
     msgBox.textContent = "";
-    // lock the UI; generate split, show edit button
-    renderMain(false);
+    renderMain(false); // switch to locked mode
     generateSplitPanel(selectedFriends, total);
   }
 
@@ -272,6 +286,4 @@ export function showNewSpend(container) {
       splitWrap.querySelector('.save-result-msg').style.color = "#147a39";
     };
   }
-
-  renderMain(true);
 }
