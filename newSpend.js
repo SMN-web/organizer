@@ -5,9 +5,8 @@ const FRIENDS = [
   { id: 'd', name: 'D' },
   { id: 'e', name: 'E' }
 ];
-function getFriendById(id) {
-  return FRIENDS.find(f => f.id === id);
-}
+function getFriendById(id) { return FRIENDS.find(f => f.id === id); }
+
 export function showNewSpend(container) {
   container.innerHTML = `
     <div class="selector-group">
@@ -41,15 +40,16 @@ export function showNewSpend(container) {
   let selectedFriends = [];
   let paidBy = null;
 
-  // ------- FRIENDS DROPDOWN LOGIC -------
+  // -- FRIENDS DROPDOWN --
   const dropdown = container.querySelector('.friends-dropdown');
   const showFriendMenu = () => {
-    container.querySelector('.friends-dropdown .dropdown-menu').style.display = 'block';
-    container.querySelector('.friends-search').focus();
+    dropdown.querySelector('.dropdown-menu').style.display = 'block';
+    dropdown.querySelector('.friends-search').focus();
     renderFriendsOptions();
   };
   dropdown.querySelector('.dropdown-selected').onclick = showFriendMenu;
   container.querySelector('.friends-search').oninput = renderFriendsOptions;
+
   function renderFriendsOptions() {
     const filter = container.querySelector('.friends-search').value.toLowerCase();
     const opts = container.querySelector('.friends-options');
@@ -57,38 +57,37 @@ export function showNewSpend(container) {
     FRIENDS.filter(f => f.name.toLowerCase().includes(filter)).forEach(f => {
       const isSel = selectedFriends.includes(f.id);
       let div = document.createElement('div');
-      div.className = "selector-item" + (isSel ? " selected" : "");
+      div.className = "selector-item" + (isSel ? " selected used" : "");
       div.textContent = f.name;
-      div.onclick = () => {
-        if (!isSel) {
+      if (!isSel) {
+        div.onclick = () => {
           selectedFriends.push(f.id);
-          selectedFriends = selectedFriends.sort((a, b) => a === 'me' ? -1 : b === 'me' ? 1 : 0);
+          selectedFriends = Array.from(new Set(selectedFriends)).sort((a, b) => a === 'me' ? -1 : b === 'me' ? 1 : 0);
+          renderFriendsOptions();
           renderFriendsChosen();
           renderPaidByDropdown();
           updateAmountAndCalc();
-        }
-      };
+        };
+      }
       opts.appendChild(div);
     });
   }
-  // -- Remove on chip click
+  // -- CHIPS: Each has a little x *for discoverability*; whole chip is clickable --
   function renderFriendsChosen() {
     const chips = container.querySelector('.friends-chosen');
     chips.innerHTML = selectedFriends.map(id =>
-      `<span class="chosen-chip" data-id="${id}">${getFriendById(id).name}</span>`).join('');
+      `<span class="chosen-chip" data-id="${id}">${getFriendById(id).name}<span class="chip-x">&nbsp;×</span></span>`
+    ).join('');
     chips.querySelectorAll('.chosen-chip').forEach(chip => {
       chip.onclick = () => {
         selectedFriends = selectedFriends.filter(fid => fid !== chip.dataset.id);
         if (paidBy === chip.dataset.id) paidBy = null;
-        renderFriendsOptions();
-        renderFriendsChosen();
-        renderPaidByDropdown();
-        updateAmountAndCalc();
+        renderFriendsOptions(); renderFriendsChosen(); renderPaidByDropdown(); updateAmountAndCalc();
       };
     });
   }
 
-  // ------- PAID BY DROPDOWN LOGIC -------
+  // -- PAID BY DROPDOWN --
   const paidDropdown = container.querySelector('.paidby-dropdown');
   paidDropdown.querySelector('.dropdown-selected').onclick = () => {
     paidDropdown.querySelector('.dropdown-menu').style.display = 'block';
@@ -100,23 +99,22 @@ export function showNewSpend(container) {
     const filter = container.querySelector('.paidby-search').value.toLowerCase();
     const opts = container.querySelector('.paidby-options');
     opts.innerHTML = "";
-    selectedFriends
-      .map(id => getFriendById(id))
-      .filter(f => f.name.toLowerCase().includes(filter))
-      .forEach(f => {
+    selectedFriends.map(id => getFriendById(id))
+      .filter(f => f.name.toLowerCase().includes(filter)).forEach(f => {
         const isSel = f.id === paidBy;
         let div = document.createElement('div');
         div.className = "selector-item" + (isSel ? " selected" : "");
         div.textContent = f.name;
-        div.onclick = () => {
-          paidBy = f.id;
-          renderPaidByDropdown();
-          updateAmountAndCalc();
-        };
+        if (!isSel) {
+          div.onclick = () => {
+            paidBy = f.id;
+            renderPaidByDropdown();
+            updateAmountAndCalc();
+          };
+        }
         opts.appendChild(div);
       });
   }
-
   function renderPaidByDropdown() {
     const drop = container.querySelector('.paidby-dropdown');
     const sel = drop.querySelector('.dropdown-selected');
@@ -131,7 +129,7 @@ export function showNewSpend(container) {
     }
   }
 
-  // -- Activate/disable input and calculate button
+  // -- Enable/disable & calculate logic
   function updateAmountAndCalc() {
     const amt = container.querySelector('.amount-input');
     const calcBtn = container.querySelector('.calc-btn');
@@ -143,37 +141,25 @@ export function showNewSpend(container) {
     }
     renderPaidByDropdown();
   }
-
-  // ----- CALCULATE BUTTON LOGIC -----
   const calcBtn = container.querySelector('.calc-btn');
   const msgBox = container.querySelector('.custom-msg');
   calcBtn.onclick = () => {
     if (selectedFriends.length < 2 || !selectedFriends.includes("me")) {
-      msgBox.textContent = "Please select at least two friends including yourself.";
-      msgBox.style.color = "#e04444";
-      return;
+      msgBox.textContent = "Please select at least two friends including yourself."; msgBox.style.color = "#e04444"; return;
     }
-    if (!paidBy) {
-      msgBox.textContent = "Select who paid.";
-      msgBox.style.color = "#e04444";
-      return;
-    }
+    if (!paidBy) { msgBox.textContent = "Select who paid."; msgBox.style.color = "#e04444"; return; }
     if (!(parseFloat(container.querySelector('.amount-input').value) > 0)) {
-      msgBox.textContent = "Enter a valid amount paid.";
-      msgBox.style.color = "#e04444";
-      return;
+      msgBox.textContent = "Enter a valid amount paid."; msgBox.style.color = "#e04444"; return;
     }
-    msgBox.textContent = "Ready to distribute and save!";
-    msgBox.style.color = "#219d53";
+    msgBox.textContent = "Ready to distribute and save!"; msgBox.style.color = "#219d53";
   };
 
-  // ---- Menu close on outside click ----
+  // -- Dismiss dropdowns on outside click
   document.addEventListener('click', function(e){
     if (!dropdown.contains(e.target)) dropdown.querySelector('.dropdown-menu').style.display = "none";
     if (!paidDropdown.contains(e.target)) paidDropdown.querySelector('.dropdown-menu').style.display = "none";
   });
 
-  // Initial render
   renderFriendsOptions();
   renderFriendsChosen();
   renderPaidByDropdown();
