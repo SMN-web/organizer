@@ -6,7 +6,6 @@ export function showManageSpend(contentContainer) {
   contentContainer.innerHTML = `
     <div class="manage-spend-wrapper">
       <header class="spend-header">
-        <!-- Menu, bell, universal notifications etc. should be above this in your app layout -->
         <h2 class="centered-title">Manage Group Spend</h2>
         <p class="spend-desc">Track, split, and adjust group spending for outings with friends.</p>
       </header>
@@ -15,9 +14,12 @@ export function showManageSpend(contentContainer) {
         <button data-section="history" class="tab-btn">History</button>
       </nav>
       <div class="section-content"></div>
-      <button class="fab-calculator" title="Quick Calculator">+</button>
+      <button class="fab-calculator" title="Calculator">+</button>
     </div>
   `;
+  // Small offset to avoid collision with menu/bell
+  contentContainer.querySelector('.spend-header').style.marginTop = '36px';
+
   const sectionContent = contentContainer.querySelector('.section-content');
   function renderSection(section) {
     sectionContent.innerHTML = '';
