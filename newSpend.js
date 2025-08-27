@@ -379,21 +379,9 @@ export function showNewSpend(container) {
           </style>${el.innerHTML}</div>
         </foreignObject>
       </svg>`;
-      const svg = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
-      const url = URL.createObjectURL(svg);
+      const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+img.src = dataUrl;
 
-      const img = new window.Image();
-      img.onload = function() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 450; canvas.height = 520;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-        ctx.drawImage(img,0,0);
-        URL.revokeObjectURL(url);
-        callback(canvas);
-      };
-      img.src = url;
     }
 
     document.getElementById('download-jpeg-btn').onclick = () => {
