@@ -5,10 +5,7 @@ const FRIENDS = [
   { id: 'd', name: 'D' },
   { id: 'e', name: 'E' }
 ];
-
 function getFriendById(id) { return FRIENDS.find(f => f.id === id); }
-
-// Helper: round up to nearest integer as per requirements
 function rup(val) { return Math.ceil(Number(val) || 0); }
 
 export function showNewSpend(container) {
@@ -30,7 +27,7 @@ export function showNewSpend(container) {
         <div class="chosen-list payers-chosen"></div>
       </div>
       <div class="total-display" id="totalDisplay"></div>
-      <button type="button" class="primary-btn calc-btn" disabled>Calculate</button>
+      <button type="button" class="primary-btn calc-btn">Calculate</button>
       <div class="custom-msg"></div>
     </div>
     <div class="split-results-container" style="margin-top:20px;"></div>
@@ -39,7 +36,7 @@ export function showNewSpend(container) {
   let payers = [];
   let payerAmounts = {};
 
-  // FRIENDS (allow "Me" + any others, must have "Me", Calculate requires 2+)
+  // FRIENDS logic (Me + at least 1 more), no disabling
   const dropdown = container.querySelector('.friends-dropdown');
   dropdown.querySelector('.dropdown-selected').onclick = () => {
     dropdown.querySelector('.dropdown-menu').style.display = 'block';
@@ -47,6 +44,7 @@ export function showNewSpend(container) {
     renderFriendsOptions();
   };
   container.querySelector('.friends-search').oninput = renderFriendsOptions;
+
   function renderFriendsOptions() {
     const filter = container.querySelector('.friends-search').value.toLowerCase();
     const opts = container.querySelector('.friends-options');
@@ -59,8 +57,8 @@ export function showNewSpend(container) {
       if (!isSel) {
         div.onclick = () => {
           selectedFriends.push(f.id);
-          selectedFriends = Array.from(new Set(selectedFriends)).sort((a,b)=>a==='me'?-1:b==='me'?1:0);
-          renderFriendsOptions(); renderFriendsChosen(); renderPayerChips(); updateCalcButton();
+          selectedFriends = Array.from(new Set(selectedFriends)).sort((a, b) => a === 'me' ? -1 : b === 'me' ? 1 : 0);
+          renderFriendsOptions(); renderFriendsChosen(); renderPayerChips();
         };
       }
       opts.appendChild(div);
@@ -77,19 +75,16 @@ export function showNewSpend(container) {
       chip.onclick = () => {
         selectedFriends = selectedFriends.filter(fid => fid !== chip.dataset.id);
         payers = payers.filter(pid => pid !== chip.dataset.id); delete payerAmounts[chip.dataset.id];
-        renderFriendsOptions(); renderFriendsChosen(); renderPayerChips(); updateCalcButton();
+        renderFriendsOptions(); renderFriendsChosen(); renderPayerChips();
       };
     });
   }
 
-  // PAID BY (must include "me", only integer amounts allowed)
+  // PAID BY (Me is required, any others optional, all amounts integer ≥ 0)
   function renderPayerChips() {
     const payersDiv = container.querySelector('.payers-chosen');
     payersDiv.innerHTML = "";
-    if (!(selectedFriends.includes("me") && selectedFriends.length >= 2)) {
-      payers = []; payerAmounts = {}; payersDiv.innerHTML = ""; updateTotalDisplay();
-      return;
-    }
+    // Paid by is only rendered for those in friendsSharing
     let addOptions = selectedFriends.filter(id => !payers.includes(id));
     addOptions.forEach(id => {
       let chip = document.createElement('span');
@@ -100,7 +95,7 @@ export function showNewSpend(container) {
       chip.appendChild(x);
       chip.onclick = () => {
         payers.push(id); payerAmounts[id] = '';
-        renderPayerChips(); updateCalcButton();
+        renderPayerChips();
       };
       chip.style.background = "#f7f7f7"; chip.style.color = "#393939"; chip.style.border = "1.1px solid #d2dbe0";
       payersDiv.appendChild(chip);
@@ -111,12 +106,12 @@ export function showNewSpend(container) {
       chip.innerHTML = `
         ${getFriendById(id).name}
         <span class="chip-x" style="pointer-events:all;">×</span>
-        <input type="number" class="payer-amt" min="1" step="1" value="${payerAmounts[id] ?? ''}" placeholder="Amt" />
+        <input type="number" class="payer-amt" min="0" step="1" value="${payerAmounts[id] ?? ''}" placeholder="Amt" />
       `;
       chip.onclick = e => {
         if (e.target.classList.contains('chip-x') || e.target === chip) {
           payers = payers.filter(pid => pid !== id); delete payerAmounts[id];
-          renderPayerChips(); updateCalcButton();
+          renderPayerChips();
         }
       };
       chip.querySelector('.payer-amt').oninput = (ev) => {
@@ -130,9 +125,9 @@ export function showNewSpend(container) {
     updateTotalDisplay();
   }
 
-  // TOTALS AND BUTTON STATE
+  // TOTAL Paid display (always rounded up integer sum)
   function updateTotalDisplay() {
-    let sum = payers.reduce((acc, id) => acc + (rup(payerAmounts[id] || 0)), 0);
+    let sum = payers.reduce((acc, id) => acc + rup(payerAmounts[id]), 0);
     const disp = container.querySelector('#totalDisplay');
     if (payers.length) {
       disp.style.display = '';
@@ -141,28 +136,40 @@ export function showNewSpend(container) {
       disp.style.display = "none"; disp.textContent = "";
     }
   }
-  function updateCalcButton() {
-    const hasMe = selectedFriends.includes('me');
-    const enoughFriends = selectedFriends.length >= 2 && hasMe;
-    const filled = payers.length && payers.every(id => rup(payerAmounts[id]) > 0) && (rup(payerAmounts["me"]) > 0);
-    const calcBtn = container.querySelector('.calc-btn');
-    calcBtn.disabled = !(enoughFriends && payers.includes("me") && filled);
-    if (calcBtn.disabled) container.querySelector('.custom-msg').textContent = "";
-    updateTotalDisplay();
-  }
 
-  // SPLIT PANEL LOGIC ("Round-up all person value, lock indicator big and colored")
-  container.querySelector('.calc-btn').onclick = () => {
-    const hasMe = selectedFriends.includes('me');
-    let sum = payers.reduce((acc, id) => acc + (rup(payerAmounts[id] || 0)), 0);
-    if (!(selectedFriends.length >= 2 && hasMe)) { container.querySelector('.custom-msg').textContent = "Select yourself and at least 1 more friend."; return; }
-    if (!sum) { container.querySelector('.custom-msg').textContent = "Enter paid amount for each payer."; return;}
-    if (payers.some(id => !(rup(payerAmounts[id]) > 0))) { container.querySelector('.custom-msg').textContent = "Amount required for each payer."; return; }
-    container.querySelector('.custom-msg').textContent = "";
-    generateSplitPanel(selectedFriends, sum);
+  // CALCULATE BUTTON LOGIC
+  const calcBtn = container.querySelector('.calc-btn');
+  calcBtn.onclick = () => {
+    const msgBox = container.querySelector('.custom-msg');
+    msgBox.textContent = "";
+    // Validate: Me is present and one more friend at least
+    if (!selectedFriends.includes('me') || selectedFriends.length < 2) {
+      msgBox.textContent = "Please select yourself ('Me') and at least one more friend.";
+      return;
+    }
+    // Validate Paid By: Me must be present, and have a non-negative value
+    if (!payers.includes('me') || !/^\d+$/.test(payerAmounts['me'] || "") || rup(payerAmounts['me']) < 0) {
+      msgBox.textContent = "'Me' must be added and have a paid amount (0 or more).";
+      return;
+    }
+    // All payers must have integer values ≥ 0
+    for (let id of payers) {
+      if (!/^\d+$/.test(payerAmounts[id] || "") || rup(payerAmounts[id]) < 0) {
+        msgBox.textContent = "All payers must have a non-negative paid amount.";
+        return;
+      }
+    }
+    // Amount must be positive overall to split
+    let total = payers.reduce((acc, id) => acc + rup(payerAmounts[id]), 0);
+    if (total <= 0) {
+      msgBox.textContent = "Total paid amount must be positive.";
+      return;
+    }
+    msgBox.textContent = "";
+    generateSplitPanel(selectedFriends, total);
   };
 
-  // SPLIT PANEL
+  // SPLIT PANEL: lock/unlock, visual, all features
   function generateSplitPanel(sharers, totalAmount) {
     const splitWrap = container.querySelector('.split-results-container');
     splitWrap.innerHTML = `
@@ -177,7 +184,6 @@ export function showNewSpend(container) {
       splitDiv.innerHTML = '';
       let lockedSum = Object.values(locked).reduce((a, b) => a + rup(b), 0);
       let unlocked = sharers.filter(id => !(id in locked));
-      // Split and round up **each person** at every step
       let toSplit = totalAmount - lockedSum;
       let share = unlocked.length > 0 ? rup(toSplit / unlocked.length) : 0;
       let sumPreview = lockedSum + share * unlocked.length;
@@ -185,16 +191,17 @@ export function showNewSpend(container) {
       sharers.forEach((id, idx) => {
         let isLocked = id in locked;
         let value = isLocked ? rup(locked[id]) : share;
-        // If there's a positive diff from rounding, subtract 1 from a person so sum matches
         if (!isLocked && diff > 0 && idx === sharers.length - 1) value -= diff;
         splitDiv.innerHTML += `
           <div class="split-row${isLocked ? " locked-row" : ""}">
             <span class="split-row-name">${getFriendById(id).name}</span>
-            <input type="number" class="split-amt" min="1" step="1" value="${value}" data-id="${id}" ${isLocked ? 'readonly' : ''} style="background:${isLocked ? '#e2eef4' : '#fff'};color:${isLocked ? '#156b97':'#25304d'};">
-            <button class="lock-btn" data-id="${id}" aria-label="${isLocked ? 'Unlock' : 'Lock'}" style="font-size:1.45em;background:none;border:none;vertical-align:middle;">
+            <input type="number" class="split-amt" min="0" step="1" value="${value}" data-id="${id}"
+              ${isLocked ? 'readonly' : ''}
+              style="background:${isLocked ? '#e2eef4' : '#fff'};color:${isLocked ? '#156b97':'#25304d'};border:2.2px solid ${isLocked ? '#288944':'#d3dae4'};">
+            <button class="lock-btn" data-id="${id}" aria-label="${isLocked ? 'Unlock' : 'Lock'}" style="background:none;border:none;font-size:1.42em;">
               ${isLocked
-                ? '<svg width="28" height="28" fill="#156b97" viewBox="0 0 24 24"><path d="M12 17a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm6-7V7a6 6 0 0 0-12 0v3a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-8-3a4 4 0 0 1 8 0v3H6V7zm10 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7z"/></svg>'
-                : '<svg width="28" height="28" fill="#b2b7c8" viewBox="0 0 24 24"><path d="M18 10V7a6 6 0 1 0-12 0h2a4 4 0 1 1 8 0v3zm2 1v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2zm-7 5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg>'
+                ? `<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#288944" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="8" rx="2" fill="#e2faf4"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1.5" fill="#288944" /></svg>`
+                : `<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#96a1b5" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="8" rx="2" fill="#f8fafc"/><path d="M17 11V7a5 5 0 1 0-10 0"/><circle cx="12" cy="16" r="1.5" fill="#96a1b5" /></svg>`
               }
             </button>
           </div>`;
@@ -239,9 +246,11 @@ export function showNewSpend(container) {
       splitWrap.querySelector('.save-result-msg').style.color = "#147a39";
     };
   }
+
+  // Dropdown close on outside click
   document.addEventListener('click', function (e) {
     if (!dropdown.contains(e.target)) dropdown.querySelector('.dropdown-menu').style.display = "none";
   });
 
-  renderFriendsOptions(); renderFriendsChosen(); renderPayerChips(); updateCalcButton();
+  renderFriendsOptions(); renderFriendsChosen(); renderPayerChips();
 }
