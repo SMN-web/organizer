@@ -1,19 +1,18 @@
 const FRIENDS = [
   { id: 'me', name: 'Me' },
-  { id: 'b', name: 'Raf' },
-  { id: 'c', name: 'Sree' },
-  { id: 'd', name: 'Shyam' },
-  { id: 'e', name: 'Bala' }
+  { id: 'b', name: 'B' },
+  { id: 'c', name: 'C' },
+  { id: 'd', name: 'D' },
+  { id: 'e', name: 'E' }
 ];
+
 function getFriendById(id) { return FRIENDS.find(f => f.id === id); }
 function rup(val) { return Math.ceil(Number(val) || 0); }
 function todayDate() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
-
 export function showNewSpend(container) {
-  // Added: Success message global state
   let lastSuccessMsg = "";
 
   function initialState() {
@@ -32,7 +31,6 @@ export function showNewSpend(container) {
   renderAll();
 
   function renderAll() {
-    const { editing, selectedFriends, payers, payerAmounts } = state;
     container.innerHTML = `
       <div class="split-setup-panel">
         <div class="custom-msg global-success" style="margin-bottom:8px;${lastSuccessMsg ? "" : "display:none"};color:#117a32;font-weight:bold">${lastSuccessMsg}</div>
@@ -52,8 +50,8 @@ export function showNewSpend(container) {
           <div class="chosen-list payers-chosen"></div>
         </div>
         <div class="total-display" id="totalDisplay"></div>
-        <button type="button" class="primary-btn calc-btn">${editing ? "Calculate" : "Edit"}</button>
-        <div class="custom-msg"></div>
+        <button type="button" class="primary-btn calc-btn">${state.editing ? "Calculate" : "Edit"}</button>
+        <div class="custom-msg calc-btn-msg" style="margin-top:7px;"></div>
       </div>
       <div class="split-results-container" style="margin-top:20px;"></div>
     `;
@@ -62,19 +60,16 @@ export function showNewSpend(container) {
     updateTotalDisplay();
     attachDropdownHandlers();
     setupButton();
-    if (!editing && state.lastSplit) renderSplitPanel(state.lastSplit.sharers, state.lastSplit.total);
+    if (!state.editing && state.lastSplit) renderSplitPanel(state.lastSplit.sharers, state.lastSplit.total);
   }
 
-  // FRIENDS dropdown logic
   function renderFriendsSection() {
     const { editing, selectedFriends } = state;
     const dropdown = container.querySelector('.friends-dropdown');
-    // Search logic
     dropdown.querySelector('.friends-search').oninput = function() {
       renderFriendsOptions(this.value.toLowerCase());
     };
     renderFriendsOptions('');
-    // Chosen chips
     const chips = container.querySelector('.friends-chosen');
     chips.innerHTML = selectedFriends.map(id =>
       `<span class="chosen-chip" data-id="${id}">${getFriendById(id).name}${editing ? '<span class="chip-x">×</span>' : ''}</span>`
@@ -123,30 +118,30 @@ export function showNewSpend(container) {
     opts.style.overflowY = "auto";
   }
 
-  // DROPDOWN
+  // Always closes on outside click, and works even as friends are added/removed
   function attachDropdownHandlers() {
     const dropdown = container.querySelector('.friends-dropdown');
     const menu = dropdown.querySelector('.dropdown-menu');
     const search = dropdown.querySelector('.friends-search');
     dropdown.querySelector('.dropdown-selected').onclick = (e) => {
       if (!state.editing) return;
-      e.stopPropagation();
       menu.style.display = 'block';
       search.value = '';
       search.focus();
       renderFriendsOptions('');
+      // This prevents stacking event listeners
+      setTimeout(() => {
+        const closeHandler = (ev) => {
+          if (!menu.contains(ev.target) && !dropdown.querySelector('.dropdown-selected').contains(ev.target)) {
+            menu.style.display = "none";
+            document.removeEventListener('mousedown', closeHandler);
+          }
+        };
+        document.addEventListener('mousedown', closeHandler);
+      }, 0);
     };
-    // close dropdown on external click
-    document.addEventListener('mousedown', outsideCloseHandler);
-    function outsideCloseHandler(e) {
-      if (!dropdown.contains(e.target)) {
-        menu.style.display = "none";
-        document.removeEventListener('mousedown', outsideCloseHandler);
-      }
-    }
   }
 
-  // PAYERS section
   function renderPayerSection() {
     const { editing, selectedFriends, payers, payerAmounts } = state;
     const payersDiv = container.querySelector('.payers-chosen');
@@ -195,7 +190,6 @@ export function showNewSpend(container) {
     updateTotalDisplay();
   }
 
-  // TOTAL Paid display
   function updateTotalDisplay() {
     const { payers, payerAmounts } = state;
     let sum = payers.reduce((acc, id) => acc + rup(payerAmounts[id]), 0);
@@ -208,48 +202,46 @@ export function showNewSpend(container) {
     }
   }
 
-  // CALCULATE/EDIT BUTTON LOGIC
   function setupButton() {
-    const { editing, selectedFriends, payers, payerAmounts } = state;
     const calcBtn = container.querySelector('.calc-btn');
-    const msgBox = container.querySelector('.custom-msg');
+    const msgBox = container.querySelector('.calc-btn-msg');
     calcBtn.onclick = () => {
-      if (editing) {
+      if (state.editing) {
         msgBox.textContent = "";
-        if (!selectedFriends.includes('me') || selectedFriends.length < 2) {
+        if (!state.selectedFriends.includes('me') || state.selectedFriends.length < 2) {
           msgBox.textContent = "Please select yourself ('Me') and at least one more friend.";
           return;
         }
-        if (!payers.includes('me') || !/^\d+$/.test(payerAmounts['me'] || "") || rup(payerAmounts['me']) < 0) {
+        if (!state.payers.includes('me') || !/^\d+$/.test(state.payerAmounts['me'] || "") || rup(state.payerAmounts['me']) < 0) {
           msgBox.textContent = "'Me' must be added and have a paid amount (0 or more).";
           return;
         }
-        for (let id of payers) {
-          if (!/^\d+$/.test(payerAmounts[id] || "") || rup(payerAmounts[id]) < 0) {
+        for (let id of state.payers) {
+          if (!/^\d+$/.test(state.payerAmounts[id] || "") || rup(state.payerAmounts[id]) < 0) {
             msgBox.textContent = "All payers must have a non-negative paid amount.";
             return;
           }
         }
-        let total = payers.reduce((acc, id) => acc + rup(payerAmounts[id]), 0);
+        let total = state.payers.reduce((acc, id) => acc + rup(state.payerAmounts[id]), 0);
         if (total <= 0) {
           msgBox.textContent = "Total paid amount must be positive.";
           return;
         }
         msgBox.textContent = "";
-        state.lastSplit = { sharers: selectedFriends.slice(), total };
+        state.lastSplit = { sharers: state.selectedFriends.slice(), total };
         state.editing = false;
-        renderAll(); // now shows split and Edit btn
+        renderAll();
       } else {
         if (confirm("Editing will clear the current distribution. Continue?")) {
-          state.editing = true;
-          state.lastSplit = null;
+          state = initialState();
+          lastSuccessMsg = "";
           renderAll();
         }
       }
     };
   }
 
-  // SPLIT PANEL logic (with date and remarks before "Distribute")
+  // Split result panel (distribute, validation, after split: summary/settlement with download/share)
   function renderSplitPanel(sharers, totalAmount) {
     const splitWrap = container.querySelector('.split-results-container');
     splitWrap.innerHTML = `
@@ -260,14 +252,14 @@ export function showNewSpend(container) {
         <label style="margin-top:7px;">Remarks/Place:<input type="text" class="spend-remarks-input" maxlength="90" style="width:99%;margin-top:4px;" value="${state.remarks || ""}" placeholder="E.g. Dinner, Mall, Friends..."></label>
       </div>
       <button class="primary-btn distribute-btn">Distribute</button>
-      <div class="custom-msg save-result-msg" style="margin-top:12px"></div>
+      <div class="custom-msg distribute-btn-msg" style="margin-top:10px"></div>
     `;
     let locked = {};
     function renderList() {
       const splitDiv = splitWrap.querySelector('.split-list');
       splitDiv.innerHTML = '';
       let lockedSum = Object.values(locked).reduce((a, b) => a + rup(b), 0);
-      let unlocked = sharers.filter(id => !(id in locked));
+      let unlocked = sharers.filter(id => !(locked[id]));
       let toSplit = totalAmount - lockedSum;
       let share = unlocked.length > 0 ? rup(toSplit / unlocked.length) : 0;
       let sumPreview = lockedSum + share * unlocked.length;
@@ -316,7 +308,6 @@ export function showNewSpend(container) {
     }
     renderList();
 
-    // Date/Remarks handlers
     splitWrap.querySelector('.spend-date-input').onchange = (e) => {
       state.spendDate = e.target.value;
     };
@@ -325,25 +316,145 @@ export function showNewSpend(container) {
     };
 
     splitWrap.querySelector('.distribute-btn').onclick = () => {
+      const distributeMsg = splitWrap.querySelector('.distribute-btn-msg');
+      distributeMsg.textContent = "";
+
+      // Gather split
       let shares = {};
       splitWrap.querySelectorAll('.split-amt').forEach(input => {
         shares[input.dataset.id] = rup(input.value);
       });
       let sum = Object.values(shares).reduce((a, b) => a + rup(b), 0);
+
       if (sum !== totalAmount) {
-        splitWrap.querySelector('.save-result-msg').textContent = "Error: Split does not match total spend!";
-        splitWrap.querySelector('.save-result-msg').style.color = "#be1d1d";
+        distributeMsg.textContent = sum > totalAmount
+          ? "Distribution exceeds total spend!" 
+          : "Distributed amount is less than the total spend!";
+        distributeMsg.style.color = "#be1d1d";
         return;
       }
       if (!state.spendDate || !/^\d{4}-\d{2}-\d{2}$/.test(state.spendDate)) {
-        splitWrap.querySelector('.save-result-msg').textContent = "Please choose a valid date.";
-        splitWrap.querySelector('.save-result-msg').style.color = "#be1d1d";
+        distributeMsg.textContent = "Please choose a valid date.";
+        distributeMsg.style.color = "#be1d1d";
         return;
       }
-      // SUCCESS: reset all but show green message at top!
-      lastSuccessMsg = "Distributed successfully!";
-      state = initialState(); // RESET FORM STATE
+
+      showSettlementSummary({
+        date: state.spendDate,
+        remarks: state.remarks,
+        shares,
+        payers: {...state.payerAmounts},
+        splitters: sharers.slice(),
+        totalAmount
+      });
+    };
+  }
+
+  // SETTLEMENT output and JPEG/Share
+  function showSettlementSummary(data) {
+    container.innerHTML = `<div class="settlement-summary" style="padding:18px 8px 25px 8px;max-width:430px;margin:33px auto;text-align:center;background:#fff;border-radius:11px;box-shadow:0 4px 24px #d3e6fd16;">
+      <h2 style="margin:10px 0 6px 0;font-size:1.29em;">Final Distribution</h2>
+      <div><strong>Date:</strong> <span>${data.date}</span></div>
+      <div><strong>Reason:</strong> <span>${data.remarks || '-'}</span></div>
+      <div style="margin:15px 0 12px 0;">Total Amount: <strong>${data.totalAmount} QAR</strong></div>
+      <hr style="margin:0 0 11px 0;">
+      <div id="settlement-summary-block" style="text-align:left;display:inline-block;width:100%;">
+      ${renderSettlementBlock(data)}
+      </div>
+      <button class="primary-btn" id="download-jpeg-btn" style="margin:19px 0 3px 0;">Download as Image</button>
+      <button class="primary-btn" id="share-jpeg-btn" style="margin-left:12px;">Share Image</button>
+      <button class="primary-btn" id="new-expense-btn" style="margin-left:12px;">Add New Expense</button>
+      <div class="custom-msg" style="margin:10px 0 0 0;color:#137a43;font-weight:600;"></div>
+    </div>`;
+
+    // JPG/Share common
+    function generateJpeg(callback) {
+      const el = document.getElementById('settlement-summary-block');
+      const svgString = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="450" height="520">
+        <foreignObject width="100%" height="100%">
+          <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Segoe UI',Arial,sans-serif;font-size:17px;color:#233148;background:#fff;border-radius:10px;padding:16px 13px;width:415px;height:495px;">
+          <style>
+            strong{font-weight:700;} em{color:#5e77c9} .row-settle{margin:8px 0;}
+          </style>${el.innerHTML}</div>
+        </foreignObject>
+      </svg>`;
+      const svg = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
+      const url = URL.createObjectURL(svg);
+
+      const img = new window.Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 450; canvas.height = 520;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.drawImage(img,0,0);
+        URL.revokeObjectURL(url);
+        callback(canvas);
+      };
+      img.src = url;
+    }
+
+    document.getElementById('download-jpeg-btn').onclick = () => {
+      generateJpeg(canvas => {
+        const link = document.createElement('a');
+        link.download = `GroupSettle_${data.date}.jpeg`;
+        link.href = canvas.toDataURL('image/jpeg', 0.92);
+        link.click();
+      });
+    };
+
+    document.getElementById('share-jpeg-btn').onclick = () => {
+      generateJpeg(canvas => {
+        canvas.toBlob(blob => {
+          if (navigator.canShare && navigator.canShare({ files: [new File([blob], 'settlement.jpg', {type: 'image/jpeg'})] })) {
+            const file = new File([blob], 'settlement.jpg', {type: 'image/jpeg'});
+            navigator.share({ files: [file], title: 'Group Settlement', text: 'Here is our group spend summary!' });
+          } else {
+            // Fallback: Download instead
+            const link = document.createElement('a');
+            link.download = `GroupSettle_${data.date}.jpeg`;
+            link.href = URL.createObjectURL(blob);
+            link.click();
+          }
+        }, 'image/jpeg');
+      });
+    };
+
+    document.getElementById('new-expense-btn').onclick = () => {
+      state = initialState();
+      lastSuccessMsg = "";
       renderAll();
     };
+  }
+
+  function renderSettlementBlock(data) {
+    let paidLines = data.splitters.map(id =>
+      `<div class="row-settle">${getFriendById(id).name} paid: <em>${rup(data.payers[id]||0)} QAR</em></div>`
+    ).join('');
+    let shareLines = data.splitters.map(id =>
+      `<div class="row-settle">${getFriendById(id).name}'s share: <em>${rup(data.shares[id]||0)} QAR</em></div>`
+    ).join('');
+    let net = {};
+    data.splitters.forEach(id => {
+      net[id] = (rup(data.shares[id]||0)) - (rup(data.payers[id]||0));
+    });
+    let owesLines = '';
+    const names = id => `<strong>${getFriendById(id).name}</strong>`;
+    data.splitters.forEach(id => {
+      if (net[id] > 0) {
+        let creditor = data.splitters.filter(target => net[target] < 0)[0];
+        if (creditor) {
+          owesLines += `<div class="row-settle">${names(id)} owes <em>${Math.abs(net[id])} QAR</em> to ${names(creditor)}</div>`;
+        }
+      }
+    });
+    if (!owesLines) owesLines = `<div>All settled up. No pending amounts.</div>`;
+    return `
+      <div><u>Paid Amounts:</u></div>${paidLines}
+      <div style="margin:10px 0 0 0"><u>Each Share:</u></div>${shareLines}
+      <div style="margin:10px 0 0 0"><u>Owes/Settlement:</u></div>${owesLines}
+    `;
   }
 }
