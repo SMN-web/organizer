@@ -9,44 +9,61 @@ function getFriendById(id) { return FRIENDS.find(f => f.id === id); }
 function rup(val) { return Math.ceil(Number(val) || 0); }
 
 export function showNewSpend(container) {
-  container.innerHTML = `
-    <div class="split-setup-panel">
-      <div class="selector-group">
-        <span class="selector-label">Friends Sharing:</span>
-        <div class="custom-dropdown friends-dropdown">
-          <div class="dropdown-selected" tabindex="0">Select friends...</div>
-          <div class="dropdown-menu" style="display:none;">
-            <input class="dropdown-search friends-search" type="text" placeholder="Search friends..." autocomplete="off" />
-            <div class="dropdown-options friends-options"></div>
+  let editing = true; // editing mode state
+
+  function renderMain(editingMode = true) {
+    editing = editingMode;
+    container.innerHTML = `
+      <div class="split-setup-panel">
+        <div class="selector-group">
+          <span class="selector-label">Friends Sharing:</span>
+          <div class="custom-dropdown friends-dropdown">
+            <div class="dropdown-selected" tabindex="0" ${!editing ? 'style="pointer-events:none;opacity:.66;"' : ''}>Select friends...</div>
+            <div class="dropdown-menu" style="display:none;">
+              <input class="dropdown-search friends-search" ${!editing ? 'disabled' : ''} type="text" placeholder="Search friends..." autocomplete="off" />
+              <div class="dropdown-options friends-options"></div>
+            </div>
           </div>
+          <div class="chosen-list friends-chosen"></div>
         </div>
-        <div class="chosen-list friends-chosen"></div>
+        <div class="selector-group">
+          <span class="selector-label">Paid By:</span>
+          <div class="chosen-list payers-chosen"></div>
+        </div>
+        <div class="total-display" id="totalDisplay"></div>
+        <button type="button" class="primary-btn calc-btn">${editingMode ? "Calculate" : "Edit"}</button>
+        <div class="custom-msg"></div>
       </div>
-      <div class="selector-group">
-        <span class="selector-label">Paid By:</span>
-        <div class="chosen-list payers-chosen"></div>
-      </div>
-      <div class="total-display" id="totalDisplay"></div>
-      <button type="button" class="primary-btn calc-btn">Calculate</button>
-      <div class="custom-msg"></div>
-    </div>
-    <div class="split-results-container" style="margin-top:20px;"></div>
-  `;
+      <div class="split-results-container" style="margin-top:20px;"></div>
+    `;
+    renderFriendsOptions();
+    renderFriendsChosen();
+    renderPayerChips();
+    updateTotalDisplay();
+    attachDropdownCloseHandler();
+
+    // Calculate/Edit button logic
+    const calcBtn = container.querySelector('.calc-btn');
+    if (editing) {
+      calcBtn.onclick = () => attemptCalculate();
+    } else {
+      calcBtn.onclick = () => {
+        if (confirm("Editing will clear the current split. Continue?")) {
+          renderMain(true); // revert to editable mode and clear split
+        }
+      };
+    }
+  }
+
+  // Initial shared data state
   let selectedFriends = [];
   let payers = [];
   let payerAmounts = {};
 
-  // FRIENDS logic (Me + at least 1 more), no disabling
-  const dropdown = container.querySelector('.friends-dropdown');
-  dropdown.querySelector('.dropdown-selected').onclick = () => {
-    dropdown.querySelector('.dropdown-menu').style.display = 'block';
-    dropdown.querySelector('.friends-search').focus();
-    renderFriendsOptions();
-  };
-  container.querySelector('.friends-search').oninput = renderFriendsOptions;
-
+  // FRIENDS list logic
   function renderFriendsOptions() {
-    const filter = container.querySelector('.friends-search').value.toLowerCase();
+    const dropdown = container.querySelector('.friends-dropdown');
+    const filter = container.querySelector('.friends-search') ? container.querySelector('.friends-search').value.toLowerCase() : '';
     const opts = container.querySelector('.friends-options');
     opts.innerHTML = "";
     FRIENDS.filter(f => f.name.toLowerCase().includes(filter)).forEach(f => {
@@ -54,11 +71,11 @@ export function showNewSpend(container) {
       let div = document.createElement('div');
       div.className = "selector-item" + (isSel ? " selected used" : "");
       div.textContent = f.name;
-      if (!isSel) {
+      if (!isSel && editing) {
         div.onclick = () => {
           selectedFriends.push(f.id);
           selectedFriends = Array.from(new Set(selectedFriends)).sort((a, b) => a === 'me' ? -1 : b === 'me' ? 1 : 0);
-          renderFriendsOptions(); renderFriendsChosen(); renderPayerChips();
+          renderFriendsOptions(); renderFriendsChosen(); renderPayerChips(); updateTotalDisplay();
         };
       }
       opts.appendChild(div);
@@ -66,25 +83,26 @@ export function showNewSpend(container) {
     opts.style.maxHeight = "170px";
     opts.style.overflowY = "auto";
   }
+
   function renderFriendsChosen() {
     const chips = container.querySelector('.friends-chosen');
     chips.innerHTML = selectedFriends.map(id =>
-      `<span class="chosen-chip" data-id="${id}">${getFriendById(id).name}<span class="chip-x">&nbsp;×</span></span>`
+      `<span class="chosen-chip" data-id="${id}">${getFriendById(id).name}${editing ? '<span class="chip-x">×</span>' : ''}</span>`
     ).join('');
-    chips.querySelectorAll('.chosen-chip').forEach(chip => {
-      chip.onclick = () => {
-        selectedFriends = selectedFriends.filter(fid => fid !== chip.dataset.id);
-        payers = payers.filter(pid => pid !== chip.dataset.id); delete payerAmounts[chip.dataset.id];
-        renderFriendsOptions(); renderFriendsChosen(); renderPayerChips();
-      };
-    });
+    if (editing) {
+      chips.querySelectorAll('.chosen-chip').forEach(chip => {
+        chip.onclick = () => {
+          selectedFriends = selectedFriends.filter(fid => fid !== chip.dataset.id);
+          payers = payers.filter(pid => pid !== chip.dataset.id); delete payerAmounts[chip.dataset.id];
+          renderFriendsOptions(); renderFriendsChosen(); renderPayerChips(); updateTotalDisplay();
+        };
+      });
+    }
   }
 
-  // PAID BY (Me is required, any others optional, all amounts integer ≥ 0)
   function renderPayerChips() {
     const payersDiv = container.querySelector('.payers-chosen');
     payersDiv.innerHTML = "";
-    // Paid by is only rendered for those in friendsSharing
     let addOptions = selectedFriends.filter(id => !payers.includes(id));
     addOptions.forEach(id => {
       let chip = document.createElement('span');
@@ -93,10 +111,12 @@ export function showNewSpend(container) {
       let x = document.createElement('span');
       x.className = 'chip-x'; x.textContent = '+';
       chip.appendChild(x);
-      chip.onclick = () => {
-        payers.push(id); payerAmounts[id] = '';
-        renderPayerChips();
-      };
+      if (editing) {
+        chip.onclick = () => {
+          payers.push(id); payerAmounts[id] = '';
+          renderPayerChips(); updateTotalDisplay();
+        };
+      }
       chip.style.background = "#f7f7f7"; chip.style.color = "#393939"; chip.style.border = "1.1px solid #d2dbe0";
       payersDiv.appendChild(chip);
     });
@@ -105,27 +125,28 @@ export function showNewSpend(container) {
       chip.className = 'chosen-chip selected-payer';
       chip.innerHTML = `
         ${getFriendById(id).name}
-        <span class="chip-x" style="pointer-events:all;">×</span>
-        <input type="number" class="payer-amt" min="0" step="1" value="${payerAmounts[id] ?? ''}" placeholder="Amt" />
+        ${editing ? '<span class="chip-x" style="pointer-events:all;">×</span>' : ''}
+        <input type="number" class="payer-amt" min="0" step="1" ${editing ? '' : 'readonly'} value="${payerAmounts[id] ?? ''}" placeholder="Amt" />
       `;
-      chip.onclick = e => {
-        if (e.target.classList.contains('chip-x') || e.target === chip) {
-          payers = payers.filter(pid => pid !== id); delete payerAmounts[id];
-          renderPayerChips();
-        }
-      };
-      chip.querySelector('.payer-amt').oninput = (ev) => {
-        let val = ev.target.value.replace(/[^0-9]/g, '');
-        ev.target.value = val;
-        payerAmounts[id] = val;
-        updateTotalDisplay();
-      };
+      if (editing) {
+        chip.onclick = e => {
+          if (e.target.classList.contains('chip-x') || e.target === chip) {
+            payers = payers.filter(pid => pid !== id); delete payerAmounts[id];
+            renderPayerChips(); updateTotalDisplay();
+          }
+        };
+        chip.querySelector('.payer-amt').oninput = (ev) => {
+          let val = ev.target.value.replace(/[^0-9]/g, '');
+          ev.target.value = val;
+          payerAmounts[id] = val;
+          updateTotalDisplay();
+        };
+      }
       payersDiv.appendChild(chip);
     });
     updateTotalDisplay();
   }
 
-  // TOTAL Paid display (always rounded up integer sum)
   function updateTotalDisplay() {
     let sum = payers.reduce((acc, id) => acc + rup(payerAmounts[id]), 0);
     const disp = container.querySelector('#totalDisplay');
@@ -137,39 +158,44 @@ export function showNewSpend(container) {
     }
   }
 
-  // CALCULATE BUTTON LOGIC
-  const calcBtn = container.querySelector('.calc-btn');
-  calcBtn.onclick = () => {
+  // clicking outside dropdown closes it
+  function attachDropdownCloseHandler() {
+    const dropdown = container.querySelector('.friends-dropdown');
+    document.addEventListener('click', function handler(e) {
+      if (!dropdown.contains(e.target)) dropdown.querySelector('.dropdown-menu').style.display = "none";
+    }, { once: true });
+  }
+
+  // --- Calculate button validation/trigger ---
+  function attemptCalculate() {
     const msgBox = container.querySelector('.custom-msg');
     msgBox.textContent = "";
-    // Validate: Me is present and one more friend at least
+
     if (!selectedFriends.includes('me') || selectedFriends.length < 2) {
       msgBox.textContent = "Please select yourself ('Me') and at least one more friend.";
       return;
     }
-    // Validate Paid By: Me must be present, and have a non-negative value
     if (!payers.includes('me') || !/^\d+$/.test(payerAmounts['me'] || "") || rup(payerAmounts['me']) < 0) {
       msgBox.textContent = "'Me' must be added and have a paid amount (0 or more).";
       return;
     }
-    // All payers must have integer values ≥ 0
     for (let id of payers) {
       if (!/^\d+$/.test(payerAmounts[id] || "") || rup(payerAmounts[id]) < 0) {
         msgBox.textContent = "All payers must have a non-negative paid amount.";
         return;
       }
     }
-    // Amount must be positive overall to split
     let total = payers.reduce((acc, id) => acc + rup(payerAmounts[id]), 0);
     if (total <= 0) {
       msgBox.textContent = "Total paid amount must be positive.";
       return;
     }
     msgBox.textContent = "";
+    // lock the UI; generate split, show edit button
+    renderMain(false);
     generateSplitPanel(selectedFriends, total);
-  };
+  }
 
-  // SPLIT PANEL: lock/unlock, visual, all features
   function generateSplitPanel(sharers, totalAmount) {
     const splitWrap = container.querySelector('.split-results-container');
     splitWrap.innerHTML = `
@@ -247,10 +273,5 @@ export function showNewSpend(container) {
     };
   }
 
-  // Dropdown close on outside click
-  document.addEventListener('click', function (e) {
-    if (!dropdown.contains(e.target)) dropdown.querySelector('.dropdown-menu').style.display = "none";
-  });
-
-  renderFriendsOptions(); renderFriendsChosen(); renderPayerChips();
+  renderMain(true);
 }
