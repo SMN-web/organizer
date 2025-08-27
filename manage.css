@@ -203,3 +203,30 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
   .split-row-name { margin-right: 8px; }
   .split-amt { font-size: 1.01em; }
 }
+
+.settlement-summary .primary-btn {
+  padding: 0.4em 1.1em;
+  font-size: 1em;
+  border-radius: 7px;
+  margin-top: 0;
+  min-width: 120px;
+  box-shadow: 0 2px 6px -5px #4694fd61;
+  transition: background .12s;
+}
+
+/* Space horizontal buttons neatly */
+.settlement-summary .primary-btn + .primary-btn {
+  margin-left: 9px;
+}
+
+@media (max-width: 480px) {
+  .settlement-summary .primary-btn {
+    font-size: 0.98em;
+    min-width: 93px;
+    padding: 0.38em 0.5em;
+  }
+  .settlement-summary .primary-btn + .primary-btn {
+    margin-left: 5px;
+  }
+}
+
