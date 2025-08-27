@@ -5,7 +5,11 @@ const FRIENDS = [
   { id: 'd', name: 'D' },
   { id: 'e', name: 'E' }
 ];
-function getFriendById(id) { return FRIENDS.find(f => f.id === id); }
+
+function getFriendById(id) {
+  return FRIENDS.find(f => f.id === id);
+}
+
 export function showNewSpend(container) {
   container.innerHTML = `
     <div class="split-setup-panel">
@@ -36,12 +40,11 @@ export function showNewSpend(container) {
 
   // Friends Dropdown
   const dropdown = container.querySelector('.friends-dropdown');
-  const showFriendMenu = () => {
+  dropdown.querySelector('.dropdown-selected').onclick = () => {
     dropdown.querySelector('.dropdown-menu').style.display = 'block';
     dropdown.querySelector('.friends-search').focus();
     renderFriendsOptions();
   };
-  dropdown.querySelector('.dropdown-selected').onclick = showFriendMenu;
   container.querySelector('.friends-search').oninput = renderFriendsOptions;
 
   function renderFriendsOptions() {
@@ -62,8 +65,8 @@ export function showNewSpend(container) {
       }
       opts.appendChild(div);
     });
-    opts.parentNode.style.maxHeight = "200px";
-    opts.parentNode.style.overflowY = "auto";
+    opts.style.maxHeight = "168px";
+    opts.style.overflowY = "auto";
   }
   function renderFriendsChosen() {
     const chips = container.querySelector('.friends-chosen');
@@ -78,8 +81,6 @@ export function showNewSpend(container) {
       };
     });
   }
-
-  // Paid By multi-chip selection
   function renderPayerChips() {
     const payersDiv = container.querySelector('.payers-chosen');
     payersDiv.innerHTML = "";
@@ -111,7 +112,7 @@ export function showNewSpend(container) {
       chip.style.background = "#f7f7f7"; chip.style.color = "#393939"; chip.style.border = "1.1px solid #d2dbe0";
       payersDiv.appendChild(chip);
     });
-    // Render selected payers as chips, each with amount box and ×
+    // Selected payers: show chips + amount
     payers.forEach(id => {
       let chip = document.createElement('span');
       chip.className = 'chosen-chip selected-payer';
@@ -134,8 +135,6 @@ export function showNewSpend(container) {
     });
     updateTotalDisplay();
   }
-
-  // --- Live total paid
   function updateTotalDisplay() {
     let sum = payers.reduce((acc, id) => acc + parseFloat(payerAmounts[id] || 0), 0);
     const disp = container.querySelector('#totalDisplay');
@@ -146,19 +145,16 @@ export function showNewSpend(container) {
       disp.style.display = "none"; disp.textContent = "";
     }
   }
-
   function updateCalcButton() {
     const enoughFriends = selectedFriends.length >= 2 && selectedFriends.includes("me");
     let filled = payers.length && payers.every(id => parseFloat(payerAmounts[id]) > 0);
     const calcBtn = container.querySelector('.calc-btn');
     calcBtn.disabled = !(enoughFriends && payers.length && filled);
-    if (calcBtn.disabled) {
-      container.querySelector('.custom-msg').textContent = "";
-    }
+    if (calcBtn.disabled) container.querySelector('.custom-msg').textContent = "";
     updateTotalDisplay();
   }
 
-  // --- After Calculate: SPLIT Panel (below, not replacing, scrollable)
+  // Split panel after calculate—appears below
   container.querySelector('.calc-btn').onclick = () => {
     const enoughFriends = selectedFriends.length >= 2 && selectedFriends.includes("me");
     let sum = payers.reduce((acc, id) => acc + parseFloat(payerAmounts[id] || 0), 0);
@@ -167,21 +163,17 @@ export function showNewSpend(container) {
     if (!sum) { container.querySelector('.custom-msg').textContent = "Enter paid amount for each payer."; return;}
     if (payers.some(id => !(parseFloat(payerAmounts[id]) > 0))) { container.querySelector('.custom-msg').textContent = "Amount required for each payer."; return; }
     container.querySelector('.custom-msg').textContent = "";
-
-    // ---- SPLIT PANEL (below form, not a replacement) ----
     generateSplitPanel(selectedFriends, sum);
   };
-
   function generateSplitPanel(sharers, totalAmount) {
     const splitWrap = container.querySelector('.split-results-container');
     splitWrap.innerHTML = `
-      <h3 style="font-size:1.13em;margin:0 0 11px;font-weight:600;">Split Among Friends</h3>
+      <h3 style="font-size:1.11em;margin:0 0 9px;font-weight:600;">Split Among Friends</h3>
       <div class="split-list"></div>
-      <button class="primary-btn save-btn" style="margin-top:1.3em">Save</button>
-      <div class="custom-msg split-msg"></div>
+      <button class="primary-btn save-all-btn" style="margin-top:1.1em">Save</button>
+      <div class="custom-msg save-result-msg" style="margin-top:10px"></div>
     `;
     let locked = {};
-
     function renderList() {
       const splitDiv = splitWrap.querySelector('.split-list');
       splitDiv.innerHTML = '';
@@ -222,37 +214,23 @@ export function showNewSpend(container) {
       });
     }
     renderList();
-
-    splitWrap.querySelector('.save-btn').onclick = () => {
+    splitWrap.querySelector('.save-all-btn').onclick = () => {
       let shares = {};
       splitWrap.querySelectorAll('.split-amt').forEach(input => {
         shares[input.dataset.id] = Number(input.value);
       });
       let sum = Object.values(shares).reduce((a, b) => a + b, 0);
       if (Math.abs(sum - totalAmount) > 0.01) {
-        splitWrap.querySelector('.split-msg').textContent = "Total does not sum to full amount!";
+        splitWrap.querySelector('.save-result-msg').textContent = "Total does not sum to full amount!";
         return;
       }
-      let entry = {
-        timestamp: Date.now(),
-        friends: [...sharers],
-        total: totalAmount,
-        shares: shares
-      };
-      let all = JSON.parse(localStorage.getItem('spendHistory') || "[]");
-      all.push(entry);
-      localStorage.setItem('spendHistory', JSON.stringify(all));
-      splitWrap.querySelector('.split-msg').textContent = "Saved!";
+      splitWrap.querySelector('.save-result-msg').textContent = "Saved!";
+      setTimeout(()=>splitWrap.querySelector('.save-result-msg').textContent="",2000);
     };
   }
-
-  // Scroll/Dropdown fix for friend selector: internally scrolls, outer doesn't until you leave
   document.addEventListener('click', function (e) {
     if (!dropdown.contains(e.target)) dropdown.querySelector('.dropdown-menu').style.display = "none";
   });
 
-  renderFriendsOptions();
-  renderFriendsChosen();
-  renderPayerChips();
-  updateCalcButton();
+  renderFriendsOptions(); renderFriendsChosen(); renderPayerChips(); updateCalcButton();
 }
