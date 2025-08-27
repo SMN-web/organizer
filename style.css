@@ -395,6 +395,7 @@ html, body {
   #usersTable, .admin-table-scroll { min-width: 400px;}
 }
 
+/*manageSpend*/
 body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
 .manage-spend-modal-overlay {
   position: fixed;
@@ -420,27 +421,6 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
 .fab-calculator { position: fixed; right: 8vw; bottom: 7vh; width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(135deg,#769bef 75%,#bdd8f9 100%); color:#fff; font-size: 2em; display:flex; align-items:center; justify-content:center; border:none; cursor:pointer; z-index:10001; box-shadow: 0 9px 26px -4px #4668de1d; transition: background .17s;}
 .fab-calculator:active, .fab-calculator:focus { background:#628ce5; }
 
-
-/*calculator*/
-.calculator-modal-overlay {
-  position:fixed; left:0; top:0; width:100vw; height:100vh;
-  z-index:1050; background:rgba(30,45,60,.13); backdrop-filter:blur(1.5px);
-  display:flex; align-items:center; justify-content:center;
-}
-.calculator-modal {
-  background: #fff; border-radius: 20px;
-  box-shadow: 0 16px 44px -8px #7ba2e6aa;
-  padding: 2em 1.1em 1.05em 1.1em; min-width: 320px; max-width: 370px; width: 68vw;
-  margin: 0 auto; position: relative; animation: fadeInCalc .41s;
-}
-@keyframes fadeInCalc { from { opacity: 0; transform: scale(.97);} to { opacity: 1; transform: scale(1);} }
-.calc-header { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 1.13em; margin-bottom: 10px;}
-.close-calc-btn { background: none; border: none; color: #b33; font-size: 1.5em; cursor: pointer;}
-.calculator-display { width: 95%; font-size: 1.29em; padding: 7px 1em; border-radius: 11px; border: 1px solid #d4dae5; background: #f8fafd; text-align: right; margin-bottom: 13px; font-family: 'Segoe UI', sans-serif;}
-.calculator-buttons { display: grid; gap: 11px; grid-template-columns: repeat(4,1fr); margin: 1em 0 0.6em 0; justify-items: center;}
-.calc-btn { background: linear-gradient(140deg,#f7fafd 54%,#dbe9f7 100%); border-radius: 13px; border: none; font-size: 1.17em; font-weight: 600; box-shadow: 0 1px 9px -5px #e0eaff97; cursor: pointer; padding: .56em 0; width: 44px; transition: background .14s, font-size .12s;}
-.calc-btn:active, .calc-btn:focus { background: #e6f6fa; font-size: 1.22em;}
-.clear-btn { background: linear-gradient(120deg,#ffdede 60%,#fbeaea 100%); color: #e74c3c;}
-.equals-btn { background: linear-gradient(95deg,#597bfa 80%,#58cbfb 100%); color: #fff; font-weight: 700;}
+/*calculator.css*/
 
 
