@@ -1,9 +1,9 @@
 const FRIENDS = [
   { id: 'me', name: 'Me' },
-  { id: 'b', name: 'B' },
-  { id: 'c', name: 'C' },
-  { id: 'd', name: 'D' },
-  { id: 'e', name: 'E' }
+  { id: 'b', name: 'Raf' },
+  { id: 'c', name: 'Sree' },
+  { id: 'd', name: 'Shya' },
+  { id: 'e', name: 'Bal' }
 ];
 
 function getFriendById(id) { return FRIENDS.find(f => f.id === id); }
@@ -119,7 +119,6 @@ export function showNewSpend(container) {
     opts.style.overflowY = "auto";
   }
 
-  // Dropdown always closes on outside click
   function attachDropdownHandlers() {
     const dropdown = container.querySelector('.friends-dropdown');
     const menu = dropdown.querySelector('.dropdown-menu');
@@ -241,7 +240,6 @@ export function showNewSpend(container) {
     };
   }
 
-  // Split result panel (distribute, validation, after split: summary/settlement with print)
   function renderSplitPanel(sharers, totalAmount) {
     const splitWrap = container.querySelector('.split-results-container');
     splitWrap.innerHTML = `
@@ -277,7 +275,6 @@ export function showNewSpend(container) {
         let value = isLocked ? rup(locked[id]) : share;
         if (!isLocked && diff > 0 && idx === sharers.length - 1) value -= diff;
 
-        // Check if value is negative at render
         let showErr = false;
         if (value < 0 || (isLocked && value > totalAmount)) {
           lockError[id] = true;
@@ -351,7 +348,6 @@ export function showNewSpend(container) {
     }
     renderList();
 
-    // Date/remarks handlers and error coloring
     splitWrap.querySelector('.spend-date-input').oninput = (e) => {
       state.spendDate = e.target.value.trim();
       e.target.style.border = '';
@@ -365,15 +361,12 @@ export function showNewSpend(container) {
       const distributeMsg = splitWrap.querySelector('.distribute-btn-msg');
       distributeMsg.textContent = "";
       let shares = {};
-      let anyNeg = false;
       splitWrap.querySelectorAll('.split-amt').forEach(input => {
         const val = rup(input.value);
         shares[input.dataset.id] = val;
-        if (val < 0) anyNeg = true;
       });
       let sum = Object.values(shares).reduce((a, b) => a + b, 0);
 
-      // Mandatory fields check
       const dateInput = splitWrap.querySelector('.spend-date-input');
       const remarkInput = splitWrap.querySelector('.spend-remarks-input');
       let valid = true;
@@ -423,7 +416,7 @@ export function showNewSpend(container) {
     };
   }
 
-  // SETTLEMENT OUTPUT (print-enabled)
+  // SETTLEMENT OUTPUT (print-enabled modal)
   function showSettlementSummary(data) {
     container.innerHTML = `<div class="settlement-summary" style="padding:18px 8px 25px 8px;max-width:430px;margin:33px auto;text-align:center;background:#fff;border-radius:11px;box-shadow:0 4px 24px #d3e6fd16;">
       <h2 style="margin:10px 0 6px 0;font-size:1.29em;">Final Distribution</h2>
@@ -438,10 +431,50 @@ export function showNewSpend(container) {
       <button class="primary-btn" id="new-expense-btn" style="margin-left:12px;">Add New Expense</button>
     </div>`;
 
+    // Only print the modal content!
     document.getElementById('print-btn').onclick = () => {
-      window.print();
+      openPrintModal(document.getElementById('settlement-summary-block').innerHTML);
     };
+
     document.getElementById('new-expense-btn').onclick = () => {
+      state = initialState();
+      lastSuccessMsg = "";
+      renderAll();
+    };
+  }
+
+  // Clean modal + JS-based print
+  function openPrintModal(htmlContent) {
+    const overlay = document.createElement('div');
+    overlay.style = `
+      position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:10001;
+      background:rgba(24,38,62,0.18);display:flex;align-items:center;justify-content:center;`;
+    overlay.innerHTML = `
+      <div id="print-modal" style="background:#fff;border-radius:12px;box-shadow:0 4px 54px #3b74b42a;padding:33px 14px 20px 14px;max-width:490px;width:98vw;max-height:93vh;overflow:auto;">
+        <div id="print-area">${htmlContent}</div>
+        <div style="margin-top:18px;text-align:right;">
+          <button class="primary-btn print-action" id="modal-print-btn" style="margin-right:8px;">Print</button>
+          <button class="primary-btn print-action" id="modal-close-btn">Add New Expense</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    function showButtons(show) {
+      document.querySelectorAll('.print-action').forEach(btn=>{
+        btn.style.visibility = show ? 'visible' : 'hidden';
+      });
+    }
+
+    document.getElementById('modal-print-btn').onclick = () => {
+      showButtons(false);
+      setTimeout(()=>{
+        window.print();
+        setTimeout(()=>showButtons(true), 1500);
+      },30);
+    };
+    document.getElementById('modal-close-btn').onclick = () => {
+      document.body.removeChild(overlay);
       state = initialState();
       lastSuccessMsg = "";
       renderAll();
