@@ -225,8 +225,8 @@ html, body {
   max-height: 100vh;
   overflow: hidden;
   background: #fff;
-  border-radius: 0; /* or 12px if you want a card feel */
-  box-shadow: none;  /* remove if you want seamless mobile */
+  border-radius: 0; /* or 12px if you want a card feel 
+  box-shadow: none;  /* remove if you want seamless mobile 
   display: flex;
   flex-direction: column;
   align-items: center;
