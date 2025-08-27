@@ -49,3 +49,83 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
 .calc-btn.op-lilac { background: #f0eefd; color: #6c61b0; }
 .zero-wide { grid-column: 1/3; }
 .equals-btn { background: linear-gradient(90deg,#7f99ea 80%,#c2e8fd 100%); color:#fff; font-size:1.3em; font-weight:bold; grid-column: 4; }
+
+
+/* Style for distribution-meta in your split/distribution panel */
+.distribution-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  margin: 19px 0 13px 0;
+  align-items: stretch;
+}
+
+/* Date label and picker inline, but label on left, picker on right */
+.distribution-meta label:first-child {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6em;
+  font-weight: 500;
+  font-size: 1em;
+}
+
+/* Date picker field -- styled like dropdown/inputs */
+.distribution-meta input[type="date"] {
+  appearance: none;
+  background: #f7f9fd;
+  border: 1.3px solid #d3dae4;
+  border-radius: 7px;
+  padding: 0.58em 1em 0.58em 1em;
+  color: #1e293b;
+  font-size: 1.07em;
+  outline: none;
+  min-width: 0;
+  width: 180px; /* Adjust as needed: fits most date strings */
+  transition: border 0.17s, box-shadow 0.17s;
+  box-sizing: border-box;
+}
+
+.distribution-meta input[type="date"]:focus {
+  border: 1.6px solid #5081ef;
+  box-shadow: 0 0 0 1.5px #bdd0fd80;
+}
+
+/* Make sure the remarks label/field starts on next line and fills width */
+.distribution-meta label:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.7em;
+  font-weight: 500;
+  font-size: 1em;
+}
+
+.distribution-meta input[type="text"] {
+  background: #f7f9fd;
+  border: 1.3px solid #d3dae4;
+  border-radius: 7px;
+  padding: 0.62em 1em;
+  color: #1e293b;
+  font-size: 1.07em;
+  outline: none;
+  margin-top: 0.35em;
+  width: 100%;
+  transition: border 0.17s, box-shadow 0.17s;
+  box-sizing: border-box;
+}
+
+.distribution-meta input[type="text"]:focus {
+  border: 1.6px solid #5081ef;
+  box-shadow: 0 0 0 1.5px #bdd0fd80;
+}
+
+/* Responsive: stack everything cleanly on small screens */
+@media (max-width: 600px) {
+  .distribution-meta label:first-child {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .distribution-meta input[type="date"] {
+    width: 100%;
+  }
+}
