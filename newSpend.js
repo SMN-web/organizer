@@ -5,10 +5,7 @@ const FRIENDS = [
   { id: 'd', name: 'D' },
   { id: 'e', name: 'E' }
 ];
-
-function getFriendById(id) {
-  return FRIENDS.find(f => f.id === id);
-}
+function getFriendById(id) { return FRIENDS.find(f => f.id === id); }
 
 export function showNewSpend(container) {
   container.innerHTML = `
@@ -28,17 +25,17 @@ export function showNewSpend(container) {
         <span class="selector-label">Paid By:</span>
         <div class="chosen-list payers-chosen"></div>
       </div>
-      <div class="total-display" id="totalDisplay" style="margin:12px 0 4px 0;font-size:1.10em;color:#233d68;display:none;"></div>
+      <div class="total-display" id="totalDisplay"></div>
       <button type="button" class="primary-btn calc-btn" disabled>Calculate</button>
       <div class="custom-msg"></div>
     </div>
-    <div class="split-results-container" style="margin-top:22px;"></div>
+    <div class="split-results-container" style="margin-top:21px;"></div>
   `;
   let selectedFriends = [];
   let payers = [];
   let payerAmounts = {};
 
-  // Friends Dropdown
+  // --- FRIENDS LOGIC (limited to exactly 2 friends: "Me" and one other) ---
   const dropdown = container.querySelector('.friends-dropdown');
   dropdown.querySelector('.dropdown-selected').onclick = () => {
     dropdown.querySelector('.dropdown-menu').style.display = 'block';
@@ -46,26 +43,28 @@ export function showNewSpend(container) {
     renderFriendsOptions();
   };
   container.querySelector('.friends-search').oninput = renderFriendsOptions;
-
   function renderFriendsOptions() {
     const filter = container.querySelector('.friends-search').value.toLowerCase();
     const opts = container.querySelector('.friends-options');
     opts.innerHTML = "";
     FRIENDS.filter(f => f.name.toLowerCase().includes(filter)).forEach(f => {
       const isSel = selectedFriends.includes(f.id);
+      let disabled = selectedFriends.length === 2 && !isSel; // Only allow 2 total
       let div = document.createElement('div');
-      div.className = "selector-item" + (isSel ? " selected used" : "");
+      div.className = "selector-item" + (isSel ? " selected used" : "") + (disabled ? " disabled-item" : "");
       div.textContent = f.name;
-      if (!isSel) {
+      if (!isSel && !disabled) {
         div.onclick = () => {
-          selectedFriends.push(f.id);
-          selectedFriends = Array.from(new Set(selectedFriends)).sort((a, b) => a === 'me' ? -1 : b === 'me' ? 1 : 0);
-          renderFriendsOptions(); renderFriendsChosen(); renderPayerChips(); updateCalcButton();
+          if (selectedFriends.length < 2) {
+            selectedFriends.push(f.id);
+            selectedFriends = Array.from(new Set(selectedFriends)).sort((a,b)=>a==='me'?-1:b==='me'?1:0);
+            renderFriendsOptions(); renderFriendsChosen(); renderPayerChips(); updateCalcButton();
+          }
         };
       }
       opts.appendChild(div);
     });
-    opts.style.maxHeight = "168px";
+    opts.style.maxHeight = "170px";
     opts.style.overflowY = "auto";
   }
   function renderFriendsChosen() {
@@ -81,12 +80,13 @@ export function showNewSpend(container) {
       };
     });
   }
+
+  // --- PAID BY ---
   function renderPayerChips() {
     const payersDiv = container.querySelector('.payers-chosen');
     payersDiv.innerHTML = "";
-    if (selectedFriends.length < 2) {
-      payers = []; payerAmounts = {}; payersDiv.innerHTML = "";
-      updateTotalDisplay();
+    if (selectedFriends.length !== 2) {
+      payers = []; payerAmounts = {}; payersDiv.innerHTML = ""; updateTotalDisplay();
       return;
     }
     let addOptions = selectedFriends.filter(id => !payers.includes(id));
@@ -95,8 +95,7 @@ export function showNewSpend(container) {
       chip.className = 'chosen-chip';
       chip.textContent = getFriendById(id).name;
       let x = document.createElement('span');
-      x.className = 'chip-x';
-      x.textContent = '+';
+      x.className = 'chip-x'; x.textContent = '+';
       chip.appendChild(x);
       chip.onclick = () => {
         if (payers.length >= 1) {
@@ -112,7 +111,6 @@ export function showNewSpend(container) {
       chip.style.background = "#f7f7f7"; chip.style.color = "#393939"; chip.style.border = "1.1px solid #d2dbe0";
       payersDiv.appendChild(chip);
     });
-    // Selected payers: show chips + amount
     payers.forEach(id => {
       let chip = document.createElement('span');
       chip.className = 'chosen-chip selected-payer';
@@ -135,6 +133,8 @@ export function showNewSpend(container) {
     });
     updateTotalDisplay();
   }
+
+  // --- TOTALS ---
   function updateTotalDisplay() {
     let sum = payers.reduce((acc, id) => acc + parseFloat(payerAmounts[id] || 0), 0);
     const disp = container.querySelector('#totalDisplay');
@@ -146,7 +146,7 @@ export function showNewSpend(container) {
     }
   }
   function updateCalcButton() {
-    const enoughFriends = selectedFriends.length >= 2 && selectedFriends.includes("me");
+    const enoughFriends = (selectedFriends.length === 2 && selectedFriends.includes("me"));
     let filled = payers.length && payers.every(id => parseFloat(payerAmounts[id]) > 0);
     const calcBtn = container.querySelector('.calc-btn');
     calcBtn.disabled = !(enoughFriends && payers.length && filled);
@@ -154,11 +154,11 @@ export function showNewSpend(container) {
     updateTotalDisplay();
   }
 
-  // Split panel after calculate—appears below
+  // --- SPLIT PANEL ---
   container.querySelector('.calc-btn').onclick = () => {
-    const enoughFriends = selectedFriends.length >= 2 && selectedFriends.includes("me");
+    const enoughFriends = (selectedFriends.length === 2 && selectedFriends.includes("me"));
     let sum = payers.reduce((acc, id) => acc + parseFloat(payerAmounts[id] || 0), 0);
-    if (!enoughFriends) { container.querySelector('.custom-msg').textContent = "Please select at least two friends including yourself."; return; }
+    if (!enoughFriends) { container.querySelector('.custom-msg').textContent = "Select exactly yourself and one more."; return; }
     if (payers.length === 0) { container.querySelector('.custom-msg').textContent = "Select at least one person who paid."; return; }
     if (!sum) { container.querySelector('.custom-msg').textContent = "Enter paid amount for each payer."; return;}
     if (payers.some(id => !(parseFloat(payerAmounts[id]) > 0))) { container.querySelector('.custom-msg').textContent = "Amount required for each payer."; return; }
@@ -168,10 +168,10 @@ export function showNewSpend(container) {
   function generateSplitPanel(sharers, totalAmount) {
     const splitWrap = container.querySelector('.split-results-container');
     splitWrap.innerHTML = `
-      <h3 style="font-size:1.11em;margin:0 0 9px;font-weight:600;">Split Among Friends</h3>
+      <h3 style="font-size:1.12em;margin:0 0 12px;font-weight:600;">Split Among Friends</h3>
       <div class="split-list"></div>
       <button class="primary-btn save-all-btn" style="margin-top:1.1em">Save</button>
-      <div class="custom-msg save-result-msg" style="margin-top:10px"></div>
+      <div class="custom-msg save-result-msg" style="margin-top:12px"></div>
     `;
     let locked = {};
     function renderList() {
@@ -185,10 +185,15 @@ export function showNewSpend(container) {
         let isLocked = id in locked;
         let value = isLocked ? locked[id] : share;
         splitDiv.innerHTML += `
-          <div class="split-row">
-            <span style="min-width:65px;display:inline-block;">${getFriendById(id).name}</span>
-            <input type="number" class="split-amt" min="0" value="${value.toFixed(2)}" data-id="${id}" ${isLocked ? 'readonly' : ''}>
-            <button class="lock-btn" data-id="${id}">${isLocked ? '🔒' : '🔓'}</button>
+          <div class="split-row ${isLocked ? "locked-row" : "unlocked-row"}">
+            <span class="split-row-name">${getFriendById(id).name}</span>
+            <input type="number" class="split-amt" min="0" value="${value.toFixed(2)}" data-id="${id}" ${isLocked ? 'readonly' : ''} style="background:${isLocked ? '#e2eef4' : '#fff'};color:${isLocked ? '#255086':'#25304d'};">
+            <button class="lock-btn" data-id="${id}" aria-label="${isLocked ? 'Unlock' : 'Lock'}">
+            ${isLocked
+              ? '<svg style="vertical-align:middle" width="21" height="21" fill="#156b97" viewBox="0 0 24 24"><path d="M12 17a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm6-7V7a6 6 0 0 0-12 0v3a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2zm-8-3a4 4 0 0 1 8 0v3H6V7zm10 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v7z"/></svg>'
+              : '<svg style="vertical-align:middle" width="21" height="21" fill="#b2b7c8" viewBox="0 0 24 24"><path d="M18 10V7a6 6 0 1 0-12 0h2a4 4 0 1 1 8 0v3zm2 1v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2zm-7 5a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg>'
+            }
+            </button>
           </div>`;
       });
       splitDiv.querySelectorAll('.lock-btn').forEach(btn => {
@@ -204,7 +209,7 @@ export function showNewSpend(container) {
         };
       });
       splitDiv.querySelectorAll('.split-amt').forEach(input => {
-        input.onchange = () => {
+        input.oninput = () => {
           let id = input.dataset.id;
           if (locked[id] !== undefined) {
             locked[id] = Number(input.value);
@@ -221,11 +226,12 @@ export function showNewSpend(container) {
       });
       let sum = Object.values(shares).reduce((a, b) => a + b, 0);
       if (Math.abs(sum - totalAmount) > 0.01) {
-        splitWrap.querySelector('.save-result-msg').textContent = "Total does not sum to full amount!";
+        splitWrap.querySelector('.save-result-msg').textContent = "Error: Split does not match total spend!";
+        splitWrap.querySelector('.save-result-msg').style.color = "#be1d1d";
         return;
       }
-      splitWrap.querySelector('.save-result-msg').textContent = "Saved!";
-      setTimeout(()=>splitWrap.querySelector('.save-result-msg').textContent="",2000);
+      splitWrap.querySelector('.save-result-msg').textContent = "Saved successfully!";
+      splitWrap.querySelector('.save-result-msg').style.color = "#147a39";
     };
   }
   document.addEventListener('click', function (e) {
