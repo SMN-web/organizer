@@ -12,6 +12,7 @@ function todayDate() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
+
 export function showNewSpend(container) {
   let lastSuccessMsg = "";
 
@@ -22,7 +23,7 @@ export function showNewSpend(container) {
       payers: [],
       payerAmounts: {},
       lastSplit: null,
-      spendDate: todayDate(),
+      spendDate: "",
       remarks: ""
     };
   }
@@ -118,7 +119,7 @@ export function showNewSpend(container) {
     opts.style.overflowY = "auto";
   }
 
-  // Always closes on outside click, and works even as friends are added/removed
+  // Dropdown always closes on outside click
   function attachDropdownHandlers() {
     const dropdown = container.querySelector('.friends-dropdown');
     const menu = dropdown.querySelector('.dropdown-menu');
@@ -129,7 +130,6 @@ export function showNewSpend(container) {
       search.value = '';
       search.focus();
       renderFriendsOptions('');
-      // This prevents stacking event listeners
       setTimeout(() => {
         const closeHandler = (ev) => {
           if (!menu.contains(ev.target) && !dropdown.querySelector('.dropdown-selected').contains(ev.target)) {
@@ -241,20 +241,25 @@ export function showNewSpend(container) {
     };
   }
 
-  // Split result panel (distribute, validation, after split: summary/settlement with download/share)
+  // Split result panel (distribute, validation, after split: summary/settlement with print)
   function renderSplitPanel(sharers, totalAmount) {
     const splitWrap = container.querySelector('.split-results-container');
     splitWrap.innerHTML = `
       <h3 style="font-size:1.12em;margin:0 0 10px;font-weight:600;">Split Among Friends</h3>
       <div class="split-list"></div>
       <div class="distribution-meta" style="margin:19px 0 13px 0;">
-        <label>Date: <input type="date" class="spend-date-input" value="${state.spendDate || todayDate()}" max="${todayDate()}"></label>
-        <label style="margin-top:7px;">Remarks/Place:<input type="text" class="spend-remarks-input" maxlength="90" style="width:99%;margin-top:4px;" value="${state.remarks || ""}" placeholder="E.g. Dinner, Mall, Friends..."></label>
+        <label>Date: <input type="date" class="spend-date-input" value="${state.spendDate || ""}" max="${todayDate()}" /></label>
+        <label class="distrib-remarks-label" style="margin-top:7px;">Remarks/Place:
+          <input type="text" class="spend-remarks-input" maxlength="90" style="width:99%;margin-top:4px;" value="${state.remarks || ""}" placeholder="E.g. Dinner, Mall, Friends..." />
+        </label>
       </div>
-      <button class="primary-btn distribute-btn">Distribute</button>
+      <button type="button" class="primary-btn distribute-btn">Distribute</button>
       <div class="custom-msg distribute-btn-msg" style="margin-top:10px"></div>
     `;
+
     let locked = {};
+    let lockError = {};
+
     function renderList() {
       const splitDiv = splitWrap.querySelector('.split-list');
       splitDiv.innerHTML = '';
@@ -264,29 +269,58 @@ export function showNewSpend(container) {
       let share = unlocked.length > 0 ? rup(toSplit / unlocked.length) : 0;
       let sumPreview = lockedSum + share * unlocked.length;
       let diff = sumPreview - totalAmount;
+
+      let negativeExists = false;
+
       sharers.forEach((id, idx) => {
         let isLocked = id in locked;
         let value = isLocked ? rup(locked[id]) : share;
         if (!isLocked && diff > 0 && idx === sharers.length - 1) value -= diff;
+
+        // Check if value is negative at render
+        let showErr = false;
+        if (value < 0 || (isLocked && value > totalAmount)) {
+          lockError[id] = true;
+          negativeExists = true;
+          showErr = true;
+        } else {
+          lockError[id] = false;
+        }
+
         splitDiv.innerHTML += `
           <div class="split-row${isLocked ? " locked-row" : ""}">
             <span class="split-row-name">${getFriendById(id).name}</span>
             <input type="number" class="split-amt" min="0" step="1" value="${value}" data-id="${id}"
               ${isLocked ? 'readonly' : ''}
-              style="background:${isLocked ? '#e2eef4' : '#fff'};color:${isLocked ? '#156b97':'#25304d'};border:2.2px solid ${isLocked ? '#288944':'#d3dae4'};">
+              style="background:${isLocked ? '#e2eef4' : '#fff'};color:${isLocked ? (showErr ? '#c43422' : '#156b97'):'#25304d'};border:2.2px solid ${(showErr ? '#e44b56' : isLocked ? '#288944':'#d3dae4')};">
             <button class="lock-btn" data-id="${id}" aria-label="${isLocked ? 'Unlock' : 'Lock'}" style="background:none;border:none;font-size:1.42em;">
               ${isLocked
                 ? `<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#288944" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="8" rx="2" fill="#e2faf4"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1.5" fill="#288944" /></svg>`
                 : `<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#96a1b5" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="8" rx="2" fill="#f8fafc"/><path d="M17 11V7a5 5 0 1 0-10 0"/><circle cx="12" cy="16" r="1.5" fill="#96a1b5" /></svg>`
               }
             </button>
+            ${showErr 
+                ? `<div class="split-error" style="color:#e44b56; font-size:.93em;margin-top:3px;">${isLocked && value > totalAmount 
+                    ? "Assigned value exceeds total spend!" 
+                    : "Negative value is not allowed!"}</div>` 
+                : ""}
           </div>`;
       });
+
       splitDiv.querySelectorAll('.lock-btn').forEach(btn => {
         btn.onclick = () => {
           let id = btn.dataset.id;
+          let val = splitDiv.querySelector(`.split-amt[data-id="${id}"]`).value;
+          if (rup(val) > totalAmount) {
+            lockError[id] = true;
+            renderList();
+            return;
+          } else if (rup(val) < 0) {
+            lockError[id] = true;
+            renderList();
+            return;
+          }
           if (locked[id] === undefined) {
-            let val = splitDiv.querySelector(`.split-amt[data-id="${id}"]`).value;
             locked[id] = rup(val);
           } else {
             delete locked[id];
@@ -295,47 +329,86 @@ export function showNewSpend(container) {
         };
       });
       splitDiv.querySelectorAll('.split-amt').forEach(input => {
+        input.onblur = () => {
+          let id = input.dataset.id;
+          let val = input.value.replace(/[^0-9]/g, '');
+          if (Number(val) > totalAmount || Number(val) < 0) {
+            input.value = '';
+            renderList();
+          }
+        };
         input.oninput = () => {
           let id = input.dataset.id;
           let val = input.value.replace(/[^0-9]/g, '');
           input.value = val;
-          if (locked[id] !== undefined) {
-            locked[id] = rup(val);
-            renderList();
+          if (Number(val) > totalAmount || Number(val) < 0) {
+            input.style.border = '2.2px solid #e44b56';
+          } else {
+            input.style.border = '';
           }
         };
       });
     }
     renderList();
 
-    splitWrap.querySelector('.spend-date-input').onchange = (e) => {
-      state.spendDate = e.target.value;
+    // Date/remarks handlers and error coloring
+    splitWrap.querySelector('.spend-date-input').oninput = (e) => {
+      state.spendDate = e.target.value.trim();
+      e.target.style.border = '';
     };
     splitWrap.querySelector('.spend-remarks-input').oninput = (e) => {
-      state.remarks = e.target.value;
+      state.remarks = e.target.value.trim();
+      e.target.style.border = '';
     };
 
     splitWrap.querySelector('.distribute-btn').onclick = () => {
       const distributeMsg = splitWrap.querySelector('.distribute-btn-msg');
       distributeMsg.textContent = "";
-
-      // Gather split
       let shares = {};
+      let anyNeg = false;
       splitWrap.querySelectorAll('.split-amt').forEach(input => {
-        shares[input.dataset.id] = rup(input.value);
+        const val = rup(input.value);
+        shares[input.dataset.id] = val;
+        if (val < 0) anyNeg = true;
       });
-      let sum = Object.values(shares).reduce((a, b) => a + rup(b), 0);
+      let sum = Object.values(shares).reduce((a, b) => a + b, 0);
 
-      if (sum !== totalAmount) {
-        distributeMsg.textContent = sum > totalAmount
-          ? "Distribution exceeds total spend!" 
-          : "Distributed amount is less than the total spend!";
-        distributeMsg.style.color = "#be1d1d";
+      // Mandatory fields check
+      const dateInput = splitWrap.querySelector('.spend-date-input');
+      const remarkInput = splitWrap.querySelector('.spend-remarks-input');
+      let valid = true;
+      if (!state.spendDate) {
+        dateInput.style.border = '2px solid #e44b56';
+        distributeMsg.textContent = "Date is required.";
+        valid = false;
+      }
+      if (!state.remarks) {
+        remarkInput.style.border = '2px solid #e44b56';
+        distributeMsg.textContent = distributeMsg.textContent
+          ? "Date and Remarks/Place are required."
+          : "Remarks/Place is required.";
+        valid = false;
+      }
+      if (!valid) return;
+
+      let overAssigned = Object.values(shares).some(v => v > totalAmount);
+      let negativeAssigned = Object.values(shares).some(v => v < 0);
+
+      if (overAssigned) {
+        distributeMsg.textContent = "You are assigning more than the total spend value to a user.";
+        distributeMsg.style.color = "#e44b56";
         return;
       }
-      if (!state.spendDate || !/^\d{4}-\d{2}-\d{2}$/.test(state.spendDate)) {
-        distributeMsg.textContent = "Please choose a valid date.";
-        distributeMsg.style.color = "#be1d1d";
+      if (negativeAssigned) {
+        distributeMsg.textContent = "Negative values are not allowed.";
+        distributeMsg.style.color = "#e44b56";
+        return;
+      }
+      if (sum !== totalAmount) {
+        distributeMsg.textContent = sum > totalAmount
+          ? "Distribution exceeds total spend!"
+          : "Distributed amount is less than the total spend!";
+        distributeMsg.style.color = "#e44b56";
         return;
       }
 
@@ -350,7 +423,7 @@ export function showNewSpend(container) {
     };
   }
 
-  // SETTLEMENT output and JPEG/Share
+  // SETTLEMENT OUTPUT (print-enabled)
   function showSettlementSummary(data) {
     container.innerHTML = `<div class="settlement-summary" style="padding:18px 8px 25px 8px;max-width:430px;margin:33px auto;text-align:center;background:#fff;border-radius:11px;box-shadow:0 4px 24px #d3e6fd16;">
       <h2 style="margin:10px 0 6px 0;font-size:1.29em;">Final Distribution</h2>
@@ -361,55 +434,13 @@ export function showNewSpend(container) {
       <div id="settlement-summary-block" style="text-align:left;display:inline-block;width:100%;">
       ${renderSettlementBlock(data)}
       </div>
-      <button class="primary-btn" id="download-jpeg-btn" style="margin:19px 0 3px 0;">Download as Image</button>
-      <button class="primary-btn" id="share-jpeg-btn" style="margin-left:12px;">Share Image</button>
+      <button class="primary-btn" id="print-btn" style="margin:17px 0 3px 0;">Print as PDF</button>
       <button class="primary-btn" id="new-expense-btn" style="margin-left:12px;">Add New Expense</button>
-      <div class="custom-msg" style="margin:10px 0 0 0;color:#137a43;font-weight:600;"></div>
     </div>`;
 
-    // JPG/Share common
-    function generateJpeg(callback) {
-      const el = document.getElementById('settlement-summary-block');
-      const svgString = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="450" height="520">
-        <foreignObject width="100%" height="100%">
-          <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: 'Segoe UI',Arial,sans-serif;font-size:17px;color:#233148;background:#fff;border-radius:10px;padding:16px 13px;width:415px;height:495px;">
-          <style>
-            strong{font-weight:700;} em{color:#5e77c9} .row-settle{margin:8px 0;}
-          </style>${el.innerHTML}</div>
-        </foreignObject>
-      </svg>`;
-      const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
-img.src = dataUrl;
-
-    }
-
-    document.getElementById('download-jpeg-btn').onclick = () => {
-      generateJpeg(canvas => {
-        const link = document.createElement('a');
-        link.download = `GroupSettle_${data.date}.jpeg`;
-        link.href = canvas.toDataURL('image/jpeg', 0.92);
-        link.click();
-      });
+    document.getElementById('print-btn').onclick = () => {
+      window.print();
     };
-
-    document.getElementById('share-jpeg-btn').onclick = () => {
-      generateJpeg(canvas => {
-        canvas.toBlob(blob => {
-          if (navigator.canShare && navigator.canShare({ files: [new File([blob], 'settlement.jpg', {type: 'image/jpeg'})] })) {
-            const file = new File([blob], 'settlement.jpg', {type: 'image/jpeg'});
-            navigator.share({ files: [file], title: 'Group Settlement', text: 'Here is our group spend summary!' });
-          } else {
-            // Fallback: Download instead
-            const link = document.createElement('a');
-            link.download = `GroupSettle_${data.date}.jpeg`;
-            link.href = URL.createObjectURL(blob);
-            link.click();
-          }
-        }, 'image/jpeg');
-      });
-    };
-
     document.getElementById('new-expense-btn').onclick = () => {
       state = initialState();
       lastSuccessMsg = "";
