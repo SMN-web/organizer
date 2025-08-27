@@ -6,7 +6,7 @@ export function showManageSpend(contentContainer) {
   contentContainer.innerHTML = `
     <div class="manage-spend-wrapper animate-in">
       <header class="spend-header">
-        <h2 class="centered-title" style="padding-top:2.3em;">Manage Group Spend</h2>
+        <h2 class="centered-title" style="padding-top:0.5em;">Manage Group Spend</h2>
         <p class="spend-desc">Track, split, and adjust group spending for outings with friends.</p>
         <div class="spend-message custom-message"></div>
         <span class="bell-icon">
