@@ -6,34 +6,35 @@ const FRIENDS = [
   { id: 'e', name: 'E' }
 ];
 function getFriendById(id) { return FRIENDS.find(f => f.id === id); }
-
 export function showNewSpend(container) {
   container.innerHTML = `
-    <div class="selector-group">
-      <span class="selector-label">Friends Sharing:</span>
-      <div class="custom-dropdown friends-dropdown">
-        <div class="dropdown-selected" tabindex="0">Select friends...</div>
-        <div class="dropdown-menu" style="display:none;">
-          <input class="dropdown-search friends-search" type="text" placeholder="Search friends..." autocomplete="off" />
-          <div class="dropdown-options friends-options"></div>
+    <div class="split-setup-panel">
+      <div class="selector-group">
+        <span class="selector-label">Friends Sharing:</span>
+        <div class="custom-dropdown friends-dropdown">
+          <div class="dropdown-selected" tabindex="0">Select friends...</div>
+          <div class="dropdown-menu" style="display:none;">
+            <input class="dropdown-search friends-search" type="text" placeholder="Search friends..." autocomplete="off" />
+            <div class="dropdown-options friends-options"></div>
+          </div>
         </div>
+        <div class="chosen-list friends-chosen"></div>
       </div>
-      <div class="chosen-list friends-chosen"></div>
+      <div class="selector-group">
+        <span class="selector-label">Paid By:</span>
+        <div class="chosen-list payers-chosen"></div>
+      </div>
+      <div class="total-display" id="totalDisplay" style="margin:12px 0 4px 0;font-size:1.10em;color:#233d68;display:none;"></div>
+      <button type="button" class="primary-btn calc-btn" disabled>Calculate</button>
+      <div class="custom-msg"></div>
     </div>
-    <div class="selector-group">
-      <span class="selector-label">Paid By:</span>
-      <div class="chosen-list payers-chosen"></div>
-    </div>
-    <div class="total-display" id="totalDisplay" style="margin:16px 0 0 0;font-size:1.14em;color:#233d68;display:none;"></div>
-    <button type="button" class="primary-btn calc-btn" disabled>Calculate</button>
-    <div class="custom-msg"></div>
+    <div class="split-results-container" style="margin-top:22px;"></div>
   `;
-
   let selectedFriends = [];
   let payers = [];
   let payerAmounts = {};
 
-  // -------- FRIENDS DROPDOWN --------
+  // Friends Dropdown
   const dropdown = container.querySelector('.friends-dropdown');
   const showFriendMenu = () => {
     dropdown.querySelector('.dropdown-menu').style.display = 'block';
@@ -61,8 +62,9 @@ export function showNewSpend(container) {
       }
       opts.appendChild(div);
     });
+    opts.parentNode.style.maxHeight = "200px";
+    opts.parentNode.style.overflowY = "auto";
   }
-
   function renderFriendsChosen() {
     const chips = container.querySelector('.friends-chosen');
     chips.innerHTML = selectedFriends.map(id =>
@@ -77,7 +79,7 @@ export function showNewSpend(container) {
     });
   }
 
-  // --------- PAID BY MULTI-CHIP ---------
+  // Paid By multi-chip selection
   function renderPayerChips() {
     const payersDiv = container.querySelector('.payers-chosen');
     payersDiv.innerHTML = "";
@@ -109,7 +111,7 @@ export function showNewSpend(container) {
       chip.style.background = "#f7f7f7"; chip.style.color = "#393939"; chip.style.border = "1.1px solid #d2dbe0";
       payersDiv.appendChild(chip);
     });
-    // Render selected payer chips, each with amount box and × (removal)
+    // Render selected payers as chips, each with amount box and ×
     payers.forEach(id => {
       let chip = document.createElement('span');
       chip.className = 'chosen-chip selected-payer';
@@ -133,7 +135,7 @@ export function showNewSpend(container) {
     updateTotalDisplay();
   }
 
-  // --- AUTO TOTAL FROM ALL PAYERS ---
+  // --- Live total paid
   function updateTotalDisplay() {
     let sum = payers.reduce((acc, id) => acc + parseFloat(payerAmounts[id] || 0), 0);
     const disp = container.querySelector('#totalDisplay');
@@ -145,18 +147,19 @@ export function showNewSpend(container) {
     }
   }
 
-  // --- ENABLE CALC ONLY IF VALID ---
-  const calcBtn = container.querySelector('.calc-btn');
-  calcBtn.disabled = true;
   function updateCalcButton() {
     const enoughFriends = selectedFriends.length >= 2 && selectedFriends.includes("me");
     let filled = payers.length && payers.every(id => parseFloat(payerAmounts[id]) > 0);
+    const calcBtn = container.querySelector('.calc-btn');
     calcBtn.disabled = !(enoughFriends && payers.length && filled);
+    if (calcBtn.disabled) {
+      container.querySelector('.custom-msg').textContent = "";
+    }
     updateTotalDisplay();
   }
 
-  // --- CALCULATE SPLIT AND SHOW SPLIT UI ---
-  calcBtn.onclick = () => {
+  // --- After Calculate: SPLIT Panel (below, not replacing, scrollable)
+  container.querySelector('.calc-btn').onclick = () => {
     const enoughFriends = selectedFriends.length >= 2 && selectedFriends.includes("me");
     let sum = payers.reduce((acc, id) => acc + parseFloat(payerAmounts[id] || 0), 0);
     if (!enoughFriends) { container.querySelector('.custom-msg').textContent = "Please select at least two friends including yourself."; return; }
@@ -165,11 +168,85 @@ export function showNewSpend(container) {
     if (payers.some(id => !(parseFloat(payerAmounts[id]) > 0))) { container.querySelector('.custom-msg').textContent = "Amount required for each payer."; return; }
     container.querySelector('.custom-msg').textContent = "";
 
-    // >>> SPLIT STEP <<<
-    showDistributionStep(container, selectedFriends, sum);
+    // ---- SPLIT PANEL (below form, not a replacement) ----
+    generateSplitPanel(selectedFriends, sum);
   };
 
-  // --- DISMISS DROPDOWNS ---
+  function generateSplitPanel(sharers, totalAmount) {
+    const splitWrap = container.querySelector('.split-results-container');
+    splitWrap.innerHTML = `
+      <h3 style="font-size:1.13em;margin:0 0 11px;font-weight:600;">Split Among Friends</h3>
+      <div class="split-list"></div>
+      <button class="primary-btn save-btn" style="margin-top:1.3em">Save</button>
+      <div class="custom-msg split-msg"></div>
+    `;
+    let locked = {};
+
+    function renderList() {
+      const splitDiv = splitWrap.querySelector('.split-list');
+      splitDiv.innerHTML = '';
+      let lockedSum = Object.values(locked).reduce((a, b) => a + Number(b), 0);
+      let unlocked = sharers.filter(id => !(id in locked));
+      let toSplit = totalAmount - lockedSum;
+      let share = unlocked.length > 0 ? (toSplit / unlocked.length) : 0;
+      sharers.forEach(id => {
+        let isLocked = id in locked;
+        let value = isLocked ? locked[id] : share;
+        splitDiv.innerHTML += `
+          <div class="split-row">
+            <span style="min-width:65px;display:inline-block;">${getFriendById(id).name}</span>
+            <input type="number" class="split-amt" min="0" value="${value.toFixed(2)}" data-id="${id}" ${isLocked ? 'readonly' : ''}>
+            <button class="lock-btn" data-id="${id}">${isLocked ? '🔒' : '🔓'}</button>
+          </div>`;
+      });
+      splitDiv.querySelectorAll('.lock-btn').forEach(btn => {
+        btn.onclick = () => {
+          let id = btn.dataset.id;
+          if (locked[id] === undefined) {
+            let val = splitDiv.querySelector(`.split-amt[data-id="${id}"]`).value;
+            locked[id] = Number(val);
+          } else {
+            delete locked[id];
+          }
+          renderList();
+        };
+      });
+      splitDiv.querySelectorAll('.split-amt').forEach(input => {
+        input.onchange = () => {
+          let id = input.dataset.id;
+          if (locked[id] !== undefined) {
+            locked[id] = Number(input.value);
+            renderList();
+          }
+        };
+      });
+    }
+    renderList();
+
+    splitWrap.querySelector('.save-btn').onclick = () => {
+      let shares = {};
+      splitWrap.querySelectorAll('.split-amt').forEach(input => {
+        shares[input.dataset.id] = Number(input.value);
+      });
+      let sum = Object.values(shares).reduce((a, b) => a + b, 0);
+      if (Math.abs(sum - totalAmount) > 0.01) {
+        splitWrap.querySelector('.split-msg').textContent = "Total does not sum to full amount!";
+        return;
+      }
+      let entry = {
+        timestamp: Date.now(),
+        friends: [...sharers],
+        total: totalAmount,
+        shares: shares
+      };
+      let all = JSON.parse(localStorage.getItem('spendHistory') || "[]");
+      all.push(entry);
+      localStorage.setItem('spendHistory', JSON.stringify(all));
+      splitWrap.querySelector('.split-msg').textContent = "Saved!";
+    };
+  }
+
+  // Scroll/Dropdown fix for friend selector: internally scrolls, outer doesn't until you leave
   document.addEventListener('click', function (e) {
     if (!dropdown.contains(e.target)) dropdown.querySelector('.dropdown-menu').style.display = "none";
   });
@@ -178,80 +255,4 @@ export function showNewSpend(container) {
   renderFriendsChosen();
   renderPayerChips();
   updateCalcButton();
-}
-
-/* ---- SPLIT UI: SHOW AMONG FRIENDS WITH LOCK/UNLOCK ---- */
-function showDistributionStep(container, selectedFriends, totalAmount) {
-  container.innerHTML = `
-    <h3 style="font-size:1.12em;margin:0 0 11px;font-weight:600;">Split Among Friends</h3>
-    <div class="split-list"></div>
-    <button class="primary-btn save-btn" style="margin-top:1.3em">Save</button>
-    <div class="custom-msg"></div>
-  `;
-
-  let locked = {}; // {id: amount}
-  function renderList() {
-    const splitDiv = container.querySelector('.split-list');
-    splitDiv.innerHTML = '';
-    let lockedSum = Object.values(locked).reduce((a, b) => a + Number(b), 0);
-    let unlocked = selectedFriends.filter(id => !(id in locked));
-    let toSplit = totalAmount - lockedSum;
-    let share = unlocked.length > 0 ? (toSplit / unlocked.length) : 0;
-
-    selectedFriends.forEach(id => {
-      let isLocked = id in locked;
-      let value = isLocked ? locked[id] : share;
-      splitDiv.innerHTML += `
-        <div class="split-row">
-          <span style="min-width:65px;display:inline-block;">${getFriendById(id).name}</span>
-          <input type="number" class="split-amt" min="0" value="${value.toFixed(2)}" data-id="${id}" ${isLocked ? 'readonly' : ''}>
-          <button class="lock-btn" data-id="${id}">${isLocked ? '🔒' : '🔓'}</button>
-        </div>`;
-    });
-
-    splitDiv.querySelectorAll('.lock-btn').forEach(btn => {
-      btn.onclick = () => {
-        let id = btn.dataset.id;
-        if (locked[id] === undefined) {
-          let val = splitDiv.querySelector(`.split-amt[data-id="${id}"]`).value;
-          locked[id] = Number(val);
-        } else {
-          delete locked[id];
-        }
-        renderList();
-      };
-    });
-    splitDiv.querySelectorAll('.split-amt').forEach(input => {
-      input.onchange = () => {
-        let id = input.dataset.id;
-        if (locked[id] !== undefined) {
-          locked[id] = Number(input.value);
-          renderList();
-        }
-      };
-    });
-  }
-  renderList();
-
-  container.querySelector('.save-btn').onclick = () => {
-    let shares = {};
-    container.querySelectorAll('.split-amt').forEach(input => {
-      shares[input.dataset.id] = Number(input.value);
-    });
-    let sum = Object.values(shares).reduce((a, b) => a + b, 0);
-    if (Math.abs(sum - totalAmount) > 0.01) {
-      container.querySelector('.custom-msg').textContent = "Total does not sum to full amount!";
-      return;
-    }
-    let entry = {
-      timestamp: Date.now(),
-      friends: [...selectedFriends],
-      total: totalAmount,
-      shares: shares
-    };
-    let all = JSON.parse(localStorage.getItem('spendHistory') || "[]");
-    all.push(entry);
-    localStorage.setItem('spendHistory', JSON.stringify(all));
-    container.querySelector('.custom-msg').textContent = "Saved!";
-  };
 }
