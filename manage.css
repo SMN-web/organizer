@@ -1,0 +1,83 @@
+/* Only affects Manage Spend UI */
+
+.manage-spend-wrapper {
+  max-width: 480px;
+  margin: 0 auto;
+  background: #fafbfc;
+  border-radius: 18px;
+  box-shadow: 0 3px 20px rgba(60,65,80,.08);
+  transition: box-shadow .3s;
+  padding: 18px 12px 34px;
+  position: relative;
+}
+.animate-in { animation: fade-in-slide .5s cubic-bezier(.45,.85,.45,.95); }
+@keyframes fade-in-slide {
+  from { opacity: 0; transform: translateY(40px);}
+  to { opacity: 1; transform: translateY(0);}
+}
+.spend-header h2 { margin: 0 0 8px 0; font-size: 1.6em; }
+.spend-header .spend-desc { font-size: 1em; color: #676e88; margin-bottom: 0.6em; }
+.section-switch { display: flex; gap: 10px; justify-content: center; margin: 20px 0 8px 0;}
+.tab-btn { cursor: pointer; border: none; background: #ecf2fb; padding: 8px 18px; border-radius: 16px; font-weight: 500; transition: background .2s; }
+.tab-btn.active { background: #597bfa; color: #fff; }
+.spend-section { display: none; padding: 1em 0; }
+.spend-section.visible { display: block; }
+.spend-section.fade-in { animation: fadeInSection .4s; }
+@keyframes fadeInSection {
+  from {opacity:0; transform:scale(0.98);}
+  to {opacity:1; transform:scale(1);}
+}
+.fab-calculator {
+  position: fixed;
+  right: 5vw;
+  bottom: 7vh;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg,#5677fa 70%,#a2c0fa 100%);
+  color: #fff;
+  font-size: 2.2em;
+  box-shadow: 0 8px 20px -5px #597bfa95;
+  cursor: pointer;
+  border: none;
+  transition: transform .18s, box-shadow .18s;
+  z-index: 15;
+}
+.fab-calculator:hover { transform: scale(1.1); box-shadow:0 12px 26px -6px #597bfa95;}
+.custom-message { margin: 8px 0 10px 0; min-height: 18px; }
+.msg-info, .msg-success, .msg-warning { display: inline-block; border-radius: 12px; padding:0.3em 1.1em; font-weight: 500; }
+.msg-success { background: #dbfae3; color: #28b468; }
+.msg-info    { background: #eafcfe; color: #0098db; }
+.msg-warning { background: #fff0ce; color: #d49816; }
+.msg-animate { animation: msgFadeIn 1.2s; }
+@keyframes msgFadeIn { 0%{opacity:0;} 25%{opacity:1;} 100%{opacity:1;} }
+.primary-btn { background: linear-gradient(90deg,#597bfa 80%,#67c9fc 100%); color:#fff; border:none; border-radius:7px; padding:0.6em 1.5em; font-weight:bold; margin-top:1.2em; letter-spacing:0.02em; cursor:pointer; box-shadow:0 2px 8px -4px #497af480; transition:background .18s; }
+.primary-btn:hover { background:#4365cd; }
+
+.entry-form input[type=number], .entry-form select {
+  padding: 0.6em 1em;
+  width: 80%;
+  border-radius: 7px;
+  border: 1px solid #dde1ed;
+  background: #f6f8fa;
+  margin-bottom: 0.5em;
+  font-size: 1em;
+}
+
+.friend-chips {
+  display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 14px 0;
+}
+.friend-chip {
+  background: #e6eeff; border:1px solid #b5cfff;
+  color: #597bfa; border-radius: 13px; padding: 5px 16px; font-weight:500; cursor:pointer; transition:background .16s;
+}
+.friend-chip.selected { background: #597bfa; color:#fff; border-color:#375fdc; }
+.lock-btn { margin-left:8px; font-size:1.2em; cursor:pointer; background:none; border:none; color:#d49816; }
+.split-ui { margin:18px 0 0 0;}
+.split-row { display:flex; align-items:center; padding:10px 0;}
+.split-name { flex:1 1 auto; font-weight:500;}
+.split-amount { width:80px;}
+.split-locked { color:#d49816; margin-left:4px;}
+.split-animated-prompt { margin:10px 0;}
+.history-list { background: #eef4fe; border-radius: 9px; padding: 0.9em;}
+.calculator-ui { background: #fffedb; margin: 2em auto; border-radius:12px; box-shadow:0 2px 8px -4px #889ecc42; padding:2em 1em; max-width:330px;}
