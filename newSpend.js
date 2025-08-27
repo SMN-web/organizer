@@ -24,7 +24,7 @@ export function showNewSpend(container) {
       <span class="selector-label">Paid By:</span>
       <div class="chosen-list payers-chosen"></div>
     </div>
-    <div class="total-display" id="totalDisplay" style="display:none;"></div>
+    <div class="total-display" id="totalDisplay" style="margin:16px 0 0 0;font-size:1.14em;color:#233d68;display:none;"></div>
     <button type="button" class="primary-btn calc-btn" disabled>Calculate</button>
     <div class="custom-msg"></div>
   `;
@@ -96,7 +96,7 @@ export function showNewSpend(container) {
       x.textContent = '+';
       chip.appendChild(x);
       chip.onclick = () => {
-        if (payers.length === 1) {
+        if (payers.length >= 1) {
           if (confirm('You already selected one payer. Still add another?')) {
             payers.push(id); payerAmounts[id] = '';
             renderPayerChips(); updateCalcButton();
@@ -145,9 +145,9 @@ export function showNewSpend(container) {
     }
   }
 
-  // --- ONLY ENABLE BUTTON IF VALID ---
+  // --- ENABLE CALC ONLY IF VALID ---
   const calcBtn = container.querySelector('.calc-btn');
-  const msgBox = container.querySelector('.custom-msg');
+  calcBtn.disabled = true;
   function updateCalcButton() {
     const enoughFriends = selectedFriends.length >= 2 && selectedFriends.includes("me");
     let filled = payers.length && payers.every(id => parseFloat(payerAmounts[id]) > 0);
@@ -155,18 +155,21 @@ export function showNewSpend(container) {
     updateTotalDisplay();
   }
 
+  // --- CALCULATE SPLIT AND SHOW SPLIT UI ---
   calcBtn.onclick = () => {
-    if (selectedFriends.length < 2 || !selectedFriends.includes("me")) { msgBox.textContent = "Please select at least two friends including yourself."; msgBox.style.color = "#e04444"; return; }
-    if (payers.length === 0) { msgBox.textContent = "Select at least one person who paid."; msgBox.style.color = "#e04444"; return; }
+    const enoughFriends = selectedFriends.length >= 2 && selectedFriends.includes("me");
     let sum = payers.reduce((acc, id) => acc + parseFloat(payerAmounts[id] || 0), 0);
-    if (payers.some(id => !(parseFloat(payerAmounts[id]) > 0))) {
-      msgBox.textContent = "Enter a paid amount for each payer."; msgBox.style.color = "#e04444"; return;
-    }
-    msgBox.textContent = `Ready! Total paid: ${sum} QAR`; 
-    msgBox.style.color = "#15774d";
+    if (!enoughFriends) { container.querySelector('.custom-msg').textContent = "Please select at least two friends including yourself."; return; }
+    if (payers.length === 0) { container.querySelector('.custom-msg').textContent = "Select at least one person who paid."; return; }
+    if (!sum) { container.querySelector('.custom-msg').textContent = "Enter paid amount for each payer."; return;}
+    if (payers.some(id => !(parseFloat(payerAmounts[id]) > 0))) { container.querySelector('.custom-msg').textContent = "Amount required for each payer."; return; }
+    container.querySelector('.custom-msg').textContent = "";
+
+    // >>> SPLIT STEP <<<
+    showDistributionStep(container, selectedFriends, sum);
   };
 
-  // Dismiss menus on outside click
+  // --- DISMISS DROPDOWNS ---
   document.addEventListener('click', function (e) {
     if (!dropdown.contains(e.target)) dropdown.querySelector('.dropdown-menu').style.display = "none";
   });
@@ -175,4 +178,80 @@ export function showNewSpend(container) {
   renderFriendsChosen();
   renderPayerChips();
   updateCalcButton();
+}
+
+/* ---- SPLIT UI: SHOW AMONG FRIENDS WITH LOCK/UNLOCK ---- */
+function showDistributionStep(container, selectedFriends, totalAmount) {
+  container.innerHTML = `
+    <h3 style="font-size:1.12em;margin:0 0 11px;font-weight:600;">Split Among Friends</h3>
+    <div class="split-list"></div>
+    <button class="primary-btn save-btn" style="margin-top:1.3em">Save</button>
+    <div class="custom-msg"></div>
+  `;
+
+  let locked = {}; // {id: amount}
+  function renderList() {
+    const splitDiv = container.querySelector('.split-list');
+    splitDiv.innerHTML = '';
+    let lockedSum = Object.values(locked).reduce((a, b) => a + Number(b), 0);
+    let unlocked = selectedFriends.filter(id => !(id in locked));
+    let toSplit = totalAmount - lockedSum;
+    let share = unlocked.length > 0 ? (toSplit / unlocked.length) : 0;
+
+    selectedFriends.forEach(id => {
+      let isLocked = id in locked;
+      let value = isLocked ? locked[id] : share;
+      splitDiv.innerHTML += `
+        <div class="split-row">
+          <span style="min-width:65px;display:inline-block;">${getFriendById(id).name}</span>
+          <input type="number" class="split-amt" min="0" value="${value.toFixed(2)}" data-id="${id}" ${isLocked ? 'readonly' : ''}>
+          <button class="lock-btn" data-id="${id}">${isLocked ? '🔒' : '🔓'}</button>
+        </div>`;
+    });
+
+    splitDiv.querySelectorAll('.lock-btn').forEach(btn => {
+      btn.onclick = () => {
+        let id = btn.dataset.id;
+        if (locked[id] === undefined) {
+          let val = splitDiv.querySelector(`.split-amt[data-id="${id}"]`).value;
+          locked[id] = Number(val);
+        } else {
+          delete locked[id];
+        }
+        renderList();
+      };
+    });
+    splitDiv.querySelectorAll('.split-amt').forEach(input => {
+      input.onchange = () => {
+        let id = input.dataset.id;
+        if (locked[id] !== undefined) {
+          locked[id] = Number(input.value);
+          renderList();
+        }
+      };
+    });
+  }
+  renderList();
+
+  container.querySelector('.save-btn').onclick = () => {
+    let shares = {};
+    container.querySelectorAll('.split-amt').forEach(input => {
+      shares[input.dataset.id] = Number(input.value);
+    });
+    let sum = Object.values(shares).reduce((a, b) => a + b, 0);
+    if (Math.abs(sum - totalAmount) > 0.01) {
+      container.querySelector('.custom-msg').textContent = "Total does not sum to full amount!";
+      return;
+    }
+    let entry = {
+      timestamp: Date.now(),
+      friends: [...selectedFriends],
+      total: totalAmount,
+      shares: shares
+    };
+    let all = JSON.parse(localStorage.getItem('spendHistory') || "[]");
+    all.push(entry);
+    localStorage.setItem('spendHistory', JSON.stringify(all));
+    container.querySelector('.custom-msg').textContent = "Saved!";
+  };
 }
