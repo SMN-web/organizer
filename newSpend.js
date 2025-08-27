@@ -1,12 +1,14 @@
 const FRIENDS = [
   { id: 'me', name: 'Me' },
-  { id: 'b', name: 'Raf' },
-  { id: 'c', name: 'Sree' },
-  { id: 'd', name: 'Shya' },
-  { id: 'e', name: 'Bal' }
+  { id: 'b', name: 'Shya' },
+  { id: 'c', name: 'Raf' },
+  { id: 'd', name: 'Sree' },
+  { id: 'e', name: 'Bal' },
+  { id: 'f', name: 'Nik' },
+  { id: 'g', name: 'Har' }
 ];
 
-function getFriendById(id) { return FRIENDS.find(f => f.id === id); }
+function getFriendById(id) { return FRIENDS.find(f => f.id === id) || { name: id }; }
 function rup(val) { return Math.ceil(Number(val) || 0); }
 function todayDate() {
   const d = new Date();
@@ -268,8 +270,6 @@ export function showNewSpend(container) {
       let sumPreview = lockedSum + share * unlocked.length;
       let diff = sumPreview - totalAmount;
 
-      let negativeExists = false;
-
       sharers.forEach((id, idx) => {
         let isLocked = id in locked;
         let value = isLocked ? rup(locked[id]) : share;
@@ -278,7 +278,6 @@ export function showNewSpend(container) {
         let showErr = false;
         if (value < 0 || (isLocked && value > totalAmount)) {
           lockError[id] = true;
-          negativeExists = true;
           showErr = true;
         } else {
           lockError[id] = false;
@@ -416,7 +415,6 @@ export function showNewSpend(container) {
     };
   }
 
-  // SETTLEMENT OUTPUT (print-enabled modal)
   function showSettlementSummary(data) {
     container.innerHTML = `<div class="settlement-summary" style="padding:18px 8px 25px 8px;max-width:430px;margin:33px auto;text-align:center;background:#fff;border-radius:11px;box-shadow:0 4px 24px #d3e6fd16;">
       <h2 style="margin:10px 0 6px 0;font-size:1.29em;">Final Distribution</h2>
@@ -431,7 +429,6 @@ export function showNewSpend(container) {
       <button class="primary-btn" id="new-expense-btn" style="margin-left:12px;">Add New Expense</button>
     </div>`;
 
-    // Only print the modal content!
     document.getElementById('print-btn').onclick = () => {
       openPrintModal(document.getElementById('settlement-summary-block').innerHTML);
     };
@@ -443,7 +440,54 @@ export function showNewSpend(container) {
     };
   }
 
-  // Clean modal + JS-based print
+  // Settlement logic: minimal transfers, creditors get only what they're owed
+  function renderSettlementBlock(data) {
+    let paidLines = data.splitters.map(id =>
+      `<div class="row-settle">${getFriendById(id).name} paid: <em>${rup(data.payers[id]||0)} QAR</em></div>`
+    ).join('');
+    let shareLines = data.splitters.map(id =>
+      `<div class="row-settle">${getFriendById(id).name}'s share: <em>${rup(data.shares[id]||0)} QAR</em></div>`
+    ).join('');
+
+    // Array of settlement actions
+    let settlements = [];
+    // Calculate net positions
+    let net = {};
+    data.splitters.forEach(id => {
+      net[id] = (rup(data.paidAmounts ? data.paidAmounts[id] : data.payers[id]||0)) - (rup(data.shares[id]||0));
+    });
+
+    let debtors = data.splitters.filter(id => net[id] < 0);
+    let creditors = data.splitters.filter(id => net[id] > 0);
+
+    let netCopy = {...net};
+    let MAX_ITER = 1000, iter = 0;
+    // Greedy settle: each debtor pays any creditor until all net to zero
+    for (let d of debtors) {
+      for (let c of creditors) {
+        if (netCopy[d] >= 0 || netCopy[c] <= 0) continue;
+        let amount = Math.min(-netCopy[d], netCopy[c]);
+        if (!amount || amount < 0) continue;
+        settlements.push({ from: d, to: c, amount });
+        netCopy[d] += amount;
+        netCopy[c] -= amount;
+        iter++; if (iter > MAX_ITER) break;
+      }
+    }
+
+    let owesLines = settlements.length
+      ? settlements.map(s =>
+          `<div class="row-settle"><strong>${getFriendById(s.from).name}</strong> owes <em>${s.amount} QAR</em> to <strong>${getFriendById(s.to).name}</strong></div>`
+        ).join('')
+      : `<div>All settled up. No pending amounts.</div>`;
+
+    return `
+      <div><u>Paid Amounts:</u></div>${paidLines}
+      <div style="margin:10px 0 0 0"><u>Each Share:</u></div>${shareLines}
+      <div style="margin:10px 0 0 0"><u>Owes/Settlement:</u></div>${owesLines}
+    `;
+  }
+
   function openPrintModal(htmlContent) {
     const overlay = document.createElement('div');
     overlay.style = `
@@ -470,7 +514,7 @@ export function showNewSpend(container) {
       showButtons(false);
       setTimeout(()=>{
         window.print();
-        setTimeout(()=>showButtons(true), 1500);
+        setTimeout(()=>showButtons(true), 1200); // restore after print
       },30);
     };
     document.getElementById('modal-close-btn').onclick = () => {
@@ -479,34 +523,5 @@ export function showNewSpend(container) {
       lastSuccessMsg = "";
       renderAll();
     };
-  }
-
-  function renderSettlementBlock(data) {
-    let paidLines = data.splitters.map(id =>
-      `<div class="row-settle">${getFriendById(id).name} paid: <em>${rup(data.payers[id]||0)} QAR</em></div>`
-    ).join('');
-    let shareLines = data.splitters.map(id =>
-      `<div class="row-settle">${getFriendById(id).name}'s share: <em>${rup(data.shares[id]||0)} QAR</em></div>`
-    ).join('');
-    let net = {};
-    data.splitters.forEach(id => {
-      net[id] = (rup(data.shares[id]||0)) - (rup(data.payers[id]||0));
-    });
-    let owesLines = '';
-    const names = id => `<strong>${getFriendById(id).name}</strong>`;
-    data.splitters.forEach(id => {
-      if (net[id] > 0) {
-        let creditor = data.splitters.filter(target => net[target] < 0)[0];
-        if (creditor) {
-          owesLines += `<div class="row-settle">${names(id)} owes <em>${Math.abs(net[id])} QAR</em> to ${names(creditor)}</div>`;
-        }
-      }
-    });
-    if (!owesLines) owesLines = `<div>All settled up. No pending amounts.</div>`;
-    return `
-      <div><u>Paid Amounts:</u></div>${paidLines}
-      <div style="margin:10px 0 0 0"><u>Each Share:</u></div>${shareLines}
-      <div style="margin:10px 0 0 0"><u>Owes/Settlement:</u></div>${owesLines}
-    `;
   }
 }
