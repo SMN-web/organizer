@@ -129,3 +129,77 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
     width: 100%;
   }
 }
+
+/* Split panel container row */
+.split-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  background: #fafcff;
+  border: 1.5px solid #dbe2ee;
+  border-radius: 11px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  transition: border 0.13s, box-shadow 0.13s;
+}
+
+/* Name column */
+.split-row-name {
+  min-width: 45px;
+  font-weight: 500;
+  color: #1a3556;
+  margin-right: 16px;
+}
+
+/* Input matches other stylish inputs */
+.split-amt {
+  flex: 1 0 90px;
+  border: 1.5px solid #d3dae4;
+  border-radius: 7px;
+  background: #f7f9fd;
+  padding: 0.62em 1em;
+  font-size: 1.09em;
+  color: #1e293b;
+  box-sizing: border-box;
+  outline: none;
+  transition: border 0.17s, box-shadow 0.17s;
+}
+
+.split-amt:focus {
+  border: 1.6px solid #5081ef;
+  box-shadow: 0 0 0 1.6px #bdd0fd80;
+  background: #f4faff;
+}
+
+/* Locked state visual feedback */
+.locked-row .split-amt {
+  background: #eaf4ee !important;
+  border: 1.6px solid #8edde0 !important;
+  color: #207554;
+  box-shadow: none !important;
+}
+
+/* Lock icon alignment (optional for SVG or font icon) */
+.split-row .lock-btn {
+  background: none;
+  border: none;
+  padding: 0 0 0 11px;
+  font-size: 1.32em;
+  color: #a6b4c9;
+  cursor: pointer;
+  transition: color 0.14s;
+  outline: none;
+}
+
+.split-row .lock-btn:focus,
+.split-row .lock-btn:hover {
+  color: #4f90ff;
+}
+
+/* On mobile, adjust padding for space */
+@media (max-width: 600px) {
+  .split-row { padding: 10px 8px; }
+  .split-row-name { margin-right: 8px; }
+  .split-amt { font-size: 1.01em; }
+}
