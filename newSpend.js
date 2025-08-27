@@ -1,26 +1,41 @@
 const FRIENDS = [
   { id: 'me', name: 'Me' },
-  { id: 'b', name: 'Sree' },
-  { id: 'c', name: 'Raf' },
-  { id: 'd', name: 'Shya' },
+  { id: 'b', name: 'Raf' },
+  { id: 'c', name: 'Sree' },
+  { id: 'd', name: 'Shyam' },
   { id: 'e', name: 'Bala' }
 ];
 function getFriendById(id) { return FRIENDS.find(f => f.id === id); }
 function rup(val) { return Math.ceil(Number(val) || 0); }
+function todayDate() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
 
 export function showNewSpend(container) {
-  let state = {
-    editing: true,
-    selectedFriends: [],
-    payers: [],
-    payerAmounts: {}
-  };
+  // Added: Success message global state
+  let lastSuccessMsg = "";
+
+  function initialState() {
+    return {
+      editing: true,
+      selectedFriends: [],
+      payers: [],
+      payerAmounts: {},
+      lastSplit: null,
+      spendDate: todayDate(),
+      remarks: ""
+    };
+  }
+  let state = initialState();
+
   renderAll();
 
   function renderAll() {
     const { editing, selectedFriends, payers, payerAmounts } = state;
     container.innerHTML = `
       <div class="split-setup-panel">
+        <div class="custom-msg global-success" style="margin-bottom:8px;${lastSuccessMsg ? "" : "display:none"};color:#117a32;font-weight:bold">${lastSuccessMsg}</div>
         <div class="selector-group">
           <span class="selector-label">Friends Sharing:</span>
           <div class="custom-dropdown friends-dropdown">
@@ -53,9 +68,8 @@ export function showNewSpend(container) {
   // FRIENDS dropdown logic
   function renderFriendsSection() {
     const { editing, selectedFriends } = state;
-    // Dropdown logic
     const dropdown = container.querySelector('.friends-dropdown');
-    // Options rendering
+    // Search logic
     dropdown.querySelector('.friends-search').oninput = function() {
       renderFriendsOptions(this.value.toLowerCase());
     };
@@ -75,24 +89,36 @@ export function showNewSpend(container) {
       });
     }
   }
+
   function renderFriendsOptions(filter) {
     const { editing, selectedFriends } = state;
     const opts = container.querySelector('.friends-options');
     opts.innerHTML = '';
-    FRIENDS.filter(f => f.name.toLowerCase().includes(filter)).forEach(f => {
-      const isSel = selectedFriends.includes(f.id);
+    const matches = FRIENDS.filter(f => f.name.toLowerCase().includes(filter));
+    if (matches.length === 0) {
       let div = document.createElement('div');
-      div.className = "selector-item" + (isSel ? " selected used" : "");
-      div.textContent = f.name;
-      if (!isSel && editing) {
-        div.onclick = () => {
-          state.selectedFriends.push(f.id);
-          state.selectedFriends = Array.from(new Set(state.selectedFriends)).sort((a,b)=>a==='me'?-1:b==='me'?1:0);
-          renderAll();
-        };
-      }
+      div.className = "selector-item";
+      div.style.color = "#a7aab3";
+      div.style.textAlign = "center";
+      div.style.cursor = "default";
+      div.textContent = "No friends found";
       opts.appendChild(div);
-    });
+    } else {
+      matches.forEach(f => {
+        const isSel = selectedFriends.includes(f.id);
+        let div = document.createElement('div');
+        div.className = "selector-item" + (isSel ? " selected used" : "");
+        div.textContent = f.name;
+        if (!isSel && editing) {
+          div.onclick = () => {
+            state.selectedFriends.push(f.id);
+            state.selectedFriends = Array.from(new Set(state.selectedFriends)).sort((a,b)=>a==='me'?-1:b==='me'?1:0);
+            renderAll();
+          };
+        }
+        opts.appendChild(div);
+      });
+    }
     opts.style.maxHeight = "170px";
     opts.style.overflowY = "auto";
   }
@@ -102,19 +128,22 @@ export function showNewSpend(container) {
     const dropdown = container.querySelector('.friends-dropdown');
     const menu = dropdown.querySelector('.dropdown-menu');
     const search = dropdown.querySelector('.friends-search');
-    dropdown.querySelector('.dropdown-selected').onclick = () => {
+    dropdown.querySelector('.dropdown-selected').onclick = (e) => {
       if (!state.editing) return;
+      e.stopPropagation();
       menu.style.display = 'block';
       search.value = '';
       search.focus();
       renderFriendsOptions('');
     };
-    // outside click closes
-    setTimeout(() => {
-      document.addEventListener('click', function closeFn(e) {
-        if (!dropdown.contains(e.target)) menu.style.display = "none";
-      }, { once: true });
-    }, 0);
+    // close dropdown on external click
+    document.addEventListener('mousedown', outsideCloseHandler);
+    function outsideCloseHandler(e) {
+      if (!dropdown.contains(e.target)) {
+        menu.style.display = "none";
+        document.removeEventListener('mousedown', outsideCloseHandler);
+      }
+    }
   }
 
   // PAYERS section
@@ -179,7 +208,7 @@ export function showNewSpend(container) {
     }
   }
 
-  // CALCULATE/EDIT BUTTON
+  // CALCULATE/EDIT BUTTON LOGIC
   function setupButton() {
     const { editing, selectedFriends, payers, payerAmounts } = state;
     const calcBtn = container.querySelector('.calc-btn');
@@ -211,7 +240,7 @@ export function showNewSpend(container) {
         state.editing = false;
         renderAll(); // now shows split and Edit btn
       } else {
-        if (confirm("Editing will clear the current split. Continue?")) {
+        if (confirm("Editing will clear the current distribution. Continue?")) {
           state.editing = true;
           state.lastSplit = null;
           renderAll();
@@ -220,13 +249,17 @@ export function showNewSpend(container) {
     };
   }
 
-  // SPLIT PANEL logic
+  // SPLIT PANEL logic (with date and remarks before "Distribute")
   function renderSplitPanel(sharers, totalAmount) {
     const splitWrap = container.querySelector('.split-results-container');
     splitWrap.innerHTML = `
-      <h3 style="font-size:1.12em;margin:0 0 12px;font-weight:600;">Split Among Friends</h3>
+      <h3 style="font-size:1.12em;margin:0 0 10px;font-weight:600;">Split Among Friends</h3>
       <div class="split-list"></div>
-      <button class="primary-btn save-all-btn" style="margin-top:1.1em">Save</button>
+      <div class="distribution-meta" style="margin:19px 0 13px 0;">
+        <label>Date: <input type="date" class="spend-date-input" value="${state.spendDate || todayDate()}" max="${todayDate()}"></label>
+        <label style="margin-top:7px;">Remarks/Place:<input type="text" class="spend-remarks-input" maxlength="90" style="width:99%;margin-top:4px;" value="${state.remarks || ""}" placeholder="E.g. Dinner, Mall, Friends..."></label>
+      </div>
+      <button class="primary-btn distribute-btn">Distribute</button>
       <div class="custom-msg save-result-msg" style="margin-top:12px"></div>
     `;
     let locked = {};
@@ -282,7 +315,16 @@ export function showNewSpend(container) {
       });
     }
     renderList();
-    splitWrap.querySelector('.save-all-btn').onclick = () => {
+
+    // Date/Remarks handlers
+    splitWrap.querySelector('.spend-date-input').onchange = (e) => {
+      state.spendDate = e.target.value;
+    };
+    splitWrap.querySelector('.spend-remarks-input').oninput = (e) => {
+      state.remarks = e.target.value;
+    };
+
+    splitWrap.querySelector('.distribute-btn').onclick = () => {
       let shares = {};
       splitWrap.querySelectorAll('.split-amt').forEach(input => {
         shares[input.dataset.id] = rup(input.value);
@@ -293,8 +335,15 @@ export function showNewSpend(container) {
         splitWrap.querySelector('.save-result-msg').style.color = "#be1d1d";
         return;
       }
-      splitWrap.querySelector('.save-result-msg').textContent = "Saved successfully!";
-      splitWrap.querySelector('.save-result-msg').style.color = "#147a39";
+      if (!state.spendDate || !/^\d{4}-\d{2}-\d{2}$/.test(state.spendDate)) {
+        splitWrap.querySelector('.save-result-msg').textContent = "Please choose a valid date.";
+        splitWrap.querySelector('.save-result-msg').style.color = "#be1d1d";
+        return;
+      }
+      // SUCCESS: reset all but show green message at top!
+      lastSuccessMsg = "Distributed successfully!";
+      state = initialState(); // RESET FORM STATE
+      renderAll();
     };
   }
 }
