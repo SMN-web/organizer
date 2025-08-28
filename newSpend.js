@@ -1,17 +1,16 @@
-export async function showNewSpend(container, auth) {
-  // Helper: Get token & profile username
+export async function showNewSpend(container, user) {
+  // Helper: get token & profile username
   async function fetchTokenAndUsername() {
-    if (!auth.currentUser) throw new Error("Not logged in");
-    await auth.currentUser.reload();
-    const token = await auth.currentUser.getIdToken(true);
-    // We assume userpanel returns {username, name}
-    const profileResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/userpanel", {
-      headers: { Authorization: "Bearer " + token },
-      mode: "cors"
+    if (!user?.firebaseUser) throw new Error("Not logged in");
+    await user.firebaseUser.reload();
+    const token = await user.firebaseUser.getIdToken(true);
+    // Fetch backend user profile (for username)
+    const profileResp = await fetch("/api/userpanel", {
+      headers: { Authorization: "Bearer " + token }
     });
-    const user = await profileResp.json();
-    if (!user.username) throw new Error("User profile incomplete");
-    return { token, username: user.username, name: user.name };
+    const profile = await profileResp.json();
+    if (!profile.username) throw new Error("User profile incomplete");
+    return { token, username: profile.username, name: profile.name };
   }
 
   // Fetch all friends (accepted only)
@@ -21,7 +20,7 @@ export async function showNewSpend(container, auth) {
     token = rec.token;
     currentUser = rec.username;
     currentName = rec.name;
-    let fr = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/friends/list", { headers: { Authorization: "Bearer " + token }});
+    let fr = await fetch("/api/friends/list", { headers: { Authorization: "Bearer " + token }});
     if (!fr.ok) throw new Error("Failed to fetch friend list");
     let freshFriends = await fr.json();
     FRIENDS = [{ id: "me", name: "Me", username: currentUser }]
@@ -37,7 +36,7 @@ export async function showNewSpend(container, auth) {
       : FRIENDS.find(f => f.id === id || f.username === id) || { id, name: id, username: id };
   }
 
-  // State
+  // State management
   let state = {
     editing: true,
     selectedFriends: ["me"],
@@ -48,7 +47,6 @@ export async function showNewSpend(container, auth) {
     lastSplit: null
   };
 
-  // --- Renders ---
   renderAll();
 
   function renderAll() {
@@ -92,7 +90,6 @@ export async function showNewSpend(container, auth) {
       <div id="distribution-result"></div>
     `;
 
-    // Friend selection logic
     container.querySelectorAll("input[name=friend]").forEach(box => {
       box.onchange = () => {
         if (box.checked && !state.selectedFriends.includes(box.value)) {
@@ -106,7 +103,6 @@ export async function showNewSpend(container, auth) {
       };
     });
 
-    // Paid by selection logic
     container.querySelectorAll(".payer-check").forEach(box => {
       box.onchange = () => {
         if (box.checked && !state.payers.includes(box.value)) {
@@ -118,7 +114,6 @@ export async function showNewSpend(container, auth) {
       };
     });
 
-    // Amounts per payer
     container.querySelectorAll(".payer-amt").forEach(input => {
       input.oninput = e => {
         const v = e.target.value.replace(/[^0-9]/g, "");
@@ -127,11 +122,9 @@ export async function showNewSpend(container, auth) {
       };
     });
 
-    // Date/remarks binding
     container.querySelector("#spend-date").oninput = e => state.spendDate = e.target.value;
     container.querySelector("#spend-remarks").oninput = e => state.remarks = e.target.value;
 
-    // Calculation/editing logic
     container.querySelector("#calc-btn").onclick = () => {
       if (state.editing) {
         const msgEl = container.querySelector('#calc-messages');
@@ -212,7 +205,6 @@ export async function showNewSpend(container, auth) {
     dRes.querySelector("#save-btn").onclick = async () => {
       const saveMsg = dRes.querySelector("#save-messages");
       saveMsg.textContent = "Saving...";
-      // Prepare post payload (map "me" to currentUser)
       let splits = data.splitters.map(fid => ({
         username: fid === "me" ? currentUser : fid,
         paid: data.payers[fid] || 0,
@@ -224,7 +216,7 @@ export async function showNewSpend(container, auth) {
         total_amount: data.totalAmount,
         splits
       };
-      let resp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/spends", {
+      let resp = await fetch("/api/spends", {
         method: "POST",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify(payload)
