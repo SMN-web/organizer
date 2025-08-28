@@ -1,69 +1,60 @@
 export async function showNewSpend(container, user) {
+  // ---- AUTH & FRIENDS ----
   let FRIENDS = [];
   let loggedInUsername = null;
   let loggedInName = null;
   let token = null;
-
   async function getUserProfileAndFriends() {
     if (!user?.firebaseUser) throw new Error("Not logged in");
     await user.firebaseUser.reload();
     token = await user.firebaseUser.getIdToken(true);
-
     const profileResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/userpanel", { headers: { Authorization: "Bearer " + token } });
     const profile = await profileResp.json();
     if (!profile.username) throw new Error("User profile incomplete");
     loggedInUsername = profile.username;
     loggedInName = profile.name || profile.username;
-
     const frResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/friends/list", { headers: { Authorization: "Bearer " + token } });
     if (!frResp.ok) throw new Error("Failed to fetch friend list");
     const allFriends = await frResp.json();
-
     return [
       { id: loggedInUsername, name: loggedInName, username: loggedInUsername },
-      ...allFriends
-        .filter(f => f.username !== loggedInUsername)
-        .map(f => ({ id: f.username, name: f.name, username: f.username }))
+      ...allFriends.filter(f => f.username !== loggedInUsername).map(f => ({
+        id: f.username, name: f.name, username: f.username
+      }))
     ];
   }
-
   try {
     FRIENDS = await getUserProfileAndFriends();
   } catch (e) {
     container.innerHTML = `<div style="color:#b21414;padding:2em;font-size:1.13em;">Auth or friend list error: ${e.message || e}</div>`;
     return;
   }
-
   function getFriendById(id) {
     return FRIENDS.find(f => f.id === id || f.username === id) || { id, name: id, username: id };
   }
-
-  function rup(val) { return Math.ceil(Number(val) || 0); }
-  function todayDate() {
+  const todayDate = () => {
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-  }
-
+  };
+  function rup(val) { return Math.ceil(Number(val) || 0); }
+  // ---- STATE ----
   function initialState() {
     return {
       editing: true,
       selectedFriends: [loggedInUsername],
       payers: [loggedInUsername],
       payerAmounts: { [loggedInUsername]: "" },
-      lastSplit: null,
+      lock: {},
       spendDate: todayDate(),
-      remarks: ""
+      remarks: "",
+      lastSplit: null
     };
   }
-  let state = initialState();
-  let lastSuccessMsg = "";
-
-  renderAll();
-
+  let state = initialState(); renderAll();
+  // ---- MAIN UI ----
   function renderAll() {
     container.innerHTML = `
-      <div class="split-setup-panel" style="max-width:500px;margin:0 auto;">
-        <div class="custom-msg global-success" style="margin-bottom:8px;${lastSuccessMsg ? "" : "display:none"};color:#117a32;font-weight:bold">${lastSuccessMsg}</div>
+      <div class="split-setup-panel" style="max-width:520px;margin:0 auto;">
         <div class="selector-group">
           <span class="selector-label">Friends Sharing:</span>
           <div class="custom-dropdown friends-dropdown" style="min-width:215px;">
@@ -97,7 +88,7 @@ export async function showNewSpend(container, user) {
     setupButton();
     if (!state.editing && state.lastSplit) renderSplitPanel(state.lastSplit.sharers, state.lastSplit.total);
   }
-
+  // ---- FRIEND UI ----
   function renderFriendsSection() {
     const dropdown = container.querySelector('.friends-dropdown');
     dropdown.querySelector('.friends-search').oninput = function() {
@@ -119,7 +110,6 @@ export async function showNewSpend(container, user) {
       });
     }
   }
-
   function renderFriendsOptions(filter) {
     const opts = container.querySelector('.friends-options');
     opts.innerHTML = '';
@@ -137,21 +127,19 @@ export async function showNewSpend(container, user) {
         const isSel = state.selectedFriends.includes(f.id);
         let div = document.createElement('div');
         div.className = "selector-item" + (isSel ? " selected used" : "");
-        div.textContent = f.name + (f.username && f.name!==f.username ? " (" + f.username + ")" : "");
+        div.textContent = f.name + (f.username&&f.name!==f.username?" ("+f.username+")":"");
         if (!isSel && state.editing) {
           div.onclick = () => {
             state.selectedFriends.push(f.id);
-            state.selectedFriends = Array.from(new Set(state.selectedFriends)).sort((a,b)=>a===loggedInUsername?-1:b===loggedInUsername?1:0);
+            state.selectedFriends = [...new Set(state.selectedFriends)].sort((a,b)=>a===loggedInUsername?-1:b===loggedInUsername?1:0);
             renderAll();
           };
         }
         opts.appendChild(div);
       });
     }
-    opts.style.maxHeight = "170px";
-    opts.style.overflowY = "auto";
+    opts.style.maxHeight = "170px"; opts.style.overflowY = "auto";
   }
-
   function attachDropdownHandlers() {
     const dropdown = container.querySelector('.friends-dropdown');
     const menu = dropdown.querySelector('.dropdown-menu');
@@ -173,7 +161,7 @@ export async function showNewSpend(container, user) {
       }, 0);
     };
   }
-
+  // ---- PAYERS UI ----
   function renderPayerSection() {
     const payersDiv = container.querySelector('.payers-chosen');
     payersDiv.innerHTML = "";
@@ -220,7 +208,6 @@ export async function showNewSpend(container, user) {
     });
     updateTotalDisplay();
   }
-
   function updateTotalDisplay() {
     let sum = state.payers.reduce((acc, id) => acc + rup(state.payerAmounts[id]), 0);
     const disp = container.querySelector('#totalDisplay');
@@ -231,7 +218,7 @@ export async function showNewSpend(container, user) {
       disp.style.display = "none"; disp.textContent = "";
     }
   }
-
+  // ---- CALCULATE/EDIT ----
   function setupButton() {
     const calcBtn = container.querySelector('.calc-btn');
     const msgBox = container.querySelector('.calc-btn-msg');
@@ -239,23 +226,19 @@ export async function showNewSpend(container, user) {
       if (state.editing) {
         msgBox.textContent = "";
         if (!state.selectedFriends.includes(loggedInUsername) || state.selectedFriends.length < 2) {
-          msgBox.textContent = "Please select yourself and at least one more friend.";
-          return;
+          msgBox.textContent = "Please select yourself and at least one more friend."; return;
         }
         if (!state.payers.includes(loggedInUsername) || !/^\d+$/.test(state.payerAmounts[loggedInUsername] || "") || rup(state.payerAmounts[loggedInUsername]) < 0) {
-          msgBox.textContent = "You must be added as a payer and have a paid amount (0 or more).";
-          return;
+          msgBox.textContent = "You must be added as a payer and have a paid amount (0 or more)."; return;
         }
         for (let id of state.payers) {
           if (!/^\d+$/.test(state.payerAmounts[id] || "") || rup(state.payerAmounts[id]) < 0) {
-            msgBox.textContent = "All payers must have a non-negative paid amount.";
-            return;
+            msgBox.textContent = "All payers must have a non-negative paid amount."; return;
           }
         }
         let total = state.payers.reduce((acc, id) => acc + rup(state.payerAmounts[id]), 0);
         if (total <= 0) {
-          msgBox.textContent = "Total paid amount must be positive.";
-          return;
+          msgBox.textContent = "Total paid amount must be positive."; return;
         }
         msgBox.textContent = "";
         state.lastSplit = { sharers: state.selectedFriends.slice(), total };
@@ -264,13 +247,12 @@ export async function showNewSpend(container, user) {
       } else {
         if (confirm("Editing will clear the current distribution. Continue?")) {
           state = initialState();
-          lastSuccessMsg = "";
           renderAll();
         }
       }
     };
   }
-
+  // ---- SPLIT PANEL WITH OUTPUT ----
   function renderSplitPanel(sharers, totalAmount) {
     const splitWrap = container.querySelector('.split-results-container');
     splitWrap.innerHTML = `
@@ -285,7 +267,7 @@ export async function showNewSpend(container, user) {
       <button type="button" class="primary-btn distribute-btn">Distribute</button>
       <div class="custom-msg distribute-btn-msg" style="margin-top:10px"></div>
     `;
-    // ... splitting UI, lock logic, error validation as before! (unchanged) ...
+    // ... (implement your lock/split UI logic here as in your app) ...
     splitWrap.querySelector('.spend-date-input').oninput = (e) => {
       state.spendDate = e.target.value.trim();
       e.target.style.border = '';
@@ -295,11 +277,11 @@ export async function showNewSpend(container, user) {
       e.target.style.border = '';
     };
     splitWrap.querySelector('.distribute-btn').onclick = () => {
-      // ... error checking as before, then:
+      // ... split logic, validation ...
       showSettlementSummary({
         date: state.spendDate,
         remarks: state.remarks,
-        shares: {},  // your logic for final splits here
+        shares: {}, // your final share calculation logic
         payers: {...state.payerAmounts},
         splitters: sharers.slice(),
         totalAmount
@@ -314,13 +296,11 @@ export async function showNewSpend(container, user) {
       <div><strong>Reason:</strong> <span>${data.remarks || '-'}</span></div>
       <div style="margin:15px 0 12px 0;">Total Amount: <strong>${data.totalAmount} QAR</strong></div>
       <hr style="margin:0 0 11px 0;">
-      <div id="settlement-summary-block" style="text-align:left;display:inline-block;width:100%;">
-      </div>
+      <div id="settlement-summary-block" style="text-align:left;display:inline-block;width:100%;"></div>
       <button class="primary-btn" id="save-btn" style="margin:17px 0 3px 0;">Show JSON</button>
       <div id="json-output" style="background:#f6f8fa;color:#222;font-size:1em;border:1.2px solid #c6d2dc;border-radius:8px;margin:15px 0 7px 0;padding:13px 6px;word-break:break-all;display:none;text-align:left;"></div>
     </div>`;
     document.getElementById('save-btn').onclick = () => {
-      // Build splits with real usernames and numbers
       const splits = data.splitters.map(fid => ({
         username: fid,
         paid: Number(data.payers[fid] !== undefined && data.payers[fid] !== '' ? data.payers[fid] : 0),
