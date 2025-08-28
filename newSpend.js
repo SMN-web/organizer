@@ -462,24 +462,21 @@ export async function showNewSpend(container, user) {
   const saveMsg = document.getElementById('save-result');
   saveMsg.textContent = "Saving...";
 
-  // Use the splits (and other fields) you just used for preview:
-  // If you have them as variables from showSettlementSummary, reuse them here.
-
-  // Defensive check: You must have splits, state.spendDate, etc.
   if (!Array.isArray(splits) || !splits.length) {
     saveMsg.textContent = "Save failed: Splits data missing!";
     return;
   }
 
-  // Build payload same as preview
   const payload = {
     date: state.spendDate,
     remarks: state.remarks,
-    total_amount: totalAmount,
+    total_amount: splits.reduce((sum, s) => sum + s.paid, 0),
     splits
   };
 
-  // POST to the backend as with preview, to /api/spends/save
+  // Show outgoing payload
+  saveMsg.textContent = "Saving... Sending payload:\n" + JSON.stringify(payload);
+
   try {
     const resp = await fetch("https://cal-sp.nafil-8895-s.workers.dev/api/spends/save", {
       method: "POST",
@@ -498,17 +495,18 @@ export async function showNewSpend(container, user) {
       return;
     }
 
+    // Show backend response
     if (resp.ok && out.ok) {
-      saveMsg.textContent = "Saved! Expense finalized.";
+      saveMsg.textContent = "Saved! Expense finalized.\nResponse: " + JSON.stringify(out);
       document.getElementById('save-btn').style.display = "none";
     } else {
-      saveMsg.textContent = "Save failed: " + (out.error || "Error, please try again.");
+      saveMsg.textContent = "Save failed:\n" + (out.error || "Error") + 
+                            "\nFull reply:\n" + JSON.stringify(out);
     }
   } catch (e) {
     saveMsg.textContent = "Save failed: " + (e && e.message ? e.message : e);
   }
 };
-
 
 
 
