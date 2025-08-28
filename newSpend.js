@@ -409,7 +409,7 @@ export async function showNewSpend(container, user) {
       distributeMsg.textContent = "Processing (preview from backend)...";
 
       // Send to backend for preview/settlement calculation
-      const resp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/spends/preview", {
+      const resp = await fetch("https://cal-sp.nafil-8895-s.workers.dev/api/spends/preview", {
         method: "POST",
         headers: {
           Authorization: "Bearer " + token,
