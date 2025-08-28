@@ -1,60 +1,66 @@
 export async function showNewSpend(container, user) {
-  // ---- AUTH & FRIENDS ----
+  // --- Basic state fetch (uses test data if auth fails) ---
   let FRIENDS = [];
   let loggedInUsername = null;
   let loggedInName = null;
   let token = null;
+
   async function getUserProfileAndFriends() {
-    if (!user?.firebaseUser) throw new Error("Not logged in");
-    await user.firebaseUser.reload();
-    token = await user.firebaseUser.getIdToken(true);
-    const profileResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/userpanel", { headers: { Authorization: "Bearer " + token } });
-    const profile = await profileResp.json();
-    if (!profile.username) throw new Error("User profile incomplete");
-    loggedInUsername = profile.username;
-    loggedInName = profile.name || profile.username;
-    const frResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/friends/list", { headers: { Authorization: "Bearer " + token } });
-    if (!frResp.ok) throw new Error("Failed to fetch friend list");
-    const allFriends = await frResp.json();
-    return [
-      { id: loggedInUsername, name: loggedInName, username: loggedInUsername },
-      ...allFriends.filter(f => f.username !== loggedInUsername).map(f => ({
-        id: f.username, name: f.name, username: f.username
-      }))
-    ];
+    try {
+      if (!user?.firebaseUser) throw new Error("No auth");
+      await user.firebaseUser.reload();
+      token = await user.firebaseUser.getIdToken(true);
+      const pResp = await fetch("/api/userpanel", { headers: { Authorization: "Bearer " + token } });
+      const profile = await pResp.json();
+      loggedInUsername = profile.username;
+      loggedInName = profile.name || profile.username;
+      const frResp = await fetch("/api/friends/list", { headers: { Authorization: "Bearer " + token } });
+      const allFriends = await frResp.json();
+      return [
+        { id: loggedInUsername, name: loggedInName, username: loggedInUsername },
+        ...allFriends.filter(f => f.username !== loggedInUsername)
+          .map(f => ({ id: f.username, name: f.name, username: f.username }))
+      ];
+    } catch {
+      // fallback for dev
+      loggedInUsername = "raf";
+      loggedInName = "Raf";
+      return [
+        { id: "raf", name: "Raf", username: "raf" },
+        { id: "sree", name: "Sree", username: "sree" }
+      ];
+    }
   }
-  try {
-    FRIENDS = await getUserProfileAndFriends();
-  } catch (e) {
-    container.innerHTML = `<div style="color:#b21414;padding:2em;font-size:1.13em;">Auth or friend list error: ${e.message || e}</div>`;
-    return;
-  }
-  function getFriendById(id) {
-    return FRIENDS.find(f => f.id === id || f.username === id) || { id, name: id, username: id };
-  }
+
+  FRIENDS = await getUserProfileAndFriends();
+  function getFriendById(id) { return FRIENDS.find(f => f.id === id || f.username === id) || { id, name: id, username: id }; }
   const todayDate = () => {
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   };
   function rup(val) { return Math.ceil(Number(val) || 0); }
-  // ---- STATE ----
+
+  // ---- State ----
   function initialState() {
     return {
       editing: true,
       selectedFriends: [loggedInUsername],
       payers: [loggedInUsername],
       payerAmounts: { [loggedInUsername]: "" },
-      lock: {},
       spendDate: todayDate(),
       remarks: "",
       lastSplit: null
     };
   }
-  let state = initialState(); renderAll();
-  // ---- MAIN UI ----
+  let state = initialState();
+  let lockedSplits = {}; // { username: fixedAmount }
+  renderAll();
+
+  // ---- UI ----
   function renderAll() {
     container.innerHTML = `
-      <div class="split-setup-panel" style="max-width:520px;margin:0 auto;">
+      <div class="split-setup-panel" style="max-width:540px;margin:0 auto;">
+        <div style="margin-bottom:8px;"></div>
         <div class="selector-group">
           <span class="selector-label">Friends Sharing:</span>
           <div class="custom-dropdown friends-dropdown" style="min-width:215px;">
@@ -88,7 +94,7 @@ export async function showNewSpend(container, user) {
     setupButton();
     if (!state.editing && state.lastSplit) renderSplitPanel(state.lastSplit.sharers, state.lastSplit.total);
   }
-  // ---- FRIEND UI ----
+
   function renderFriendsSection() {
     const dropdown = container.querySelector('.friends-dropdown');
     dropdown.querySelector('.friends-search').oninput = function() {
@@ -161,7 +167,7 @@ export async function showNewSpend(container, user) {
       }, 0);
     };
   }
-  // ---- PAYERS UI ----
+
   function renderPayerSection() {
     const payersDiv = container.querySelector('.payers-chosen');
     payersDiv.innerHTML = "";
@@ -208,6 +214,7 @@ export async function showNewSpend(container, user) {
     });
     updateTotalDisplay();
   }
+
   function updateTotalDisplay() {
     let sum = state.payers.reduce((acc, id) => acc + rup(state.payerAmounts[id]), 0);
     const disp = container.querySelector('#totalDisplay');
@@ -218,7 +225,7 @@ export async function showNewSpend(container, user) {
       disp.style.display = "none"; disp.textContent = "";
     }
   }
-  // ---- CALCULATE/EDIT ----
+
   function setupButton() {
     const calcBtn = container.querySelector('.calc-btn');
     const msgBox = container.querySelector('.calc-btn-msg');
@@ -252,54 +259,92 @@ export async function showNewSpend(container, user) {
       }
     };
   }
-  // ---- SPLIT PANEL WITH OUTPUT ----
+
   function renderSplitPanel(sharers, totalAmount) {
     const splitWrap = container.querySelector('.split-results-container');
     splitWrap.innerHTML = `
       <h3 style="font-size:1.12em;margin:0 0 10px;font-weight:600;">Split Among Friends</h3>
-      <div class="split-list"></div>
-      <div class="distribution-meta" style="margin:19px 0 13px 0;">
-        <label>Date: <input type="date" class="spend-date-input" value="${state.spendDate || ""}" max="${todayDate()}" /></label>
-        <label class="distrib-remarks-label" style="margin-top:7px;">Remarks/Place:
-          <input type="text" class="spend-remarks-input" maxlength="90" style="width:99%;margin-top:4px;" value="${state.remarks || ""}" placeholder="E.g. Dinner, Mall, Friends..." />
-        </label>
-      </div>
-      <button type="button" class="primary-btn distribute-btn">Distribute</button>
-      <div class="custom-msg distribute-btn-msg" style="margin-top:10px"></div>
+      <form class="split-list-form"></form>
+      <button type="button" class="primary-btn finalize-btn" style="margin-top:22px;">Show Final Distribution</button>
     `;
-    // ... (implement your lock/split UI logic here as in your app) ...
-    splitWrap.querySelector('.spend-date-input').oninput = (e) => {
-      state.spendDate = e.target.value.trim();
-      e.target.style.border = '';
-    };
-    splitWrap.querySelector('.spend-remarks-input').oninput = (e) => {
-      state.remarks = e.target.value.trim();
-      e.target.style.border = '';
-    };
-    splitWrap.querySelector('.distribute-btn').onclick = () => {
-      // ... split logic, validation ...
+    renderLockableSplitRows();
+    splitWrap.querySelector('.finalize-btn').onclick = () => {
+      // Build shares: aggregate locks and even split remainder
+      let lockedSum = 0, unlocks = [];
+      sharers.forEach(id => {
+        if (lockedSplits[id] !== undefined && lockedSplits[id] !== "") {
+          lockedSum += Number(lockedSplits[id]);
+        } else {
+          unlocks.push(id);
+        }
+      });
+      let rem = totalAmount - lockedSum;
+      let shareObj = {};
+      sharers.forEach((id, i) => {
+        if (lockedSplits[id] !== undefined && lockedSplits[id] !== "") {
+          shareObj[id] = Number(lockedSplits[id]);
+        } else {
+          // Distribute remainder equally; last gets leftover for rounding
+          shareObj[id] = i === sharers.length-1 ? (rem - (unlocks.length-1)*Math.floor(rem/unlocks.length)) : Math.floor(rem/unlocks.length);
+        }
+      });
       showSettlementSummary({
         date: state.spendDate,
         remarks: state.remarks,
-        shares: {}, // your final share calculation logic
+        shares: shareObj,
         payers: {...state.payerAmounts},
         splitters: sharers.slice(),
         totalAmount
       });
     };
+
+    function renderLockableSplitRows() {
+      const form = splitWrap.querySelector('.split-list-form');
+      form.innerHTML = sharers.map((id, idx) => {
+        const locked = lockedSplits[id] !== undefined;
+        let val = lockedSplits[id] !== undefined ? lockedSplits[id] : '';
+        return `
+          <div style="display:flex;align-items:center;gap:11px;margin-bottom:9px;">
+            <div style="min-width:120px;">${getFriendById(id).name}</div>
+            <input type="number" class="split-amt" data-id="${id}" value="${val}" min="0" step="1" style="width:79px;" ${locked?'readonly':''}/>
+            <button type="button" class="split-lock-btn" data-id="${id}">${locked ? "🔒" : "🔓"}</button>
+          </div>
+        `;
+      }).join('');
+      form.querySelectorAll('.split-lock-btn').forEach(btn => {
+        btn.onclick = (ev) => {
+          const id = btn.dataset.id;
+          const input = form.querySelector(`.split-amt[data-id="${id}"]`);
+          if (!lockedSplits[id]) lockedSplits[id] = input.value;
+          else delete lockedSplits[id];
+          renderLockableSplitRows();
+        };
+      });
+      form.querySelectorAll('.split-amt').forEach(input => {
+        input.oninput = (e) => {
+          const id = input.dataset.id;
+          if (lockedSplits[id] !== undefined) lockedSplits[id] = input.value;
+        };
+      });
+    }
   }
 
   function showSettlementSummary(data) {
-    container.innerHTML = `<div class="settlement-summary" style="padding:18px 8px 25px 8px;max-width:430px;margin:33px auto;text-align:center;background:#fff;border-radius:11px;box-shadow:0 4px 24px #d3e6fd16;">
-      <h2 style="margin:10px 0 6px 0;font-size:1.29em;">Final Distribution</h2>
-      <div><strong>Date:</strong> <span>${data.date}</span></div>
-      <div><strong>Reason:</strong> <span>${data.remarks || '-'}</span></div>
-      <div style="margin:15px 0 12px 0;">Total Amount: <strong>${data.totalAmount} QAR</strong></div>
-      <hr style="margin:0 0 11px 0;">
-      <div id="settlement-summary-block" style="text-align:left;display:inline-block;width:100%;"></div>
-      <button class="primary-btn" id="save-btn" style="margin:17px 0 3px 0;">Show JSON</button>
-      <div id="json-output" style="background:#f6f8fa;color:#222;font-size:1em;border:1.2px solid #c6d2dc;border-radius:8px;margin:15px 0 7px 0;padding:13px 6px;word-break:break-all;display:none;text-align:left;"></div>
-    </div>`;
+    container.innerHTML = `
+      <div class="settlement-summary" style="padding:18px 8px 25px 8px;max-width:430px;margin:33px auto;text-align:center;background:#fff;border-radius:11px;box-shadow:0 4px 24px #d3e6fd16;">
+        <h2 style="margin:10px 0 6px 0;font-size:1.29em;">Final Distribution</h2>
+        <div><strong>Date:</strong> <span>${data.date}</span></div>
+        <div><strong>Reason:</strong> <span>${data.remarks || '-'}</span></div>
+        <div style="margin:15px 0 12px 0;">Total Amount: <strong>${data.totalAmount} QAR</strong></div>
+        <hr><br>
+        ${data.splitters.map(id=>`
+            <div>${getFriendById(id).name} paid: ${data.payers[id]} QAR, owes: ${data.shares[id]} QAR</div>
+        `).join('')}
+        <br>
+        <button class="primary-btn" id="save-btn" style="margin:17px 0 3px 0;">Show JSON</button>
+        <div id="json-output" style="background:#f6f8fa;color:#222;font-size:1em;border:1.2px solid #c6d2dc;border-radius:8px;margin:15px 0 7px 0;padding:13px 6px;word-break:break-all;display:none;text-align:left;"></div>
+      </div>
+    `;
     document.getElementById('save-btn').onclick = () => {
       const splits = data.splitters.map(fid => ({
         username: fid,
