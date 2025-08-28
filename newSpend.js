@@ -9,15 +9,18 @@ export async function showNewSpend(container, user) {
     await user.firebaseUser.reload();
     token = await user.firebaseUser.getIdToken(true);
 
+    // Get current user's username and name
     const profileResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/userpanel", { headers: { Authorization: "Bearer " + token } });
     const profile = await profileResp.json();
     if (!profile.username) throw new Error("User profile incomplete");
     loggedInUsername = profile.username;
 
+    // Get actual friends (accepted)
     const frResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/friends/list", { headers: { Authorization: "Bearer " + token } });
     if (!frResp.ok) throw new Error("Failed to fetch friend list");
     const allFriends = await frResp.json();
 
+    // Always prepend "me" to the dynamic friend list
     return [
       { id: "me", name: "Me", username: loggedInUsername },
       ...allFriends.map(f => ({ id: f.username, name: f.name, username: f.username }))
@@ -36,7 +39,6 @@ export async function showNewSpend(container, user) {
     return FRIENDS.find(f => f.id === id || f.username === id) || { id, name: id, username: id };
   }
 
-  // --- STATE ---
   function rup(val) { return Math.ceil(Number(val) || 0); }
   function todayDate() {
     const d = new Date();
@@ -96,7 +98,6 @@ export async function showNewSpend(container, user) {
     if (!state.editing && state.lastSplit) renderSplitPanel(state.lastSplit.sharers, state.lastSplit.total);
   }
 
-  // --- FRIEND LIST + SEARCH ---
   function renderFriendsSection() {
     const dropdown = container.querySelector('.friends-dropdown');
     dropdown.querySelector('.friends-search').oninput = function() {
@@ -173,7 +174,6 @@ export async function showNewSpend(container, user) {
     };
   }
 
-  // --- PAYERS SECTION ---
   function renderPayerSection() {
     const payersDiv = container.querySelector('.payers-chosen');
     payersDiv.innerHTML = "";
@@ -232,7 +232,6 @@ export async function showNewSpend(container, user) {
     }
   }
 
-  // --- CALCULATE/EDIT BUTTON ---
   function setupButton() {
     const calcBtn = container.querySelector('.calc-btn');
     const msgBox = container.querySelector('.calc-btn-msg');
@@ -272,7 +271,6 @@ export async function showNewSpend(container, user) {
     };
   }
 
-  // --- SPLIT/DISTRIBUTION AND SAVE/PRINT ---
   function renderSplitPanel(sharers, totalAmount) {
     const splitWrap = container.querySelector('.split-results-container');
     splitWrap.innerHTML = `
@@ -446,7 +444,6 @@ export async function showNewSpend(container, user) {
     };
   }
 
-  // --- SHOW FINAL SUMMARY AND SAVE/PRINT LOGIC ---
   function showSettlementSummary(data) {
     container.innerHTML = `<div class="settlement-summary" style="padding:18px 8px 25px 8px;max-width:430px;margin:33px auto;text-align:center;background:#fff;border-radius:11px;box-shadow:0 4px 24px #d3e6fd16;">
       <h2 style="margin:10px 0 6px 0;font-size:1.29em;">Final Distribution</h2>
@@ -474,7 +471,10 @@ export async function showNewSpend(container, user) {
       try {
         const resp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/spends", {
           method: "POST",
-          headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+          headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify({
             date: data.date,
             remarks: data.remarks,
@@ -482,14 +482,20 @@ export async function showNewSpend(container, user) {
             splits
           })
         });
-        const out = await resp.json();
-        if (resp.ok && out.ok) {
+        let out = null;
+        try {
+          out = await resp.json();
+        } catch (err) {
+          saveStatus.textContent = "Couldn't parse server response. Status: " + resp.status;
+          return;
+        }
+        if (resp.ok && out && out.ok) {
           saveStatus.textContent = "Saved! Now you can print or add another.";
           document.getElementById('save-btn').style.display = "none";
           document.getElementById('pdf-btn').style.display = "";
           document.getElementById('new-expense-btn').style.display = "";
         } else {
-          saveStatus.textContent = "Error saving: " + (out.error || resp.status);
+          saveStatus.textContent = "Error saving: " + (out && out.error ? out.error : resp.status);
         }
       } catch (e) {
         saveStatus.textContent = "Error: " + (e.message || e);
@@ -507,7 +513,6 @@ export async function showNewSpend(container, user) {
     };
   }
 
-  // --- FINAL SETTLEMENT LOGIC (unchanged) ---
   function renderSettlementBlock(data) {
     let paidLines = data.splitters.map(id =>
       `<div class="row-settle">${getFriendById(id).name} paid: <em>${rup(data.payers[id]||0)} QAR</em></div>`
