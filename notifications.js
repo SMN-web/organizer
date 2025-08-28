@@ -1,5 +1,31 @@
-import { showSpinner, hideSpinner, delay } from './spinner.js';
+// Helper for "1m ago", "3h ago", etc, always in user's time zone
+function timeAgo(dateStr) {
+  const now = new Date();
+  const then = new Date(dateStr);
+  const seconds = Math.floor((now - then) / 1000);
+  if (isNaN(seconds)) return "";
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 4) return `${weeks}w ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  const years = Math.floor(days / 365);
+  return `${years}y ago`;
+}
 
+// Sanitize for HTML output (security)
+function escapeHtml(str) {
+  return String(str).replace(/[<>&"]/g, t =>
+    t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
+}
+
+// Main notification badge/dropdown rendering
 let notifications = [];
 let notifyCount;
 let dropdown;
@@ -104,12 +130,23 @@ function renderDropdown() {
         const fadeIn = `animation:ndropfade .32s cubic-bezier(.23,1,.29,1.01) both;animation-delay:${i*0.019}s;`;
         let text = "";
         if (n.type === 'friend_request') {
-          text = `<b style="font-weight:700;">${escapeHtml(JSON.parse(n.data).from)}</b> sent you a friend request`;
+          const dat = JSON.parse(n.data);
+          text = `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> sent you a friend request`;
         }
         if (n.type === 'friend_accept') {
-          text = `<b style="font-weight:700;">${escapeHtml(JSON.parse(n.data).from)}</b> accepted your friend request`;
+          const dat = JSON.parse(n.data);
+          text = `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> accepted your friend request`;
+        }
+        if (n.type === 'expense_new') {
+          const dat = JSON.parse(n.data);
+          text =
+            `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> added an expense: `
+            + `"${escapeHtml(dat.remarks)}" for <b>${escapeHtml(dat.total)} QAR</b>.<br>`
+            + `Your share: <b>${escapeHtml(dat.share)}</b> QAR. `
+            + `<span style="color:#3a6;font-weight:600;">Awaiting your confirmation.</span>`;
         }
         if (!text) text = `<i style="color:#a7a9ae;">Unknown notification</i>`;
+        const timeBadge = n.created_at ? `<span style="float:right;color:#7b8491;font-size:0.97em;font-weight:400;padding-left:1em;">${timeAgo(n.created_at)}</span>` : "";
         return `<div class="notifyItem" style="
           transition:background .16s,box-shadow .13s;
           ${isUnread ? `background:${bgUnread};color:${dark}` : `background:${bgRead};color:${mid}`};
@@ -118,7 +155,7 @@ function renderDropdown() {
           border-radius:${i===0 ? "17px 17px 0 0":"0"};
           ${fadeIn}
         " data-id="${n.id}" data-type="${n.type}">
-          <span>${text}</span>
+          <span>${text}${timeBadge}</span>
         </div>`;
       }).join('') +
       `<style>
@@ -126,11 +163,6 @@ function renderDropdown() {
       .notifyItem:hover {background: linear-gradient(90deg,#dbe5f7 0%,#e3ecfa 84%) !important;border-radius:14px;}
       </style>`
     : `<div style="padding:35px 7px 32px 7px;text-align:center;color:#9aa;">No notifications.</div>`;
-}
-
-function escapeHtml(str) {
-  return String(str).replace(/[<>&"]/g, t =>
-    t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
 }
 
 export function mountNotifications(parent, user, notificationRedirectCallback) {
