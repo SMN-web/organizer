@@ -9,13 +9,13 @@ export async function showNewSpend(container, user) {
     if (!user?.firebaseUser) throw new Error("Not logged in");
     await user.firebaseUser.reload();
     token = await user.firebaseUser.getIdToken(true);
-    const profileResp = await fetch("/api/userpanel", { headers: { Authorization: "Bearer " + token } });
+    const profileResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/userpanel", { headers: { Authorization: "Bearer " + token } });
     const profile = await profileResp.json();
     if (!profile.username) throw new Error("User profile incomplete");
     loggedInUsername = profile.username;
     loggedInName = profile.name || profile.username;
     // Get real friends (accepted)
-    const frResp = await fetch("/api/friends/list", { headers: { Authorization: "Bearer " + token } });
+    const frResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/friends/list", { headers: { Authorization: "Bearer " + token } });
     if (!frResp.ok) throw new Error("Failed to fetch friend list");
     const allFriends = await frResp.json();
     // The logged-in user must be able to select themselves, so include in FRIENDS
