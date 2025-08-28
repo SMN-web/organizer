@@ -460,16 +460,45 @@ export async function showNewSpend(container, user) {
     `;
     document.getElementById('save-btn').onclick = async () => {
   const resultEl = document.getElementById('save-result');
-  if (!resultEl) {
-    alert("Element #save-result not found.");
-    return;
-  }
   resultEl.textContent = "Saving...";
-  setTimeout(() => {
-    resultEl.textContent = "Saved! (Test Only)";
-    document.getElementById('save-btn').style.display = "none";
-  }, 2000);
+  let timeoutHit = false, timeout = setTimeout(()=>{
+    if(resultEl.textContent==="Saving..."){
+      resultEl.textContent = "Timeout: No response from backend.";
+      timeoutHit = true;
+    }
+  },10000);
+
+  // Defensive: build valid splits/payload as you did before
+
+  try {
+    const resp = await fetch("https://cal-sp.nafil-8895-s.workers.dev/api/spends/save", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    let text, out;
+    try {
+      text = await resp.text();
+      out = JSON.parse(text);
+    } catch {
+      clearTimeout(timeout);
+      if(!timeoutHit) resultEl.textContent = "Non-JSON reply from server: "+(text||"(empty)");
+      return;
+    }
+    clearTimeout(timeout);
+    if(timeoutHit) return;
+    if(resp.ok && out && out.ok){
+      resultEl.textContent = "Saved! Expense finalized.";
+      document.getElementById('save-btn').style.display = "none";
+    } else {
+      resultEl.textContent = "Save failed: " + (out && out.error ? out.error : `Status ${resp && resp.status}`);
+    }
+  } catch(e){
+    clearTimeout(timeout);
+    if(!timeoutHit) resultEl.textContent = "Save failed: "+(e.message||e);
+  }
 };
+
 
 
 
