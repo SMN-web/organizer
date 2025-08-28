@@ -2,28 +2,28 @@ export async function showNewSpend(container, user) {
   // --- FETCH DYNAMIC FRIENDS & USER ---
   let FRIENDS = [];
   let loggedInUsername = null;
+  let loggedInName = null;
   let token = null;
 
   async function getUserProfileAndFriends() {
     if (!user?.firebaseUser) throw new Error("Not logged in");
     await user.firebaseUser.reload();
     token = await user.firebaseUser.getIdToken(true);
-
-    // Get current user's username and name
     const profileResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/userpanel", { headers: { Authorization: "Bearer " + token } });
     const profile = await profileResp.json();
     if (!profile.username) throw new Error("User profile incomplete");
     loggedInUsername = profile.username;
-
-    // Get actual friends (accepted)
+    loggedInName = profile.name || profile.username;
+    // Get real friends (accepted)
     const frResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/friends/list", { headers: { Authorization: "Bearer " + token } });
     if (!frResp.ok) throw new Error("Failed to fetch friend list");
     const allFriends = await frResp.json();
-
-    // Always prepend "me" to the dynamic friend list
+    // The logged-in user must be able to select themselves, so include in FRIENDS
     return [
-      { id: "me", name: "Me", username: loggedInUsername },
-      ...allFriends.map(f => ({ id: f.username, name: f.name, username: f.username }))
+      { id: loggedInUsername, name: loggedInName, username: loggedInUsername },
+      ...allFriends
+        .filter(f => f.username !== loggedInUsername)
+        .map(f => ({ id: f.username, name: f.name, username: f.username }))
     ];
   }
 
@@ -34,8 +34,8 @@ export async function showNewSpend(container, user) {
     return;
   }
 
+  // Utility: Get full user from FRIENDS by id
   function getFriendById(id) {
-    if (id === "me") return { id: "me", name: "Me", username: loggedInUsername };
     return FRIENDS.find(f => f.id === id || f.username === id) || { id, name: id, username: id };
   }
 
@@ -47,9 +47,9 @@ export async function showNewSpend(container, user) {
   function initialState() {
     return {
       editing: true,
-      selectedFriends: ["me"],
-      payers: ["me"],
-      payerAmounts: { "me": "" },
+      selectedFriends: [loggedInUsername],
+      payers: [loggedInUsername],
+      payerAmounts: { [loggedInUsername]: "" },
       lastSplit: null,
       spendDate: "",
       remarks: ""
@@ -106,12 +106,12 @@ export async function showNewSpend(container, user) {
     renderFriendsOptions('');
     const chips = container.querySelector('.friends-chosen');
     chips.innerHTML = state.selectedFriends.map(id =>
-      `<span class="chosen-chip" data-id="${id}">${getFriendById(id).name}${state.editing && id!=="me" ? '<span class="chip-x">×</span>' : ''}</span>`
+      `<span class="chosen-chip" data-id="${id}">${getFriendById(id).name}${state.editing && id!==loggedInUsername ? '<span class="chip-x">×</span>' : ''}</span>`
     ).join('');
     if (state.editing) {
       chips.querySelectorAll('.chosen-chip').forEach(chip => {
         chip.onclick = () => {
-          if(chip.dataset.id==="me") return;
+          if(chip.dataset.id===loggedInUsername) return;
           state.selectedFriends = state.selectedFriends.filter(fid => fid !== chip.dataset.id);
           state.payers = state.payers.filter(pid => pid !== chip.dataset.id); delete state.payerAmounts[chip.dataset.id];
           renderAll();
@@ -141,7 +141,7 @@ export async function showNewSpend(container, user) {
         if (!isSel && state.editing) {
           div.onclick = () => {
             state.selectedFriends.push(f.id);
-            state.selectedFriends = Array.from(new Set(state.selectedFriends)).sort((a,b)=>a==='me'?-1:b==='me'?1:0);
+            state.selectedFriends = Array.from(new Set(state.selectedFriends)).sort((a,b)=>a===loggedInUsername?-1:b===loggedInUsername?1:0);
             renderAll();
           };
         }
@@ -238,12 +238,12 @@ export async function showNewSpend(container, user) {
     calcBtn.onclick = () => {
       if (state.editing) {
         msgBox.textContent = "";
-        if (!state.selectedFriends.includes('me') || state.selectedFriends.length < 2) {
-          msgBox.textContent = "Please select yourself ('Me') and at least one more friend.";
+        if (!state.selectedFriends.includes(loggedInUsername) || state.selectedFriends.length < 2) {
+          msgBox.textContent = "Please select yourself and at least one more friend.";
           return;
         }
-        if (!state.payers.includes('me') || !/^\d+$/.test(state.payerAmounts['me'] || "") || rup(state.payerAmounts['me']) < 0) {
-          msgBox.textContent = "'Me' must be added and have a paid amount (0 or more).";
+        if (!state.payers.includes(loggedInUsername) || !/^\d+$/.test(state.payerAmounts[loggedInUsername] || "") || rup(state.payerAmounts[loggedInUsername]) < 0) {
+          msgBox.textContent = "You must be added as a payer and have a paid amount (0 or more).";
           return;
         }
         for (let id of state.payers) {
@@ -285,10 +285,8 @@ export async function showNewSpend(container, user) {
       <button type="button" class="primary-btn distribute-btn">Distribute</button>
       <div class="custom-msg distribute-btn-msg" style="margin-top:10px"></div>
     `;
-
     let locked = {};
     let lockError = {};
-
     function renderList() {
       const splitDiv = splitWrap.querySelector('.split-list');
       splitDiv.innerHTML = '';
@@ -298,12 +296,10 @@ export async function showNewSpend(container, user) {
       let share = unlocked.length > 0 ? rup(toSplit / unlocked.length) : 0;
       let sumPreview = lockedSum + share * unlocked.length;
       let diff = sumPreview - totalAmount;
-
       sharers.forEach((id, idx) => {
         let isLocked = id in locked;
         let value = isLocked ? rup(locked[id]) : share;
         if (!isLocked && diff > 0 && idx === sharers.length - 1) value -= diff;
-
         let showErr = false;
         if (value < 0 || (isLocked && value > totalAmount)) {
           lockError[id] = true;
@@ -311,7 +307,6 @@ export async function showNewSpend(container, user) {
         } else {
           lockError[id] = false;
         }
-
         splitDiv.innerHTML += `
           <div class="split-row${isLocked ? " locked-row" : ""}">
             <span class="split-row-name">${getFriendById(id).name}</span>
@@ -331,7 +326,6 @@ export async function showNewSpend(container, user) {
                 : ""}
           </div>`;
       });
-
       splitDiv.querySelectorAll('.lock-btn').forEach(btn => {
         btn.onclick = () => {
           let id = btn.dataset.id;
@@ -375,7 +369,6 @@ export async function showNewSpend(container, user) {
       });
     }
     renderList();
-
     splitWrap.querySelector('.spend-date-input').oninput = (e) => {
       state.spendDate = e.target.value.trim();
       e.target.style.border = '';
@@ -384,7 +377,6 @@ export async function showNewSpend(container, user) {
       state.remarks = e.target.value.trim();
       e.target.style.border = '';
     };
-
     splitWrap.querySelector('.distribute-btn').onclick = () => {
       const distributeMsg = splitWrap.querySelector('.distribute-btn-msg');
       distributeMsg.textContent = "";
@@ -394,7 +386,6 @@ export async function showNewSpend(container, user) {
         shares[input.dataset.id] = val;
       });
       let sum = Object.values(shares).reduce((a, b) => a + b, 0);
-
       const dateInput = splitWrap.querySelector('.spend-date-input');
       const remarkInput = splitWrap.querySelector('.spend-remarks-input');
       let valid = true;
@@ -411,10 +402,8 @@ export async function showNewSpend(container, user) {
         valid = false;
       }
       if (!valid) return;
-
       let overAssigned = Object.values(shares).some(v => v > totalAmount);
       let negativeAssigned = Object.values(shares).some(v => v < 0);
-
       if (overAssigned) {
         distributeMsg.textContent = "You are assigning more than the total spend value to a user.";
         distributeMsg.style.color = "#e44b56";
@@ -432,7 +421,6 @@ export async function showNewSpend(container, user) {
         distributeMsg.style.color = "#e44b56";
         return;
       }
-
       showSettlementSummary({
         date: state.spendDate,
         remarks: state.remarks,
@@ -443,7 +431,6 @@ export async function showNewSpend(container, user) {
       });
     };
   }
-
   function showSettlementSummary(data) {
     container.innerHTML = `<div class="settlement-summary" style="padding:18px 8px 25px 8px;max-width:430px;margin:33px auto;text-align:center;background:#fff;border-radius:11px;box-shadow:0 4px 24px #d3e6fd16;">
       <h2 style="margin:10px 0 6px 0;font-size:1.29em;">Final Distribution</h2>
@@ -459,14 +446,13 @@ export async function showNewSpend(container, user) {
       <button class="primary-btn" id="new-expense-btn" style="display:none;">Add New Expense</button>
       <div id="save-result" style="margin-top:10px;font-weight:bold"></div>
     </div>`;
-
     document.getElementById('save-btn').onclick = async () => {
       const saveStatus = document.getElementById('save-result');
       saveStatus.textContent = "Saving...";
       const splits = data.splitters.map(fid => ({
-        username: fid === "me" ? loggedInUsername : fid,
-        paid: data.payers[fid] || 0,
-        share: data.shares[fid] || 0
+        username: fid,
+        paid: Number(data.payers[fid] ?? 0),
+        share: Number(data.shares[fid] ?? 0)
       }));
       try {
         const resp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/spends", {
@@ -501,18 +487,15 @@ export async function showNewSpend(container, user) {
         saveStatus.textContent = "Error: " + (e.message || e);
       }
     };
-
     document.getElementById('pdf-btn').onclick = () => {
       window.print();
     };
-
     document.getElementById('new-expense-btn').onclick = () => {
       state = initialState();
       lastSuccessMsg = "";
       renderAll();
     };
   }
-
   function renderSettlementBlock(data) {
     let paidLines = data.splitters.map(id =>
       `<div class="row-settle">${getFriendById(id).name} paid: <em>${rup(data.payers[id]||0)} QAR</em></div>`
@@ -520,7 +503,6 @@ export async function showNewSpend(container, user) {
     let shareLines = data.splitters.map(id =>
       `<div class="row-settle">${getFriendById(id).name}'s share: <em>${rup(data.shares[id]||0)} QAR</em></div>`
     ).join('');
-
     let settlements = [];
     let net = {};
     data.splitters.forEach(id => {
@@ -528,7 +510,6 @@ export async function showNewSpend(container, user) {
     });
     let debtors = data.splitters.filter(id => net[id] < 0);
     let creditors = data.splitters.filter(id => net[id] > 0);
-
     let netCopy = {...net};
     let MAX_ITER = 1000, iter = 0;
     for (let d of debtors) {
@@ -547,7 +528,6 @@ export async function showNewSpend(container, user) {
           `<div class="row-settle"><strong>${getFriendById(s.from).name}</strong> owes <em>${s.amount} QAR</em> to <strong>${getFriendById(s.to).name}</strong></div>`
         ).join('')
       : `<div>All settled up. No pending amounts.</div>`;
-
     return `
       <div><u>Paid Amounts:</u></div>${paidLines}
       <div style="margin:10px 0 0 0"><u>Each Share:</u></div>${shareLines}
