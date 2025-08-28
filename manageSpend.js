@@ -2,7 +2,8 @@ import { showNewSpend } from './newSpend.js';
 import { showHistorySpend } from './historySpend.js';
 import { showCalculatorModal } from './calculatorModal.js';
 
-export function showManageSpend(contentContainer) {
+// main signature must now take auth!
+export function showManageSpend(contentContainer, auth) {
   contentContainer.innerHTML = `
     <div class="manage-spend-wrapper">
       <header class="spend-header">
@@ -17,16 +18,17 @@ export function showManageSpend(contentContainer) {
       <button class="fab-calculator" title="Calculator">+</button>
     </div>
   `;
-  // Small offset to avoid collision with menu/bell
   contentContainer.querySelector('.spend-header').style.marginTop = '36px';
 
   const sectionContent = contentContainer.querySelector('.section-content');
+
   function renderSection(section) {
     sectionContent.innerHTML = '';
-    if (section === 'new') showNewSpend(sectionContent);
-    else if (section === 'history') showHistorySpend(sectionContent);
+    if (section === 'new') showNewSpend(sectionContent, auth); // Pass auth
+    else if (section === 'history') showHistorySpend(sectionContent, auth); // (pass auth if needed!)
   }
   renderSection('new');
+
   const tabs = contentContainer.querySelectorAll('.tab-btn');
   tabs.forEach(tab => {
     tab.onclick = () => {
@@ -36,6 +38,6 @@ export function showManageSpend(contentContainer) {
     };
   });
   contentContainer.querySelector('.fab-calculator').onclick = () => {
-    showCalculatorModal(contentContainer);
+    showCalculatorModal(contentContainer, auth); // (pass auth if needed)
   };
 }
