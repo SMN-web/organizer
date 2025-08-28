@@ -1,4 +1,11 @@
-// Helper for "1m ago", "3h ago", etc, always in user's time zone
+import { showSpinner, hideSpinner, delay } from './spinner.js';
+
+let notifications = [];
+let notifyCount;
+let dropdown;
+let renderingSetupDone = false;
+
+// Human-friendly "ago" (local time zone)
 function timeAgo(dateStr) {
   const now = new Date();
   const then = new Date(dateStr);
@@ -19,17 +26,11 @@ function timeAgo(dateStr) {
   return `${years}y ago`;
 }
 
-// Sanitize for HTML output (security)
+// Simple HTML escaper
 function escapeHtml(str) {
   return String(str).replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
 }
-
-// Main notification badge/dropdown rendering
-let notifications = [];
-let notifyCount;
-let dropdown;
-let renderingSetupDone = false;
 
 export async function fetchNotificationsBadge(user, parent) {
   if (!user?.firebaseUser) return;
