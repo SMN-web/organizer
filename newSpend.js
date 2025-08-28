@@ -460,77 +460,17 @@ export async function showNewSpend(container, user) {
     `;
     document.getElementById('save-btn').onclick = async () => {
   const resultEl = document.getElementById('save-result');
-  resultEl.textContent = "Saving...";
-
-  // Build splitsInputArray defensively
-  // Use your actual splits array from preview
-  // Example: const splitsInputArray = splits;
-  const splitsInputArray = splits; // Replace with your actual splits variable
-
-  // Defensive check: every entry must have username and proper number values
-  let buildError = "";
-  const splits = splitsInputArray.map((s, i) => {
-    let username = s.username || "";
-    let paid = Number(s.paid ?? 0);
-    let share = Number(s.share ?? 0);
-    if (!username) buildError = `Error: Entry ${i + 1} missing username.`;
-    if (isNaN(paid)) buildError = `Error: Entry ${i + 1} paid is not a number.`;
-    if (isNaN(share)) buildError = `Error: Entry ${i + 1} share is not a number.`;
-    return { username, paid, share };
-  });
-  if (buildError) {
-    resultEl.textContent = buildError;
+  if (!resultEl) {
+    alert("Element #save-result not found.");
     return;
   }
-
-  // Compose payload
-  const payload = {
-    date: state.spendDate,
-    remarks: state.remarks,
-    total_amount: splits.reduce((sum, s) => sum + s.paid, 0),
-    splits
-  };
-
-  // Add timeout fallback
-  let timedOut = false;
-  const timeout = setTimeout(() => {
-    if (resultEl.textContent === "Saving...") {
-      resultEl.textContent = "Timeout: Backend did not respond.";
-      timedOut = true;
-    }
-  }, 12000); // 12 seconds max wait
-
-  try {
-    const resp = await fetch("https://cal-sp.nafil-8895-s.workers.dev/api/spends/save", {
-      method: "POST",
-      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    // Always try to parse; fallback message if impossible
-    let out = null;
-    try {
-      out = await resp.json();
-    } catch {
-      if (!timedOut) resultEl.textContent = `Server error (non-JSON response), status ${resp.status}`;
-      clearTimeout(timeout);
-      return;
-    }
-    clearTimeout(timeout);
-
-    if (timedOut) return;
-
-    if (resp.ok && out && out.ok) {
-      resultEl.textContent = "Saved! Expense finalized.";
-      document.getElementById('save-btn').style.display = "none";
-    } else {
-      resultEl.textContent = "Save failed: " + (out && out.error ? out.error : `Status ${resp && resp.status}`);
-    }
-  } catch (e) {
-    clearTimeout(timeout);
-    resultEl.textContent = "Save failed: " + (e.message || e);
-  }
+  resultEl.textContent = "Saving...";
+  setTimeout(() => {
+    resultEl.textContent = "Saved! (Test Only)";
+    document.getElementById('save-btn').style.display = "none";
+  }, 2000);
 };
+
 
 
     document.getElementById('new-expense-btn').onclick = () => {
