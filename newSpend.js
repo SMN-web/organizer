@@ -475,7 +475,7 @@ export async function showNewSpend(container, user) {
   const payload = {
     date: state.spendDate,
     remarks: state.remarks,
-    total_amount: splits.reduce((sum, s) => sum + s.paid, 0),
+    total_amount: totalAmount,
     splits
   };
 
