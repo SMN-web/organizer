@@ -2,8 +2,7 @@ import { showNewSpend } from './newSpend.js';
 import { showHistorySpend } from './historySpend.js';
 import { showCalculatorModal } from './calculatorModal.js';
 
-// main signature must now take auth!
-export function showManageSpend(contentContainer, auth) {
+export function showManageSpend(contentContainer, user) {
   contentContainer.innerHTML = `
     <div class="manage-spend-wrapper">
       <header class="spend-header">
@@ -24,8 +23,8 @@ export function showManageSpend(contentContainer, auth) {
 
   function renderSection(section) {
     sectionContent.innerHTML = '';
-    if (section === 'new') showNewSpend(sectionContent, auth); // Pass auth
-    else if (section === 'history') showHistorySpend(sectionContent, auth); // (pass auth if needed!)
+    if (section === 'new') showNewSpend(sectionContent, user);
+    else if (section === 'history') showHistorySpend(sectionContent, user);
   }
   renderSection('new');
 
@@ -38,6 +37,6 @@ export function showManageSpend(contentContainer, auth) {
     };
   });
   contentContainer.querySelector('.fab-calculator').onclick = () => {
-    showCalculatorModal(contentContainer, auth); // (pass auth if needed)
+    showCalculatorModal(contentContainer, user);
   };
 }
