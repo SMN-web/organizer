@@ -459,9 +459,15 @@ export async function showNewSpend(container, user) {
       </div>
     `;
     document.getElementById('save-btn').onclick = async () => {
-  document.getElementById('save-result').textContent = "Saving...";
+  const resultEl = document.getElementById('save-result');
+  resultEl.textContent = "Saving...";
 
-  // Defensive build: check every entry, show user-friendly errors at the top if found
+  // Build splitsInputArray defensively
+  // Use your actual splits array from preview
+  // Example: const splitsInputArray = splits;
+  const splitsInputArray = splits; // Replace with your actual splits variable
+
+  // Defensive check: every entry must have username and proper number values
   let buildError = "";
   const splits = splitsInputArray.map((s, i) => {
     let username = s.username || "";
@@ -473,11 +479,11 @@ export async function showNewSpend(container, user) {
     return { username, paid, share };
   });
   if (buildError) {
-    document.getElementById('save-result').textContent = buildError;
+    resultEl.textContent = buildError;
     return;
   }
 
-  // Compose payload for save
+  // Compose payload
   const payload = {
     date: state.spendDate,
     remarks: state.remarks,
@@ -485,22 +491,44 @@ export async function showNewSpend(container, user) {
     splits
   };
 
+  // Add timeout fallback
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    if (resultEl.textContent === "Saving...") {
+      resultEl.textContent = "Timeout: Backend did not respond.";
+      timedOut = true;
+    }
+  }, 12000); // 12 seconds max wait
+
   try {
     const resp = await fetch("https://cal-sp.nafil-8895-s.workers.dev/api/spends/save", {
       method: "POST",
       headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-    const out = await resp.json();
-    if (out.ok) {
-      document.getElementById('save-result').textContent = "Saved! Expense finalized.";
+
+    // Always try to parse; fallback message if impossible
+    let out = null;
+    try {
+      out = await resp.json();
+    } catch {
+      if (!timedOut) resultEl.textContent = `Server error (non-JSON response), status ${resp.status}`;
+      clearTimeout(timeout);
+      return;
+    }
+    clearTimeout(timeout);
+
+    if (timedOut) return;
+
+    if (resp.ok && out && out.ok) {
+      resultEl.textContent = "Saved! Expense finalized.";
       document.getElementById('save-btn').style.display = "none";
     } else {
-      document.getElementById('save-result').textContent =
-        "Save failed: " + (out.error || "Unknown error.");
+      resultEl.textContent = "Save failed: " + (out && out.error ? out.error : `Status ${resp && resp.status}`);
     }
   } catch (e) {
-    document.getElementById('save-result').textContent = "Save failed: " + (e.message || e);
+    clearTimeout(timeout);
+    resultEl.textContent = "Save failed: " + (e.message || e);
   }
 };
 
