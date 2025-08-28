@@ -5,7 +5,7 @@ export async function showNewSpend(container, user) {
     await user.firebaseUser.reload();
     const token = await user.firebaseUser.getIdToken(true);
     // Fetch backend user profile (for username)
-    const profileResp = await fetch("/api/userpanel", {
+    const profileResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/userpanel", {
       headers: { Authorization: "Bearer " + token }
     });
     const profile = await profileResp.json();
@@ -20,7 +20,7 @@ export async function showNewSpend(container, user) {
     token = rec.token;
     currentUser = rec.username;
     currentName = rec.name;
-    let fr = await fetch("/api/friends/list", { headers: { Authorization: "Bearer " + token }});
+    let fr = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/friends/list", { headers: { Authorization: "Bearer " + token }});
     if (!fr.ok) throw new Error("Failed to fetch friend list");
     let freshFriends = await fr.json();
     FRIENDS = [{ id: "me", name: "Me", username: currentUser }]
@@ -216,7 +216,7 @@ export async function showNewSpend(container, user) {
         total_amount: data.totalAmount,
         splits
       };
-      let resp = await fetch("/api/spends", {
+      let resp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/spends", {
         method: "POST",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify(payload)
