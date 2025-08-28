@@ -459,51 +459,27 @@ export async function showNewSpend(container, user) {
       </div>
     `;
     document.getElementById('save-btn').onclick = async () => {
-  const resultEl = document.getElementById('save-result');
-  resultEl.textContent = "Saving...";
+  const saveMsg = document.getElementById('save-result');
+  saveMsg.textContent = "Saving...";
 
-  // ---- Defensive: Build splits array from preview ----
-  // Assume you have an array called 'splits' from the preview step:
-  // Each element: { username: "...", paid: ..., share: ... }
-  // If you used a different variable for previewed splits, use that here!
-  if (!Array.isArray(splits) || splits.length < 2) {
-    resultEl.textContent = "Save failed: No valid splits to save.";
+  // Use the splits (and other fields) you just used for preview:
+  // If you have them as variables from showSettlementSummary, reuse them here.
+
+  // Defensive check: You must have splits, state.spendDate, etc.
+  if (!Array.isArray(splits) || !splits.length) {
+    saveMsg.textContent = "Save failed: Splits data missing!";
     return;
   }
 
-  let buildError = "";
-  const safeSplits = splits.map((s, i) => {
-    let username = s.username || "";
-    let paid = Number(s.paid ?? 0);
-    let share = Number(s.share ?? 0);
-    if (!username) buildError = `Error: Entry ${i + 1} missing username.`;
-    if (isNaN(paid)) buildError = `Error: Entry ${i + 1} paid is not a number.`;
-    if (isNaN(share)) buildError = `Error: Entry ${i + 1} share is not a number.`;
-    return { username, paid, share };
-  });
-  if (buildError) {
-    resultEl.textContent = buildError;
-    return;
-  }
-
-  // ---- Build payload for API ----
+  // Build payload same as preview
   const payload = {
     date: state.spendDate,
     remarks: state.remarks,
-    total_amount: safeSplits.reduce((sum, s) => sum + s.paid, 0),
-    splits: safeSplits
+    total_amount: splits.reduce((sum, s) => sum + s.paid, 0),
+    splits
   };
 
-  // ---- Timeout fallback ----
-  let timeoutHit = false;
-  const timeout = setTimeout(() => {
-    if (resultEl.textContent === "Saving...") {
-      resultEl.textContent = "Timeout: No response from backend. Please try again.";
-      timeoutHit = true;
-    }
-  }, 12000); // 12 seconds
-
-  // ---- POST to backend ----
+  // POST to the backend as with preview, to /api/spends/save
   try {
     const resp = await fetch("https://cal-sp.nafil-8895-s.workers.dev/api/spends/save", {
       method: "POST",
@@ -514,32 +490,25 @@ export async function showNewSpend(container, user) {
       body: JSON.stringify(payload)
     });
 
-    let text = "";
-    let out = null;
-
+    let out = {};
     try {
-      text = await resp.text();
-      out = JSON.parse(text);
+      out = await resp.json();
     } catch {
-      clearTimeout(timeout);
-      if (!timeoutHit) resultEl.textContent = `Non-JSON reply from server: ${text}`;
+      saveMsg.textContent = "Server error: Could not parse reply (non-JSON).";
       return;
     }
 
-    clearTimeout(timeout);
-    if (timeoutHit) return;
-
-    if (resp.ok && out && out.ok) {
-      resultEl.textContent = "Saved! Expense finalized.";
+    if (resp.ok && out.ok) {
+      saveMsg.textContent = "Saved! Expense finalized.";
       document.getElementById('save-btn').style.display = "none";
     } else {
-      resultEl.textContent = "Save failed: " + (out && out.error ? out.error : `Status ${resp && resp.status}`);
+      saveMsg.textContent = "Save failed: " + (out.error || "Error, please try again.");
     }
   } catch (e) {
-    clearTimeout(timeout);
-    if (!timeoutHit) resultEl.textContent = "Save failed: " + (e.message || e);
+    saveMsg.textContent = "Save failed: " + (e && e.message ? e.message : e);
   }
 };
+
 
 
 
