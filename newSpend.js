@@ -462,20 +462,19 @@ export async function showNewSpend(container, user) {
   const saveMsg = document.getElementById('save-result');
   saveMsg.textContent = "Saving...";
 
+  // Defensive check
   if (!Array.isArray(splits) || !splits.length) {
     saveMsg.textContent = "Save failed: Splits data missing!";
     return;
   }
 
+  // Build payload
   const payload = {
     date: state.spendDate,
     remarks: state.remarks,
     total_amount: splits.reduce((sum, s) => sum + s.paid, 0),
     splits
   };
-
-  // Show outgoing payload
-  saveMsg.textContent = "Saving... Sending payload:\n" + JSON.stringify(payload);
 
   try {
     const resp = await fetch("https://cal-sp.nafil-8895-s.workers.dev/api/spends/save", {
@@ -491,24 +490,29 @@ export async function showNewSpend(container, user) {
     try {
       out = await resp.json();
     } catch {
-      saveMsg.textContent = "Server error: Could not parse reply (non-JSON).";
+      saveMsg.textContent = "Server error: Could not parse reply.";
       return;
     }
 
-    // Show backend response
     if (resp.ok && out.ok) {
-      saveMsg.textContent = "Saved! Expense finalized.\nResponse: " + JSON.stringify(out);
+      // --- FINAL USER-FRIENDLY MESSAGE ---
+      const settlementMsg = out.settlements && out.settlements.length > 0 
+        ? ` Settlement(s) created between users.` 
+        : "";
+      saveMsg.textContent = `Saved! Expense finalized.${settlementMsg}`;
+
+      // Hide save button to prevent duplicate submission
       document.getElementById('save-btn').style.display = "none";
+
     } else {
-      saveMsg.textContent = "Save failed:\n" + (out.error || "Error") + 
-                            "\nFull reply:\n" + JSON.stringify(out);
+      // --- Clean error message ---
+      saveMsg.textContent = "Save failed: " + (out.error || "Please try again.");
     }
+
   } catch (e) {
     saveMsg.textContent = "Save failed: " + (e && e.message ? e.message : e);
   }
 };
-
-
 
 
 
