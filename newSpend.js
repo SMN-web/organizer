@@ -460,37 +460,41 @@ export async function showNewSpend(container, user) {
     `;
     document.getElementById('save-btn').onclick = async () => {
   document.getElementById('save-result').textContent = "Saving...";
-  try {
-    // Build the payload exactly as you did for preview
-    const payload = {
-      date: state.spendDate,
-      remarks: state.remarks,
-      total_amount: splits.reduce((sum, s) => sum + s.paid, 0), // or whatever you used for total
-      splits
-    };
 
+  // Defensive build: check every entry, show user-friendly errors at the top if found
+  let buildError = "";
+  const splits = splitsInputArray.map((s, i) => {
+    let username = s.username || "";
+    let paid = Number(s.paid ?? 0);
+    let share = Number(s.share ?? 0);
+    if (!username) buildError = `Error: Entry ${i + 1} missing username.`;
+    if (isNaN(paid)) buildError = `Error: Entry ${i + 1} paid is not a number.`;
+    if (isNaN(share)) buildError = `Error: Entry ${i + 1} share is not a number.`;
+    return { username, paid, share };
+  });
+  if (buildError) {
+    document.getElementById('save-result').textContent = buildError;
+    return;
+  }
+
+  // Compose payload for save
+  const payload = {
+    date: state.spendDate,
+    remarks: state.remarks,
+    total_amount: splits.reduce((sum, s) => sum + s.paid, 0),
+    splits
+  };
+
+  try {
     const resp = await fetch("https://cal-sp.nafil-8895-s.workers.dev/api/spends/save", {
       method: "POST",
-      headers: {
-        Authorization: "Bearer " + token,          // your Firebase ID token
-        "Content-Type": "application/json"
-      },
+      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
-
-    if (!resp.ok) {
-      const err = await resp.json();
-      document.getElementById('save-result').textContent =
-        "Save failed: " + (err.error || resp.statusText);
-      return;
-    }
-
     const out = await resp.json();
     if (out.ok) {
       document.getElementById('save-result').textContent = "Saved! Expense finalized.";
       document.getElementById('save-btn').style.display = "none";
-      // Optionally show settlements for audit:
-      // out.settlements
     } else {
       document.getElementById('save-result').textContent =
         "Save failed: " + (out.error || "Unknown error.");
@@ -499,6 +503,7 @@ export async function showNewSpend(container, user) {
     document.getElementById('save-result').textContent = "Save failed: " + (e.message || e);
   }
 };
+
 
     document.getElementById('new-expense-btn').onclick = () => {
       state = initialState();
