@@ -446,47 +446,31 @@ export async function showNewSpend(container, user) {
       <button class="primary-btn" id="new-expense-btn" style="display:none;">Add New Expense</button>
       <div id="save-result" style="margin-top:10px;font-weight:bold"></div>
     </div>`;
-    document.getElementById('save-btn').onclick = async () => {
-      const saveStatus = document.getElementById('save-result');
-      saveStatus.textContent = "Saving...";
-      const splits = data.splitters.map(fid => ({
-        username: fid,
-        paid: Number(data.payers[fid] ?? 0),
-        share: Number(data.shares[fid] ?? 0)
-      }));
-      try {
-        const resp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/spends", {
-          method: "POST",
-          headers: {
-            Authorization: "Bearer " + token,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            date: data.date,
-            remarks: data.remarks,
-            total_amount: data.totalAmount,
-            splits
-          })
-        });
-        let out = null;
-        try {
-          out = await resp.json();
-        } catch (err) {
-          saveStatus.textContent = "Couldn't parse server response. Status: " + resp.status;
-          return;
-        }
-        if (resp.ok && out && out.ok) {
-          saveStatus.textContent = "Saved! Now you can print or add another.";
-          document.getElementById('save-btn').style.display = "none";
-          document.getElementById('pdf-btn').style.display = "";
-          document.getElementById('new-expense-btn').style.display = "";
-        } else {
-          saveStatus.textContent = "Error saving: " + (out && out.error ? out.error : resp.status);
-        }
-      } catch (e) {
-        saveStatus.textContent = "Error: " + (e.message || e);
-      }
-    };
+    document.getElementById('save-btn').onclick = () => {
+  const splits = data.splitters.map(fid => ({
+    username: fid,
+    paid: Number(data.payers[fid] ?? 0),
+    share: Number(data.shares[fid] ?? 0)
+  }));
+  const payload = {
+    date: data.date,
+    remarks: data.remarks,
+    total_amount: data.totalAmount,
+    splits
+  };
+  // Show JSON in a nice styled block in place of API call
+  let saveStatus = document.getElementById('save-result');
+  if (saveStatus) {
+    saveStatus.innerHTML =
+      `<div style="background:#f6f8fa;color:#222;font-size:1em;border:1.2px solid #c6d2dc;
+      border-radius:8px;margin:15px 0 7px 0;padding:13px 6px;word-break:break-all;white-space:pre;text-align:left;">
+${JSON.stringify(payload, null, 2)}
+</div>`;
+  }
+  // Optionally, hide the Save button now if you want:
+  // document.getElementById('save-btn').style.display = "none";
+};
+
     document.getElementById('pdf-btn').onclick = () => {
       window.print();
     };
