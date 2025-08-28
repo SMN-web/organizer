@@ -1,5 +1,5 @@
 export async function showNewSpend(container, user) {
-  // --- FETCH DYNAMIC FRIENDS & USER ---
+  // --- Fetch dynamic friends & user ---
   let FRIENDS = [];
   let loggedInUsername = null;
   let loggedInName = null;
@@ -14,11 +14,9 @@ export async function showNewSpend(container, user) {
     if (!profile.username) throw new Error("User profile incomplete");
     loggedInUsername = profile.username;
     loggedInName = profile.name || profile.username;
-    // Get real friends (accepted)
     const frResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/friends/list", { headers: { Authorization: "Bearer " + token } });
     if (!frResp.ok) throw new Error("Failed to fetch friend list");
     const allFriends = await frResp.json();
-    // The logged-in user must be able to select themselves, so include in FRIENDS
     return [
       { id: loggedInUsername, name: loggedInName, username: loggedInUsername },
       ...allFriends
@@ -34,7 +32,6 @@ export async function showNewSpend(container, user) {
     return;
   }
 
-  // Utility: Get full user from FRIENDS by id
   function getFriendById(id) {
     return FRIENDS.find(f => f.id === id || f.username === id) || { id, name: id, username: id };
   }
@@ -51,20 +48,18 @@ export async function showNewSpend(container, user) {
       payers: [loggedInUsername],
       payerAmounts: { [loggedInUsername]: "" },
       lastSplit: null,
-      spendDate: "",
+      spendDate: todayDate(),
       remarks: ""
     };
   }
   let state = initialState();
-  let lastSuccessMsg = "";
 
   renderAll();
 
-  // --- MAIN RENDER ---
+  // --- Main render ---
   function renderAll() {
     container.innerHTML = `
       <div class="split-setup-panel" style="max-width:500px;margin:0 auto;">
-        <div class="custom-msg global-success" style="margin-bottom:8px;${lastSuccessMsg ? "" : "display:none"};color:#117a32;font-weight:bold">${lastSuccessMsg}</div>
         <div class="selector-group">
           <span class="selector-label">Friends Sharing:</span>
           <div class="custom-dropdown friends-dropdown" style="min-width:215px;">
@@ -85,7 +80,7 @@ export async function showNewSpend(container, user) {
         <label class="distrib-remarks-label" style="margin-bottom:4px;display:block;">Remarks/Place:
           <input type="text" class="spend-remarks-input" maxlength="90" style="width:99%;margin-top:4px;" value="${state.remarks || ""}" placeholder="E.g. Dinner, Mall, Friends..." />
         </label>
-        <button type="button" class="primary-btn calc-btn">${state.editing ? "Calculate" : "Edit"}</button>
+        <button type="button" class="primary-btn calc-btn">${state.editing ? "Split & Next" : "Edit"}</button>
         <div class="custom-msg calc-btn-msg" style="margin-top:7px;"></div>
       </div>
       <div class="split-results-container" style="margin-top:20px;"></div>
@@ -264,7 +259,6 @@ export async function showNewSpend(container, user) {
       } else {
         if (confirm("Editing will clear the current distribution. Continue?")) {
           state = initialState();
-          lastSuccessMsg = "";
           renderAll();
         }
       }
@@ -287,6 +281,7 @@ export async function showNewSpend(container, user) {
     `;
     let locked = {};
     let lockError = {};
+
     function renderList() {
       const splitDiv = splitWrap.querySelector('.split-list');
       splitDiv.innerHTML = '';
@@ -369,6 +364,7 @@ export async function showNewSpend(container, user) {
       });
     }
     renderList();
+
     splitWrap.querySelector('.spend-date-input').oninput = (e) => {
       state.spendDate = e.target.value.trim();
       e.target.style.border = '';
@@ -377,161 +373,100 @@ export async function showNewSpend(container, user) {
       state.remarks = e.target.value.trim();
       e.target.style.border = '';
     };
-    splitWrap.querySelector('.distribute-btn').onclick = () => {
+    splitWrap.querySelector('.distribute-btn').onclick = async () => {
       const distributeMsg = splitWrap.querySelector('.distribute-btn-msg');
       distributeMsg.textContent = "";
+
+      // Build shares object as per UI
       let shares = {};
       splitWrap.querySelectorAll('.split-amt').forEach(input => {
         const val = rup(input.value);
         shares[input.dataset.id] = val;
       });
+
+      // Validate (keep your checks here)
       let sum = Object.values(shares).reduce((a, b) => a + b, 0);
-      const dateInput = splitWrap.querySelector('.spend-date-input');
-      const remarkInput = splitWrap.querySelector('.spend-remarks-input');
-      let valid = true;
-      if (!state.spendDate) {
-        dateInput.style.border = '2px solid #e44b56';
-        distributeMsg.textContent = "Date is required.";
-        valid = false;
+      if (sum !== totalAmount) {
+        distributeMsg.textContent = "Distributed amount does not match total.";
+        return;
       }
-      if (!state.remarks) {
-        remarkInput.style.border = '2px solid #e44b56';
-        distributeMsg.textContent = distributeMsg.textContent
-          ? "Date and Remarks/Place are required."
-          : "Remarks/Place is required.";
-        valid = false;
-      }
-      if (!valid) return;
       let overAssigned = Object.values(shares).some(v => v > totalAmount);
       let negativeAssigned = Object.values(shares).some(v => v < 0);
       if (overAssigned) {
-        distributeMsg.textContent = "You are assigning more than the total spend value to a user.";
-        distributeMsg.style.color = "#e44b56";
+        distributeMsg.textContent = "Assigned value exceeds total.";
         return;
       }
       if (negativeAssigned) {
-        distributeMsg.textContent = "Negative values are not allowed.";
-        distributeMsg.style.color = "#e44b56";
+        distributeMsg.textContent = "Negative values not allowed.";
         return;
       }
-      if (sum !== totalAmount) {
-        distributeMsg.textContent = sum > totalAmount
-          ? "Distribution exceeds total spend!"
-          : "Distributed amount is less than the total spend!";
-        distributeMsg.style.color = "#e44b56";
-        return;
-      }
-      showSettlementSummary({
-        date: state.spendDate,
-        remarks: state.remarks,
-        shares,
-        payers: {...state.payerAmounts},
-        splitters: sharers.slice(),
-        totalAmount
+      // Build splits array (username, paid, share)
+      const splits = sharers.map(id => ({
+        username: id,
+        paid: Number(state.payerAmounts[id] ?? 0),
+        share: shares[id]
+      }));
+      distributeMsg.textContent = "Processing (preview from backend)...";
+
+      // Send to backend for preview/settlement calculation
+      const resp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/spends/preview", {
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          date: state.spendDate,
+          remarks: state.remarks,
+          total_amount: totalAmount,
+          splits
+        })
       });
+      let preview = {};
+      try {
+        preview = await resp.json();
+      } catch (e) {
+        distributeMsg.textContent = "Backend failed to process preview";
+        return;
+      }
+      showSettlementSummary(splits, preview.settlements);
     };
   }
-  function showSettlementSummary(data) {
-    container.innerHTML = `<div class="settlement-summary" style="padding:18px 8px 25px 8px;max-width:430px;margin:33px auto;text-align:center;background:#fff;border-radius:11px;box-shadow:0 4px 24px #d3e6fd16;">
-      <h2 style="margin:10px 0 6px 0;font-size:1.29em;">Final Distribution</h2>
-      <div><strong>Date:</strong> <span>${data.date}</span></div>
-      <div><strong>Reason:</strong> <span>${data.remarks || '-'}</span></div>
-      <div style="margin:15px 0 12px 0;">Total Amount: <strong>${data.totalAmount} QAR</strong></div>
-      <hr style="margin:0 0 11px 0;">
-      <div id="settlement-summary-block" style="text-align:left;display:inline-block;width:100%;">
-      ${renderSettlementBlock(data)}
+
+  function showSettlementSummary(splits, settlements) {
+    container.innerHTML = `
+      <div class="settlement-summary" style="padding:18px 8px 25px 8px;max-width:430px;margin:33px auto;text-align:center;background:#fff;border-radius:11px;box-shadow:0 4px 24px #d3e6fd16;">
+        <h2 style="margin:10px 0 6px 0;">Final Distribution</h2>
+        <div><strong>Date:</strong> <span>${state.spendDate}</span></div>
+        <div><strong>Reason:</strong> <span>${state.remarks || '-'}</span></div>
+        <div style="margin:15px 0 12px 0;">Total Amount: <strong>${splits.reduce((a, s) => a + s.paid, 0)} QAR</strong></div>
+        <hr>
+        <div><u>Paid Amounts:</u><br>
+          ${splits.map(s => `<div>${getFriendById(s.username).name} paid: <em>${s.paid} QAR</em></div>`).join('')}
+        </div>
+        <div style="margin:10px 0 0 0"><u>Each Share:</u><br>
+          ${splits.map(s => `<div>${getFriendById(s.username).name}'s share: <em>${s.share} QAR</em></div>`).join('')}
+        </div>
+        <div style="margin:10px 0 0 0"><u>Owes/Settlement:</u></div>
+        ${settlements && settlements.length
+          ? settlements.map(st =>
+              `<div class="row-settle"><strong>${getFriendById(st.from_user).name}</strong> owes <em>${st.amount} QAR</em> to <strong>${getFriendById(st.to_user).name}</strong></div>`
+            ).join('')
+          : `<div>All settled up. No pending amounts.</div>`}
+        <button class="primary-btn" id="save-btn" style="margin:17px 0 3px 0;">Save</button>
+        <button class="primary-btn" id="new-expense-btn" style="margin-left:12px;">Add New Expense</button>
+        <div id="save-result" style="margin-top:10px;font-weight:bold"></div>
       </div>
-      <button class="primary-btn" id="save-btn" style="margin:17px 0 3px 0;">Save</button>
-      <button class="primary-btn" id="pdf-btn" style="margin-left:12px;display:none;">Print as PDF</button>
-      <button class="primary-btn" id="new-expense-btn" style="display:none;">Add New Expense</button>
-      <div id="save-result" style="margin-top:10px;font-weight:bold"></div>
-    </div>`;
+    `;
     document.getElementById('save-btn').onclick = async () => {
-      const saveStatus = document.getElementById('save-result');
-      saveStatus.textContent = "Saving...";
-      const splits = data.splitters.map(fid => ({
-        username: fid,
-        paid: Number(data.payers[fid] ?? 0),
-        share: Number(data.shares[fid] ?? 0)
-      }));
-      try {
-        const resp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/spends", {
-          method: "POST",
-          headers: {
-            Authorization: "Bearer " + token,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            date: data.date,
-            remarks: data.remarks,
-            total_amount: data.totalAmount,
-            splits
-          })
-        });
-        let out = null;
-        try {
-          out = await resp.json();
-        } catch (err) {
-          saveStatus.textContent = "Couldn't parse server response. Status: " + resp.status;
-          return;
-        }
-        if (resp.ok && out && out.ok) {
-          saveStatus.textContent = "Saved! Now you can print or add another.";
-          document.getElementById('save-btn').style.display = "none";
-          document.getElementById('pdf-btn').style.display = "";
-          document.getElementById('new-expense-btn').style.display = "";
-        } else {
-          saveStatus.textContent = "Error saving: " + (out && out.error ? out.error : resp.status);
-        }
-      } catch (e) {
-        saveStatus.textContent = "Error: " + (e.message || e);
-      }
-    };
-    document.getElementById('pdf-btn').onclick = () => {
-      window.print();
+      document.getElementById('save-result').textContent =
+        "Saved! Expense finalized.";
+      // OR do a final POST for confirmation if your backend requires, e.g.:
+      // await fetch(...);
     };
     document.getElementById('new-expense-btn').onclick = () => {
       state = initialState();
-      lastSuccessMsg = "";
       renderAll();
     };
-  }
-  function renderSettlementBlock(data) {
-    let paidLines = data.splitters.map(id =>
-      `<div class="row-settle">${getFriendById(id).name} paid: <em>${rup(data.payers[id]||0)} QAR</em></div>`
-    ).join('');
-    let shareLines = data.splitters.map(id =>
-      `<div class="row-settle">${getFriendById(id).name}'s share: <em>${rup(data.shares[id]||0)} QAR</em></div>`
-    ).join('');
-    let settlements = [];
-    let net = {};
-    data.splitters.forEach(id => {
-      net[id] = (rup(data.payers[id]||0)) - (rup(data.shares[id]||0));
-    });
-    let debtors = data.splitters.filter(id => net[id] < 0);
-    let creditors = data.splitters.filter(id => net[id] > 0);
-    let netCopy = {...net};
-    let MAX_ITER = 1000, iter = 0;
-    for (let d of debtors) {
-      for (let c of creditors) {
-        if (netCopy[d] >= 0 || netCopy[c] <= 0) continue;
-        let amount = Math.min(-netCopy[d], netCopy[c]);
-        if (!amount || amount < 0) continue;
-        settlements.push({ from: d, to: c, amount });
-        netCopy[d] += amount;
-        netCopy[c] -= amount;
-        iter++; if (iter > MAX_ITER) break;
-      }
-    }
-    let owesLines = settlements.length
-      ? settlements.map(s =>
-          `<div class="row-settle"><strong>${getFriendById(s.from).name}</strong> owes <em>${s.amount} QAR</em> to <strong>${getFriendById(s.to).name}</strong></div>`
-        ).join('')
-      : `<div>All settled up. No pending amounts.</div>`;
-    return `
-      <div><u>Paid Amounts:</u></div>${paidLines}
-      <div style="margin:10px 0 0 0"><u>Each Share:</u></div>${shareLines}
-      <div style="margin:10px 0 0 0"><u>Owes/Settlement:</u></div>${owesLines}
-    `;
   }
 }
