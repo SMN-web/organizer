@@ -62,7 +62,7 @@ export async function showNewSpend(container, user) {
       <div class="split-setup-panel" style="max-width:500px;margin:0 auto;">
         <div class="selector-group">
           <span class="selector-label">Friends Sharing:</span>
-          <div class="custom-dropdown friends-dropdown" style="min-width:215px;">
+          <div class="custom-dropdown friends-dropdown" style="min-width:180px;">
             <div class="dropdown-selected" tabindex="0">Select friends...</div>
             <div class="dropdown-menu" style="display:none;">
               <input class="dropdown-search friends-search" type="text" placeholder="Search friends..." autocomplete="off" />
