@@ -48,7 +48,7 @@ export async function showNewSpend(container, user) {
       payers: [loggedInUsername],
       payerAmounts: { [loggedInUsername]: "" },
       lastSplit: null,
-      spendDate: todayDate(),
+      spendDate: "",
       remarks: ""
     };
   }
@@ -76,7 +76,7 @@ export async function showNewSpend(container, user) {
           <div class="chosen-list payers-chosen"></div>
         </div>
         <div class="total-display" id="totalDisplay"></div>
-        <label style="margin:14px 0 8px 0;display:block;">Date: <input type="date" class="spend-date-input" value="${state.spendDate || ""}" max="${todayDate()}"/></label>
+       
         
         <button type="button" class="primary-btn calc-btn">${state.editing ? "Split & Next" : "Edit"}</button>
         <div class="custom-msg calc-btn-msg" style="margin-top:7px;"></div>
