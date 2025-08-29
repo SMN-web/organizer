@@ -231,5 +231,8 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
 }
 
 .distribute-btn-msg {
-  color: #d32f2f;
+  color: #e53935;
+}
+.calc-btn-msg {
+  color: #e53935;   /* or "red" or another shade, e.g. #e53935 */
 }
