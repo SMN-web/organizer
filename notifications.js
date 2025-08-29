@@ -5,7 +5,7 @@ let notifyCount;
 let dropdown;
 let renderingSetupDone = false;
 
-// Human-friendly "ago" (local time zone)
+// "x ago" display using device local timezone, expects ISO string with "T" and "Z"
 function timeAgo(dateStr) {
   const now = new Date();
   const then = new Date(dateStr);
@@ -26,7 +26,18 @@ function timeAgo(dateStr) {
   return `${years}y ago`;
 }
 
-// Simple HTML escaper
+// Show local time as "08/29/2025, 1:10 AM (UTC+03:00)"
+function localTimeWithOffset(dateStr) {
+  const d = new Date(dateStr);
+  const localStr = d.toLocaleString([], {year: 'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
+  const offset = -d.getTimezoneOffset();
+  const sign = offset >= 0 ? "+" : "-";
+  const hours = String(Math.floor(Math.abs(offset)/60)).padStart(2, '0');
+  const mins = String(Math.abs(offset)%60).padStart(2, '0');
+  return `${localStr} (UTC${sign}${hours}:${mins})`;
+}
+
+// Secure HTML output
 function escapeHtml(str) {
   return String(str).replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
@@ -101,22 +112,29 @@ export async function fetchNotificationsBadge(user, parent) {
     });
   }
   showSpinner(document.body);
-  const start = Date.now();
-  const token = await user.firebaseUser.getIdToken();
-  const res = await fetch('https://not-li.nafil-8895-s.workers.dev/api/notifications/list', {
-    headers: { Authorization: "Bearer " + token }
-  });
-  const out = await res.json();
-  await delay(Math.max(0, 2000 - (Date.now() - start)));
-  hideSpinner(document.body);
-  notifications = Array.isArray(out) ? out : [];
-  renderBadge();
+  try {
+    const start = Date.now();
+    const token = await user.firebaseUser.getIdToken();
+    const res = await fetch('https://not-li.nafil-8895-s.workers.dev/api/notifications/list', {
+      headers: { Authorization: "Bearer " + token }
+    });
+    const out = await res.json();
+    await delay(Math.max(0, 2000 - (Date.now() - start)));
+    notifications = Array.isArray(out) ? out : [];
+    renderBadge();
+  } catch (e) { // Always hide spinner even on error!
+    notifications = [];
+    renderBadge();
+  } finally {
+    hideSpinner(document.body);
+  }
 }
 
 function renderBadge() {
   if (!notifyCount) return;
-  const unread = notifications.filter(n => !n.read).length;
-  notifyCount.textContent = unread ? unread : '';
+  const unread = Array.isArray(notifications)
+    ? notifications.filter(n => !n.read).length : 0;
+  notifyCount.textContent = unread > 0 ? unread : '';
 }
 
 function renderDropdown() {
@@ -147,7 +165,12 @@ function renderDropdown() {
             + `<span style="color:#3a6;font-weight:600;">Awaiting your confirmation.</span>`;
         }
         if (!text) text = `<i style="color:#a7a9ae;">Unknown notification</i>`;
-        const timeBadge = n.created_at ? `<span style="float:right;color:#7b8491;font-size:0.97em;font-weight:400;padding-left:1em;">${timeAgo(n.created_at)}</span>` : "";
+        // Show both "ago" and local time+offset
+        const timeBadge = n.created_at
+          ? `<span style="float:right;color:#7b8491;font-size:0.97em;font-weight:400;padding-left:1em;">
+              ${timeAgo(n.created_at)}<br>
+              <small>${localTimeWithOffset(n.created_at)}</small>
+             </span>` : "";
         return `<div class="notifyItem" style="
           transition:background .16s,box-shadow .13s;
           ${isUnread ? `background:${bgUnread};color:${dark}` : `background:${bgRead};color:${mid}`};
