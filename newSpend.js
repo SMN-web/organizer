@@ -416,6 +416,7 @@ export async function showNewSpend(container, user) {
         share: shares[id]
       }));
       distributeMsg.textContent = "Processing (preview from backend)...";
+      distributeMsg.style.color = "#388e3c"; 
 
       // Send to backend for preview/settlement calculation
       const resp = await fetch("https://cal-sp.nafil-8895-s.workers.dev/api/spends/preview", {
