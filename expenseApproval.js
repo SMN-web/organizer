@@ -1,4 +1,6 @@
-// Helper for formatting date like '24-Aug-25'
+import { showSpinner, hideSpinner, delay } from './spinner.js';
+
+// Utility to format "2025-08-28" -> "28-Aug-25"
 function formatDisplayDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -10,105 +12,101 @@ function formatDisplayDate(dateStr) {
   return `${day}-${month}-${year}`;
 }
 
-export async function showExpenseApproval(container, user, notifyUnread) {
-  // Demo data; replace with API fetch in real usage
-  const items = [
-    {
-      id: 1,
-      date: '2025-08-24',
-      remarks: 'Trip snacks',
-      summary: 'Total: 56 QAR. Bala paid 56. Sree owes 28 QAR to Bala.',
-      details: `<b>Paid:</b> Bala 56 QAR<br><b>Share:</b> Bala 28, Sree 28<br><b>Owes:</b> Sree → Bala 28`
-    },
-    {
-      id: 2,
-      date: '2025-07-12',
-      remarks: 'Dinner bill',
-      summary: 'Total: 120 QAR. Bala paid 70, Raf 50. Equal split.',
-      details: `<b>Paid:</b> Bala 70, Raf 50<br><b>Share:</b> Bala 60, Raf 60<br><b>Owes:</b> Bala → Raf 10`
-    },
-    {
-      id: 3,
-      date: '2025-06-04',
-      remarks: 'Cab sharing',
-      summary: 'Total: 80 QAR, Sree paid all. Equal split among 4.',
-      details: `<b>Paid:</b> Sree 80<br><b>Share:</b> Everyone 20<br><b>Owes:</b> Bala/Shyam/Raf → Sree 20 each`
+/**
+ * Displays the list of expense approvals for the current user in the provided container.
+ * Spinner is shown/hid using your code. Folders are rendered according to your plan.
+ * @param {HTMLElement} container
+ * @param {object} user - { firebaseUser, name, email, ...}
+ */
+export async function showExpenseApproval(container, user) {
+  container.innerHTML = '';
+  showSpinner(container);
+
+  let approvals = [];
+  let errMsg = '';
+
+  try {
+    if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function') {
+      hideSpinner(container);
+      container.innerHTML = `<div style="color:#d12020;margin:2em;">You must be logged in to view approvals.</div>`;
+      return;
     }
-  ];
+    const token = await user.firebaseUser.getIdToken(true);
+    const resp = await fetch('https://ex-ap.nafil-8895-s.workers.dev/api/my-approvals', {
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const text = await resp.text();
+    await delay(650); // slow down spinner for UX consistency
+    try { approvals = JSON.parse(text); } catch (e) { errMsg = "Invalid backend response: " + text; }
+    if (!Array.isArray(approvals)) {
+      if (approvals && approvals.error) errMsg = "Backend error: " + approvals.error;
+      else errMsg = "Unexpected backend error: " + text;
+    }
+  } catch (e) { errMsg = "Network error: " + e.message; }
+  hideSpinner(container);
 
+  if (errMsg) {
+    container.innerHTML = `
+      <div style="font-weight:600;font-size:1.13em;line-height:1.6;letter-spacing:.03em;margin-bottom:10px;">Pending Approvals</div>
+      <div style="color:#d12020;font-size:1.1em;margin:2em 0;text-align:center;">${errMsg}</div>
+    `;
+    return;
+  }
+  if (!approvals.length) {
+    container.innerHTML = `
+      <div style="font-weight:600;font-size:1.13em;line-height:1.6;letter-spacing:.03em;margin-bottom:10px;">Pending Approvals</div>
+      <div style="color:#666;text-align:center;margin:2em 0">No approvals required!</div>`;
+    return;
+  }
+
+  // Render summary folders
   container.innerHTML = `
-    <div class="approval-header">
-      <h2>Expense Approvals</h2>
-      <p>Review group expenses awaiting your decision. Click a card for details and actions.</p>
-      <div class="approval-list"></div>
+    <div style="font-weight:600;font-size:1.13em;line-height:1.6;letter-spacing:.03em;margin-bottom:10px;">
+      Pending Approvals
     </div>
+    <div class="approval-folder-list"></div>
   `;
+  const listArea = container.querySelector('.approval-folder-list');
 
-  notifyUnread(items.length);
-
-  const wrapper = container.querySelector('.approval-list');
-  wrapper.innerHTML = items.map(item => `
-    <div class="approval-card" tabindex="0">
-      <div class="approval-summary">
-        <span class="approval-date">${formatDisplayDate(item.date)}</span>
-        <span class="approval-remarks">${item.remarks}</span>
-      </div>
-      <div class="approval-detail" style="display:none;">
-        <div style="margin:5px 0 12px 0;">${item.summary}</div>
-        <div style="margin-bottom:9px;color:#137">${item.details}</div>
-        <button class="primary-btn action-accept-btn" style="margin-right:12px;">Accept</button>
-        <button class="primary-btn action-dispute-btn" style="background:#e53935;color:#fff;">Dispute</button>
-        <div class="dispute-area" style="display:none;margin-top:8px;">
-          <textarea class="dispute-remarks" rows="2" style="width:99%;padding:6px;border-radius:8px;border:1px solid #ddd;" placeholder="Describe your concern..."></textarea>
-          <button class="primary-btn action-send-dispute-btn" style="margin-top:6px;">Send Dispute</button>
-        </div>
-        <div class="approval-status-msg" style="margin-top:8px;color:#25853f;font-size:1em;"></div>
-      </div>
-    </div>
-  `).join('');
-
-  // Accordion-style expand/collapse
-  wrapper.querySelectorAll('.approval-card').forEach((card, idx) => {
-    card.querySelector('.approval-summary').onclick = e => {
-      // Collapse all others
-      wrapper.querySelectorAll('.approval-detail').forEach(det => det.style.display = 'none');
-      // Expand this one
-      card.querySelector('.approval-detail').style.display = '';
-      e.stopPropagation();
-    };
+  approvals.forEach(item => {
+    // Count accepted, total
+    const accepted = item.involvedStatus.filter(u => u.status === 'accepted').length;
+    const total = item.involvedStatus.length;
+    // Status badge logic
+    let statusHtml = '';
+    if (item.status === 'disputed') {
+      statusHtml = `<span class="status-pill disputed">Disputed</span>`;
+    } else {
+      statusHtml = `<span class="status-pill pending">Accepted ${accepted}/${total}</span>`;
+    }
+    const row = document.createElement("div");
+    row.className = "approval-folder";
+    row.tabIndex = 0;
+    row.style = `
+      display:flex;align-items:center;padding:13px 12px;border-bottom:1px solid #eee;
+      font-size:1.05em;cursor:pointer;gap:13px;word-break:break-all;
+    `;
+    row.innerHTML = `
+      <span style="min-width:2em;font-weight:600;color:#357;">${item.sn}.</span>
+      <span style="color:#346;margin-right:7px;">by ${item.created_by}</span>
+      <span style="min-width:80px;color:#256;margin-right:7px;">${formatDisplayDate(item.date)}</span>
+      <span style="flex:1;color:#222;">${item.remarks}</span>
+      ${statusHtml}
+    `;
+    // Click handler will be implemented in the next phase for expansion
+    listArea.appendChild(row);
   });
 
-  // Inside each card, wire approval/dispute logic
-  wrapper.querySelectorAll('.approval-card').forEach((card, idx) => {
-    const acceptBtn = card.querySelector('.action-accept-btn');
-    const disputeBtn = card.querySelector('.action-dispute-btn');
-    const disputeArea = card.querySelector('.dispute-area');
-    const sendDisputeBtn = card.querySelector('.action-send-dispute-btn');
-    const remarksInput = card.querySelector('.dispute-remarks');
-    const statusMsg = card.querySelector('.approval-status-msg');
-
-    acceptBtn.onclick = e => {
-      statusMsg.textContent = "Accepted! Waiting for others.";
-      acceptBtn.style.display = "none";
-      disputeBtn.style.display = "none";
-      e.stopPropagation();
-    };
-    disputeBtn.onclick = e => {
-      disputeArea.style.display = '';
-      acceptBtn.style.display = "none";
-      disputeBtn.style.display = "none";
-      e.stopPropagation();
-    };
-    sendDisputeBtn.onclick = e => {
-      const remark = remarksInput.value.trim();
-      if (!remark) {
-        remarksInput.style.borderColor = "#e53935";
-        return;
-      }
-      remarksInput.style.borderColor = "#ddd";
-      statusMsg.textContent = "Dispute sent. Expense will be reviewed!";
-      disputeArea.style.display = "none";
-      e.stopPropagation();
-    };
-  });
+  // -- Minimal status badge CSS --
+  const cssId = "expense-approval-css";
+  if (!document.getElementById(cssId)) {
+    const style = document.createElement("style");
+    style.id = cssId;
+    style.textContent = `
+      .status-pill { min-width: 92px; margin-left:7px; border-radius:13px; padding:1.5px 9px;font-weight:600;text-align:center;background:#f1f1f7; }
+      .status-pill.pending { background:#ecf4ff; color:#157; }
+      .status-pill.disputed { background:#fedee0; color:#d22; }
+    `;
+    document.head.appendChild(style);
+  }
 }
