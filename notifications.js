@@ -5,10 +5,10 @@ let notifyCount;
 let dropdown;
 let renderingSetupDone = false;
 
-// "x ago" display using device local timezone, expects ISO string with "T" and "Z"
+// Parse "YYYY-MM-DD HH:mm:ss" as UTC and display "x ago"
 function timeAgo(dateStr) {
+  const then = parseDBDatetimeAsUTC(dateStr);
   const now = new Date();
-  const then = new Date(dateStr);
   const seconds = Math.floor((now - then) / 1000);
   if (isNaN(seconds)) return "";
   if (seconds < 60) return `${seconds}s ago`;
@@ -26,9 +26,17 @@ function timeAgo(dateStr) {
   return `${years}y ago`;
 }
 
-// Show local time as "08/29/2025, 1:10 AM (UTC+03:00)"
+// Converts "YYYY-MM-DD HH:mm:ss" string to a Date object in UTC
+function parseDBDatetimeAsUTC(dt) {
+  // dt: "2025-08-29 10:26:17"
+  const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
+  if (!m) return new Date(dt); // fallback, browser parsing
+  return new Date(Date.UTC(+m[1], m[2]-1, +m[3], +m[4], +m[5], +m[6]));
+}
+
+// Show local time as "29/08/2025, 1:26 PM (UTC+03:00)"
 function localTimeWithOffset(dateStr) {
-  const d = new Date(dateStr);
+  const d = parseDBDatetimeAsUTC(dateStr);
   const localStr = d.toLocaleString([], {year: 'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
   const offset = -d.getTimezoneOffset();
   const sign = offset >= 0 ? "+" : "-";
@@ -122,7 +130,7 @@ export async function fetchNotificationsBadge(user, parent) {
     await delay(Math.max(0, 2000 - (Date.now() - start)));
     notifications = Array.isArray(out) ? out : [];
     renderBadge();
-  } catch (e) { // Always hide spinner even on error!
+  } catch (e) {
     notifications = [];
     renderBadge();
   } finally {
@@ -165,7 +173,7 @@ function renderDropdown() {
             + `<span style="color:#3a6;font-weight:600;">Awaiting your confirmation.</span>`;
         }
         if (!text) text = `<i style="color:#a7a9ae;">Unknown notification</i>`;
-        // Show both "ago" and local time+offset
+        // Show both "ago" and user's local time + offset
         const timeBadge = n.created_at
           ? `<span style="float:right;color:#7b8491;font-size:0.97em;font-weight:400;padding-left:1em;">
               ${timeAgo(n.created_at)}<br>
