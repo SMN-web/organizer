@@ -230,3 +230,6 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
   }
 }
 
+.distribute-btn-msg {
+  color: #d32f2f;
+}
