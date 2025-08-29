@@ -555,7 +555,6 @@ export async function showNewSpend(container, user) {
     setTimeout(() => {
       document.getElementById('share-pdf-btn').style.display = "";
       document.getElementById('new-expense-btn').style.display = "";
-      if (saveBtn) saveBtn.style.display = "";
       summary.classList.remove('print-active');
     }, 900);
   }, 220);
