@@ -464,9 +464,14 @@ export async function showNewSpend(container, user) {
               `<div class="row-settle"><strong>${getFriendById(st.from_user).name}</strong> owes <em>${st.amount} QAR</em> to <strong>${getFriendById(st.to_user).name}</strong></div>`
             ).join('')
           : `<div>All settled up. No pending amounts.</div>`}
-        <button class="primary-btn" id="save-btn" style="margin:17px 0 3px 0;">Save</button>
-        <button class="primary-btn" id="new-expense-btn" style="margin-left:12px;">Add New Expense</button>
-        <button type="button" class="primary-btn share-pdf-btn" id="share-pdf-btn">Share PDF</button>
+        <div class="summary-btns">
+  <button class="primary-btn save-btn" id="save-btn">Save</button>
+
+  <div class="after-save-btn-group" style="display:none;">
+    <button class="primary-btn new-expense-btn" id="new-expense-btn">Add New Expense</button>
+    <button class="primary-btn share-pdf-btn" id="share-pdf-btn">Share PDF</button>
+  </div>
+</div>
         <div id="save-result" style="margin-top:10px;font-weight:bold"></div>
          
       </div>
@@ -517,6 +522,7 @@ export async function showNewSpend(container, user) {
 
       // Hide save button to prevent duplicate submission
       document.getElementById('save-btn').style.display = "none";
+      document.querySelector('.after-save-btn-group').style.display = "flex";
 
     } else {
       // --- Clean error message ---
@@ -558,6 +564,8 @@ export async function showNewSpend(container, user) {
 
 
     document.getElementById('new-expense-btn').onclick = () => {
+      document.getElementById('save-btn').style.display = "";
+      document.querySelector('.after-save-btn-group').style.display = "none";
       state = initialState();
       renderAll();
     };
