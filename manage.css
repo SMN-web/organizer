@@ -294,17 +294,17 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
   }
   #distribution-summary {
     position: absolute !important;
-    left: 0 !important; 
+    left: 0 !important;
     top: 0 !important;
-    width: 100vw !important;
+    width: 100vw !important;           /* Use full page width */
     min-width: 0 !important;
     max-width: 100vw !important;
     margin: 0 !important;
-    padding: 0.5in 0.7in 0.5in 0.7in !important; /* adds standard page padding */
+    padding: 0.7in 0.6in 0.7in 0.6in !important;  /* Nice page padding */
     background: #fff !important;
-    box-shadow: none !important;
+    font-size: 1.13em !important;      /* Readably large */
     border-radius: 0 !important;
-    font-size: 1.1em !important;
+    box-shadow: none !important;
     text-align: left !important;
   }
   .settlement-summary {
@@ -313,8 +313,24 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
     box-shadow: none !important;
     padding: 0 !important;
     background: none !important;
+    width: 100% !important;
+  }
+  /* To fix possible floating/inline block issues */
+  #distribution-summary h2,
+  #distribution-summary div,
+  #distribution-summary hr {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    text-align: left !important;
+  }
+  /* Hide buttons for print */
+  .primary-btn, #save-btn, #new-expense-btn, #share-pdf-btn {
+    display: none !important;
+    visibility: hidden !important;
   }
 }
+
 
 
 .save-btn {
