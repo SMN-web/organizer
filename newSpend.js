@@ -1,3 +1,14 @@
+function formatDisplayDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  const day = String(d.getDate()).padStart(2, '0');
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = monthNames[d.getMonth()];
+  const year = String(d.getFullYear()).slice(-2);
+  return `${day}-${month}-${year}`;
+}
+
 export async function showNewSpend(container, user) {
   // --- Fetch dynamic friends & user ---
   let FRIENDS = [];
@@ -448,7 +459,7 @@ export async function showNewSpend(container, user) {
       <div id="distribution-summary">
       <div class="settlement-summary" style="padding:18px 8px 25px 8px;max-width:430px;margin:33px auto;text-align:center;background:#fff;border-radius:11px;box-shadow:0 4px 24px #d3e6fd16;">
         <h2 style="margin:10px 0 6px 0;">Final Distribution</h2>
-        <div><strong>Date:</strong> <span>${state.spendDate}</span></div>
+        <div><strong>Date:</strong> <span>${formatDisplayDate(state.spendDate)}</span></div>
         <div><strong>Reason:</strong> <span>${state.remarks || '-'}</span></div>
         <div style="margin:15px 0 12px 0;">Total Amount: <strong>${splits.reduce((a, s) => a + s.paid, 0)} QAR</strong></div>
         <hr>
