@@ -357,20 +357,8 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
 }
 
 /*approval expense*/
-.tab-btn {
-  padding: 0.6em 1.35em;
-  border: none;
-  border-radius: 6px 6px 0 0;
-  background: #e8eaf6;
-  font-size: 1.06em;
-  color: #264;
-  margin-right: 8px;
-  cursor: pointer;
-}
-.tab-btn.active {
-  background: #4787ea;
-  color: #fff;
-}
+
+
 .approval-item .primary-btn {
   padding: 7px 18px;
   border-radius: 7px;
