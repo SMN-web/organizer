@@ -284,3 +284,23 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
   max-width: 350px;
   box-sizing: border-box;
 }
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #distribution-summary,
+  #distribution-summary * {
+    visibility: visible !important;
+  }
+  #distribution-summary {
+    position: absolute;
+    left: 0; top: 0; width: 100vw;
+    background: #fff;
+    z-index: 9000;
+    box-shadow: none;
+  }
+  .primary-btn, .share-pdf-btn, .new-expense-btn, .save-btn {
+    display: none !important;
+  }
+}
