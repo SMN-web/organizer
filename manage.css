@@ -304,3 +304,31 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
     display: none !important;
   }
 }
+
+.summary-btns {
+  text-align: center;
+  margin: 20px 0 0 0;
+}
+
+.save-btn {
+  margin: 0 auto;
+  display: inline-block;
+  min-width: 120px;
+  font-size: 1em;
+  border-radius: 7px;
+}
+
+.after-save-btn-group {
+  display: flex;
+  justify-content: center;
+  gap: 12px;           /* Space between the buttons */
+  margin: 0 auto;
+  margin-top: 0;
+}
+
+.new-expense-btn,
+.share-pdf-btn {
+  min-width: 120px;
+  font-size: 0.97em;
+  border-radius: 7px;
+}
