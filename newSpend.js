@@ -535,6 +535,7 @@ export async function showNewSpend(container, user) {
 };
     
    document.getElementById('share-pdf-btn').onclick = () => {
+  saveMsg.textContent = "";
   // Get the distribution summary area (give it an ID, e.g., "distribution-summary")
   const summary = document.getElementById('distribution-summary');
   // Hide Share PDF and New Expense buttons temporarily
@@ -563,6 +564,7 @@ export async function showNewSpend(container, user) {
 
 
     document.getElementById('new-expense-btn').onclick = () => {
+      saveMsg.textContent = "";
       document.getElementById('save-btn').style.display = "";
       document.querySelector('.after-save-btn-group').style.display = "none";
       state = initialState();
