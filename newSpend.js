@@ -519,6 +519,7 @@ export async function showNewSpend(container, user) {
         ? ` Settlement(s) created between users.` 
         : "";
       saveMsg.textContent = `Saved! Expense finalized.${settlementMsg}`;
+      saveMsg.style.color = "#388e3c"; 
 
       // Hide save button to prevent duplicate submission
       document.getElementById('save-btn').style.display = "none";
