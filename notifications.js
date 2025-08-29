@@ -5,13 +5,13 @@ let notifyCount;
 let dropdown;
 let renderingSetupDone = false;
 
-// Parse "YYYY-MM-DD HH:mm:ss" as UTC and display "x ago"
+// Parse "YYYY-MM-DD HH:mm:ss" as UTC and get "just now"/"x ago"
 function timeAgo(dateStr) {
   const then = parseDBDatetimeAsUTC(dateStr);
   const now = new Date();
   const seconds = Math.floor((now - then) / 1000);
   if (isNaN(seconds)) return "";
-  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 60) return "just now";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
@@ -26,23 +26,11 @@ function timeAgo(dateStr) {
   return `${years}y ago`;
 }
 
-// Converts "YYYY-MM-DD HH:mm:ss" string to a Date object in UTC
+// Converts "YYYY-MM-DD HH:mm:ss" to Date object (UTC)
 function parseDBDatetimeAsUTC(dt) {
-  // dt: "2025-08-29 10:26:17"
   const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
-  if (!m) return new Date(dt); // fallback, browser parsing
+  if (!m) return new Date(dt);
   return new Date(Date.UTC(+m[1], m[2]-1, +m[3], +m[4], +m[5], +m[6]));
-}
-
-// Show local time as "29/08/2025, 1:26 PM (UTC+03:00)"
-function localTimeWithOffset(dateStr) {
-  const d = parseDBDatetimeAsUTC(dateStr);
-  const localStr = d.toLocaleString([], {year: 'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
-  const offset = -d.getTimezoneOffset();
-  const sign = offset >= 0 ? "+" : "-";
-  const hours = String(Math.floor(Math.abs(offset)/60)).padStart(2, '0');
-  const mins = String(Math.abs(offset)%60).padStart(2, '0');
-  return `${localStr} (UTC${sign}${hours}:${mins})`;
 }
 
 // Secure HTML output
@@ -173,12 +161,10 @@ function renderDropdown() {
             + `<span style="color:#3a6;font-weight:600;">Awaiting your confirmation.</span>`;
         }
         if (!text) text = `<i style="color:#a7a9ae;">Unknown notification</i>`;
-        // Show both "ago" and user's local time + offset
+        // Show "just now"/"x ago" ONLY, no raw time
         const timeBadge = n.created_at
-          ? `<span style="float:right;color:#7b8491;font-size:0.97em;font-weight:400;padding-left:1em;">
-              ${timeAgo(n.created_at)}<br>
-              <small>${localTimeWithOffset(n.created_at)}</small>
-             </span>` : "";
+          ? `<span style="float:right;color:#7b8491;font-size:0.97em;font-weight:400;padding-left:1em;">${timeAgo(n.created_at)}</span>`
+          : "";
         return `<div class="notifyItem" style="
           transition:background .16s,box-shadow .13s;
           ${isUnread ? `background:${bgUnread};color:${dark}` : `background:${bgRead};color:${mid}`};
