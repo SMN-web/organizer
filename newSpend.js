@@ -445,6 +445,7 @@ export async function showNewSpend(container, user) {
 
   function showSettlementSummary(splits, settlements) {
     container.innerHTML = `
+      <div id="distribution-summary">
       <div class="settlement-summary" style="padding:18px 8px 25px 8px;max-width:430px;margin:33px auto;text-align:center;background:#fff;border-radius:11px;box-shadow:0 4px 24px #d3e6fd16;">
         <h2 style="margin:10px 0 6px 0;">Final Distribution</h2>
         <div><strong>Date:</strong> <span>${state.spendDate}</span></div>
@@ -465,7 +466,10 @@ export async function showNewSpend(container, user) {
           : `<div>All settled up. No pending amounts.</div>`}
         <button class="primary-btn" id="save-btn" style="margin:17px 0 3px 0;">Save</button>
         <button class="primary-btn" id="new-expense-btn" style="margin-left:12px;">Add New Expense</button>
+        <button type="button" class="primary-btn share-pdf-btn" id="share-pdf-btn">Share PDF</button>
         <div id="save-result" style="margin-top:10px;font-weight:bold"></div>
+         
+      </div>
       </div>
     `;
     document.getElementById('save-btn').onclick = async () => {
@@ -522,6 +526,33 @@ export async function showNewSpend(container, user) {
   } catch (e) {
     saveMsg.textContent = "Save failed: " + (e && e.message ? e.message : e);
   }
+};
+    
+   document.getElementById('share-pdf-btn').onclick = () => {
+  // Get the distribution summary area (give it an ID, e.g., "distribution-summary")
+  const summary = document.getElementById('distribution-summary');
+  // Hide Share PDF and New Expense buttons temporarily
+  document.getElementById('share-pdf-btn').style.display = "none";
+  document.getElementById('new-expense-btn').style.display = "none";
+
+  // Optionally, hide Save if it's still visible
+  const saveBtn = document.getElementById('save-btn');
+  if (saveBtn) saveBtn.style.display = "none";
+
+  // Use print CSS and window.print for only the summary area
+  // Option 1: Add a print-only CSS class for the area
+  summary.classList.add('print-active');
+
+  setTimeout(() => {
+    window.print();
+    // Undo everything after short delay
+    setTimeout(() => {
+      document.getElementById('share-pdf-btn').style.display = "";
+      document.getElementById('new-expense-btn').style.display = "";
+      if (saveBtn) saveBtn.style.display = "";
+      summary.classList.remove('print-active');
+    }, 900);
+  }, 220);
 };
 
 
