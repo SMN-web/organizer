@@ -63,9 +63,9 @@ export async function showNewSpend(container, user) {
         <div class="selector-group">
           <span class="selector-label">Friends Sharing:</span>
           <div class="custom-dropdown friends-dropdown" style="min-width:180px;">
-            <div class="dropdown-selected" style="min-width:180px;">Select friends...</div>
+            <div class="dropdown-selected" tabindex="0">Select friends...</div>
             <div class="dropdown-menu" style="display:none;">
-              <input class="dropdown-search friends-search" type="text" placeholder="Search friends..." autocomplete="off" />
+              <input class="dropdown-search friends-search" type="text" placeholder="Search friends..." autocomplete="off" style="min-width:180px;" />
               <div class="dropdown-options friends-options"></div>
             </div>
           </div>
