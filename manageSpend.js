@@ -1,6 +1,7 @@
 import { showNewSpend } from './newSpend.js';
 import { showHistorySpend } from './historySpend.js';
 import { showCalculatorModal } from './calculatorModal.js';
+import { showExpenseApproval } from './expenseApproval.js';
 
 export function showManageSpend(contentContainer, user) {
   contentContainer.innerHTML = `
@@ -11,6 +12,9 @@ export function showManageSpend(contentContainer, user) {
       </header>
       <nav class="section-switch">
         <button data-section="new" class="tab-btn active">New Spend</button>
+        <button data-section="approval" class="tab-btn">
+          Expense Approvals <span class="approval-unread-count" style="display:none;background:#e53935;color:#fff;padding:2px 7px;border-radius:11px;font-size:.95em;margin-left:6px"></span>
+        </button>
         <button data-section="history" class="tab-btn">History</button>
       </nav>
       <div class="section-content"></div>
@@ -18,12 +22,23 @@ export function showManageSpend(contentContainer, user) {
     </div>
   `;
   contentContainer.querySelector('.spend-header').style.marginTop = '36px';
-
   const sectionContent = contentContainer.querySelector('.section-content');
+
+  function updateApprovalUnread(count) {
+    const badge = contentContainer.querySelector('.approval-unread-count');
+    if (count > 0) {
+      badge.style.display = '';
+      badge.textContent = count;
+    } else {
+      badge.style.display = 'none';
+      badge.textContent = '';
+    }
+  }
 
   function renderSection(section) {
     sectionContent.innerHTML = '';
     if (section === 'new') showNewSpend(sectionContent, user);
+    else if (section === 'approval') showExpenseApproval(sectionContent, user, updateApprovalUnread);
     else if (section === 'history') showHistorySpend(sectionContent, user);
   }
   renderSection('new');
