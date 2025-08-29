@@ -265,10 +265,10 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  background: #23232c;
-  color: #e7e7fa;
+  background: #fff;                /* Light background */
+  color: #222 !important;          /* Dark text for clarity */
   font-size: 1.08em;
-  border: 1.2px solid #43445c;
+  border: 1.2px solid #bfc7d4;  
   border-radius: 8px;
   padding: 7px 11px;
   outline: none;
