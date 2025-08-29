@@ -375,6 +375,9 @@ export async function showNewSpend(container, user) {
       const distributeMsg = splitWrap.querySelector('.distribute-btn-msg');
       distributeMsg.textContent = "";
 
+     const spendDate = splitWrap.querySelector('.spend-date-input')?.value?.trim();
+     const remarks = splitWrap.querySelector('.spend-remarks-input')?.value?.trim();
+
       // Build shares object as per UI
       let shares = {};
       splitWrap.querySelectorAll('.split-amt').forEach(input => {
