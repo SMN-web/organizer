@@ -236,3 +236,27 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
 .calc-btn-msg {
   color: #e53935;   /* or "red" or another shade, e.g. #e53935 */
 }
+
+.split-amt {
+  width: 70px;
+  font-size: 1.12em;
+  padding: 5px 9px;
+  margin: 0 7px;
+  border-radius: 7px;
+  box-sizing: border-box;
+}
+.split-row-name {
+  min-width: 60px;
+  max-width: 120px;
+  font-size: 1.07em;
+  margin-right: 7px;
+}
+.lock-btn {
+  font-size: 1.7em;
+  margin-left: 2px;
+}
+.split-row {
+  gap: 12px;
+  padding: 9px 15px 9px 13px;
+  align-items: center;
+}
