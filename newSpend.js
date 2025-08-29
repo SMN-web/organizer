@@ -77,9 +77,7 @@ export async function showNewSpend(container, user) {
         </div>
         <div class="total-display" id="totalDisplay"></div>
         <label style="margin:14px 0 8px 0;display:block;">Date: <input type="date" class="spend-date-input" value="${state.spendDate || ""}" max="${todayDate()}"/></label>
-        <label class="distrib-remarks-label" style="margin-bottom:4px;display:block;">Remarks/Place:
-          <input type="text" class="spend-remarks-input" maxlength="90" style="width:99%;margin-top:4px;" value="${state.remarks || ""}" placeholder="E.g. Dinner, Mall, Friends..." />
-        </label>
+        
         <button type="button" class="primary-btn calc-btn">${state.editing ? "Split & Next" : "Edit"}</button>
         <div class="custom-msg calc-btn-msg" style="margin-top:7px;"></div>
       </div>
