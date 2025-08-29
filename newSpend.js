@@ -381,7 +381,15 @@ export async function showNewSpend(container, user) {
         const val = rup(input.value);
         shares[input.dataset.id] = val;
       });
+      if (!spendDate) {
+    distributeMsg.textContent = "Please select the date";
+    return;
+}
 
+      if (!remarks) {
+    distributeMsg.textContent = "Please enter a remark";
+    return;
+}
       // Validate (keep your checks here)
       let sum = Object.values(shares).reduce((a, b) => a + b, 0);
       if (sum !== totalAmount) {
