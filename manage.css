@@ -260,3 +260,27 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
   padding: 9px 15px 9px 13px;
   align-items: center;
 }
+
+.dropdown-search.friends-search {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  background: #23232c;
+  color: #e7e7fa;
+  font-size: 1.08em;
+  border: 1.2px solid #43445c;
+  border-radius: 8px;
+  padding: 7px 11px;
+  outline: none;
+  margin-bottom: 7px;
+  transition: border .18s;
+}
+.dropdown-search.friends-search:focus {
+  border-color: #4bb1df;
+  background: #262e38;
+}
+.custom-dropdown, .dropdown-menu {
+  width: 100%;
+  max-width: 350px;
+  box-sizing: border-box;
+}
