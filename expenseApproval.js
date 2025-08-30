@@ -1,4 +1,4 @@
-const CURRENCY = "QAR"; // only set here; for multi-currency, update how this is sourced
+const CURRENCY = "QAR";
 
 import { showSpinner, hideSpinner, delay } from './spinner.js';
 
@@ -126,6 +126,37 @@ function renderApprovalsArea(container, user) {
   addStatusCSS();
 }
 
+/** Tree branch UI: returns HTML for a tree showing creator and all participants as nodes. */
+function branchApprovalTree(item, currentUser){
+  // Show Creator (top)
+  // Lines to each involved participant chip
+  // If needed, highlight current user
+  const creator = item.created_by;
+  const badges = item.involvedStatus.map(p => `
+    <span style="display:inline-block;padding:3px 16px 3px 8px;margin-bottom:7px; margin-right:13px; border-radius:17px;
+      background:${p.status === 'accepted' ? '#e8f5e8'
+        : p.status === 'pending' ? '#fff8dc'
+        : '#ffeaea'};
+      color:${p.status === 'accepted' ? '#26832f'
+        : p.status === 'pending' ? '#996800'
+        : '#ba0000'};
+      font-weight:500;position:relative;">
+      ${p.name === currentUser ? '<b>' + p.name + '</b>' : p.name}
+      ${p.status !== 'accepted'
+        ? `<span style="font-size:0.83em;margin-left:7px;opacity:0.7;">${p.status.charAt(0).toUpperCase() + p.status.slice(1)}</span>`
+        : ""}
+    </span>
+  `).join("\n");
+  return `
+    <div style="display:flex;flex-direction:column;align-items:flex-start; margin-bottom:8px;">
+      <div style="font-size:1em;font-weight:600;margin-left:6px;margin-bottom:4px;">${creator}</div>
+      <div style="margin-left:16px; border-left:2px solid #eee; padding-left:20px;">
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-start;">${badges}</div>
+      </div>
+    </div>
+  `;
+}
+
 function renderApprovalDetails(container, user, item) {
   container.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
@@ -149,54 +180,56 @@ function renderApprovalDetails(container, user, item) {
   if (isDisputed && youDisputed) msg = `<div style="color:#d12020;font-weight:600;font-size:1em;">You have disputed this expense at ${formatDateTime(item.disputed_at) || '–'}.</div>`;
   else if (isDisputed) msg = `<div style="color:#d12020;font-weight:600;font-size:1em;">${item.disputed_by} has disputed this expense at ${formatDateTime(item.disputed_at) || '–'}.</div>`;
 
+  // Display Paid/Shares and Settlements as clean two-column lists
   detailArea.innerHTML = `
     <div style="margin-bottom:18px;">
       <div style="font-weight:600;font-size:1.09em;color:#1b2837;">${item.remarks}</div>
       <div style="color:#566b89;font-size:1em;margin-bottom:3px;">${formatDisplayDate(item.date)}</div>
       <div style="color:#209;font-size:0.96em;margin-bottom:5px;">by ${item.created_by}</div>
-      <div style="font-size:1em;color:#222;">Total: <span style="font-weight:600;">${item.total_amount} ${CURRENCY}</span></div>
+      <div style="font-size:1em;color:#222;margin-bottom:2px;">Total: <span style="font-weight:600;">${item.total_amount} ${CURRENCY}</span></div>
       <div style="color:#888;font-size:0.98em;">Status last updated: <b>${formatDateTime(item.status_at)}</b></div>
     </div>
-    <div>
-      <div style="font-weight:600;margin-bottom:7px;">Paid/Shares</div>
-      <ul style="padding-left:18px;">
-        ${item.splits.map(s => `<li>${s.name}: paid <b>${s.paid} ${CURRENCY}</b>, share <b>${s.share} ${CURRENCY}</b></li>`).join('')}
-      </ul>
-      <div style="font-weight:600;margin-bottom:6px;margin-top:12px;">Settlements</div>
-      <ul style="padding-left:18px;">
-        ${item.settlements.length
-          ? item.settlements.map(st => `<li>${st.from} owes ${st.to}: <b>${st.amount} ${CURRENCY}</b> (${st.payer_status})</li>`).join('')
-          : '<li>No settlements needed</li>'}
-      </ul>
-    </div>
-    <div style="border-top:1px solid #e8eaed;margin-top:12px;padding-top:13px;">
-      <div style="font-size:0.96em;color:#556;margin-bottom:8px;">Participants approvals:</div>
-      <div style="display:flex;flex-wrap:wrap;gap:9px;margin-bottom:2px;">
-        ${item.involvedStatus.map(person => `
-          <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:16px;font-size:0.93em;
-            ${person.status === 'accepted' ? 'background:#e8f5e8;color:#2d7d2d;' :
-            person.status === 'disputed' ? 'background:#ffeaea;color:#d73027;' :
-            'background:#fff3cd;color:#856404;'}">
-            <span style="width:8px;height:8px;border-radius:50%;
-              ${person.status === 'accepted' ? 'background:#4caf50;' :
-                person.status === 'disputed' ? 'background:#f44336;' :
-                'background:#ff9800;'}"></span>
-            ${person.name}
-          </span>
+    <div style="margin-bottom:14px;">
+      <div style="font-weight:600;margin-bottom:5px;">Paid/Shares</div>
+      <table style="border-collapse:collapse;width:auto;">
+        ${item.splits.map(s => `
+          <tr>
+            <td style="padding:2px 12px 2px 0; color:#474;min-width:5em;">${s.name}:</td>
+            <td style="padding:2px 10px; color:#666;">paid <b>${s.paid} ${CURRENCY}</b></td>
+            <td style="padding:2px 5px; color:#888;">share <b>${s.share} ${CURRENCY}</b></td>
+          </tr>
         `).join('')}
-      </div>
-      <div id="actionArea">${msg}</div>
+      </table>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-weight:600;margin-bottom:5px;">Settlements</div>
+      <table style="border-collapse:collapse;">
+        ${item.settlements.length
+          ? item.settlements.map(st => `
+            <tr>
+              <td style="padding:2px 12px 2px 0; color:#555;min-width:5em;">${st.from} owes ${st.to}:</td>
+              <td style="padding:2px 10px; color:#666;"><b>${st.amount} ${CURRENCY}</b></td>
+            </tr>
+          `).join('')
+          : '<tr><td>No settlements needed</td></tr>'}
+      </table>
+    </div>
+    <div style="border-top:1px solid #e8eaed;margin-top:12px;padding-top:13px; margin-bottom:10px;">
+      <div style="font-size:0.96em;color:#556;margin-bottom:6px;">Participants approvals:</div>
+      ${branchApprovalTree(item, currentUser)}
+      <div id="actionArea" style="margin-top:18px;">${msg}</div>
     </div>
   `;
 
   const actionArea = detailArea.querySelector('#actionArea');
   if (!isDisputed && userStatus === 'pending') {
     actionArea.innerHTML += `
-      <button id="acceptBtn" style="margin-right:15px;background:#e7f6ea;color:#13a568;padding:9px 21px;border:1px solid #13a568;border-radius:8px;cursor:pointer;font-weight:600;">Accept</button>
-      <button id="disputeBtn" style="background:#ffecec;color:#d73323;padding:9px 21px;border:1px solid #d73323;border-radius:8px;cursor:pointer;font-weight:600;">Dispute</button>
-      <div id="disputeEntry" style="display:none;margin-top:10px;">
-        <textarea id="disputeRemarks" placeholder="Enter reason..." style="width:98%;min-height:44px;"></textarea>
-        <button id="submitDispute" style="margin-top:7px;">Submit Dispute</button>
+      <div style="height:16px"></div>
+      <button id="acceptBtn" style="margin-right:14px;background:#e7f6ea;color:#13a568;padding:10px 28px;font-size:1.09em; border:1px solid #13a568;border-radius:8px;cursor:pointer;font-weight:600;">Accept</button>
+      <button id="disputeBtn" style="background:#ffecec;color:#d73323;padding:10px 28px;font-size:1.09em; border:1px solid #d73323;border-radius:8px;cursor:pointer;font-weight:600;">Dispute</button>
+      <div id="disputeEntry" style="display:none;margin-top:13px;">
+        <textarea id="disputeRemarks" placeholder="Enter reason..." style="width:98%;min-height:44px;border-radius:6px;border:1px solid #ccc;font-size:1em;padding:7px;"></textarea>
+        <button id="submitDispute" style="margin-top:9px;padding:8px 20px;font-size:1.07em;">Submit Dispute</button>
       </div>
     `;
     actionArea.querySelector('#acceptBtn').onclick = () => handleApprovalAction(container, user, item, "accept");
