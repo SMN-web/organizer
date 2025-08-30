@@ -1,3 +1,5 @@
+const CURRENCY = localStorage.getItem('currency') || "QAR";
+
 function formatDisplayDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -230,7 +232,7 @@ export async function showNewSpend(container, user) {
     const disp = container.querySelector('#totalDisplay');
     if (state.payers.length) {
       disp.style.display = '';
-      disp.textContent = isNaN(sum) ? "" : `Total Paid: ${sum} QAR`;
+      disp.textContent = isNaN(sum) ? "" : `Total Paid: ${sum} ${CURRENCY}`;
     } else {
       disp.style.display = "none"; disp.textContent = "";
     }
@@ -461,18 +463,18 @@ export async function showNewSpend(container, user) {
         <h2 style="margin:10px 0 6px 0;">Final Distribution</h2>
         <div><strong>Date:</strong> <span>${formatDisplayDate(state.spendDate)}</span></div>
         <div><strong>Reason:</strong> <span>${state.remarks || '-'}</span></div>
-        <div style="margin:15px 0 12px 0;">Total Amount: <strong>${splits.reduce((a, s) => a + s.paid, 0)} QAR</strong></div>
+        <div style="margin:15px 0 12px 0;">Total Amount: <strong>${splits.reduce((a, s) => a + s.paid, 0)} ${CURRENCY}</strong></div>
         <hr>
         <div><u>Paid Amounts:</u><br>
-          ${splits.map(s => `<div>${getFriendById(s.username).name} paid: <em>${s.paid} QAR</em></div>`).join('')}
+          ${splits.map(s => `<div>${getFriendById(s.username).name} paid: <em>${s.paid} ${CURRENCY}</em></div>`).join('')}
         </div>
         <div style="margin:10px 0 0 0"><u>Each Share:</u><br>
-          ${splits.map(s => `<div>${getFriendById(s.username).name}'s share: <em>${s.share} QAR</em></div>`).join('')}
+          ${splits.map(s => `<div>${getFriendById(s.username).name}'s share: <em>${s.share} ${CURRENCY}</em></div>`).join('')}
         </div>
         <div style="margin:10px 0 0 0"><u>Owes/Settlement:</u></div>
         ${settlements && settlements.length
           ? settlements.map(st =>
-              `<div class="row-settle"><strong>${getFriendById(st.from_user).name}</strong> owes <em>${st.amount} QAR</em> to <strong>${getFriendById(st.to_user).name}</strong></div>`
+              `<div class="row-settle"><strong>${getFriendById(st.from_user).name}</strong> owes <em>${st.amount} ${CURRENCY}</em> to <strong>${getFriendById(st.to_user).name}</strong></div>`
             ).join('')
           : `<div>All settled up. No pending amounts.</div>`}
         <div class="summary-btns">
