@@ -1,4 +1,4 @@
-const CURRENCY = "QAR";
+const CURRENCY = localStorage.getItem('currency') || "QAR";
 
 import { showSpinner, hideSpinner, delay } from './spinner.js';
 
