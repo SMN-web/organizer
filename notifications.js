@@ -144,24 +144,32 @@ function renderDropdown() {
         const fontWeight = isUnread ? 600 : 400;
         const fadeIn = `animation:ndropfade .32s cubic-bezier(.23,1,.29,1.01) both;animation-delay:${i*0.019}s;`;
         let text = "";
+        // Render custom messages per type and data
         if (n.type === 'friend_request') {
           const dat = JSON.parse(n.data);
           text = `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> sent you a friend request`;
-        }
-        if (n.type === 'friend_accept') {
+        } else if (n.type === 'friend_accept') {
           const dat = JSON.parse(n.data);
           text = `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> accepted your friend request`;
-        }
-        if (n.type === 'expense_new') {
+        } else if (n.type === 'expense_new') {
           const dat = JSON.parse(n.data);
           text =
             `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> added an expense: `
             + `"${escapeHtml(dat.remarks)}" for <b>${escapeHtml(dat.total)} QAR</b>.<br>`
             + `Your share: <b>${escapeHtml(dat.share)}</b> QAR. `
             + `<span style="color:#3a6;font-weight:600;">Awaiting your confirmation.</span>`;
+        } else if (n.type === 'expense_approval_accepted') {
+          const dat = JSON.parse(n.data);
+          text =
+            `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> accepted your expense: `
+            + `"${escapeHtml(dat.remarks)}".`;
+        } else if (n.type === 'expense_approval_disputed') {
+          const dat = JSON.parse(n.data);
+          text =
+            `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> disputed the expense `
+            + `"${escapeHtml(dat.remarks)}". <span style="color:#db4646;font-weight:600;">Requires your attention.</span>`;
         }
         if (!text) text = `<i style="color:#a7a9ae;">Unknown notification</i>`;
-        // Show "just now"/"x ago" ONLY, no raw time
         const timeBadge = n.created_at
           ? `<span style="float:right;color:#7b8491;font-size:0.97em;font-weight:400;padding-left:1em;">${timeAgo(n.created_at)}</span>`
           : "";
