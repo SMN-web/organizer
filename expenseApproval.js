@@ -126,34 +126,43 @@ function renderApprovalsArea(container, user) {
   addStatusCSS();
 }
 
-/** Tree branch UI: returns HTML for a tree showing creator and all participants as nodes. */
-function branchApprovalTree(item, currentUser){
-  // Show Creator (top)
-  // Lines to each involved participant chip
-  // If needed, highlight current user
+/** SVG Branch tree UI for approvals. */
+function branchApprovalTreeSVG(item, currentUser){
+  const CIRCLE_RADIUS = 14, V_GAP = 45, H_GAP = 48;
   const creator = item.created_by;
-  const badges = item.involvedStatus.map(p => `
-    <span style="display:inline-block;padding:3px 16px 3px 8px;margin-bottom:7px; margin-right:13px; border-radius:17px;
-      background:${p.status === 'accepted' ? '#e8f5e8'
-        : p.status === 'pending' ? '#fff8dc'
-        : '#ffeaea'};
-      color:${p.status === 'accepted' ? '#26832f'
-        : p.status === 'pending' ? '#996800'
-        : '#ba0000'};
-      font-weight:500;position:relative;">
-      ${p.name === currentUser ? '<b>' + p.name + '</b>' : p.name}
-      ${p.status !== 'accepted'
-        ? `<span style="font-size:0.83em;margin-left:7px;opacity:0.7;">${p.status.charAt(0).toUpperCase() + p.status.slice(1)}</span>`
-        : ""}
-    </span>
-  `).join("\n");
+  // Participants below
+  const participants = item.involvedStatus.map((p, i) => {
+    let fill, text, txtColor="#222";
+    if (p.status==='accepted') { fill='#e8f5e8';txtColor="#237c30"; }
+    else if (p.status==='pending') { fill='#fff8dc';txtColor="#9c7a00"; }
+    else { fill='#ffeaea';txtColor="#c61010"; }
+    return { ...p, fill, txtColor, idx: i };
+  });
+  // SVG dimensions
+  const height = (participants.length+1) * V_GAP, width = 230;
+  const startY = V_GAP;
+  let lines = "", circles = "", texts = "";
+  // Vertical stem from creator to first participant
+  lines += `<line x1="${width/2}" y1="${CIRCLE_RADIUS*2}" x2="${width/2}" y2="${startY}" stroke="#bbb" stroke-width="2"/>`;
+  // For each, draw a branch and node
+  participants.forEach((p,i) => {
+    const y = startY + V_GAP * i;
+    lines += `<line x1="${width/2}" y1="${y}" x2="${width/2 + H_GAP}" y2="${y}" stroke="#bbb" stroke-width="2"/>`;
+    circles += `<circle cx="${width/2 + H_GAP + 36}" cy="${y}" r="${CIRCLE_RADIUS}" fill="${p.fill}" stroke="#bbb" stroke-width="1.5"/>`;
+    texts += `<text x="${width/2 + H_GAP + 36}" y="${y+5}" text-anchor="middle" font-size="1em" fill="${p.txtColor}" font-weight="600">${p.name}</text>`;
+    texts += `<text x="${width/2 + H_GAP + 36}" y="${y+21}" text-anchor="middle" font-size="0.7em" fill="#888">${p.status.charAt(0).toUpperCase()+p.status.slice(1)}</text>`;
+  });
+  // Creator badge at top
+  let creatorCircle = `<circle cx="${width/2}" cy="${CIRCLE_RADIUS*2}" r="${CIRCLE_RADIUS}" fill="#e0e7fb" stroke="#5066d0" stroke-width="2"/>`;
+  let creatorText = `<text x="${width/2}" y="${CIRCLE_RADIUS*2+5}" text-anchor="middle" font-size="1.05em" fill="#223" font-weight="600">${creator}</text>`;
   return `
-    <div style="display:flex;flex-direction:column;align-items:flex-start; margin-bottom:8px;">
-      <div style="font-size:1em;font-weight:600;margin-left:6px;margin-bottom:4px;">${creator}</div>
-      <div style="margin-left:16px; border-left:2px solid #eee; padding-left:20px;">
-        <div style="display:flex;flex-wrap:wrap;align-items:flex-start;">${badges}</div>
-      </div>
-    </div>
+  <div style="display:flex;align-items:flex-start; margin-bottom:12px;">
+    <svg width="${width}" height="${height+12}">
+      ${creatorCircle}
+      ${creatorText}
+      ${lines} ${circles} ${texts}
+    </svg>
+  </div>
   `;
 }
 
@@ -180,7 +189,6 @@ function renderApprovalDetails(container, user, item) {
   if (isDisputed && youDisputed) msg = `<div style="color:#d12020;font-weight:600;font-size:1em;">You have disputed this expense at ${formatDateTime(item.disputed_at) || '–'}.</div>`;
   else if (isDisputed) msg = `<div style="color:#d12020;font-weight:600;font-size:1em;">${item.disputed_by} has disputed this expense at ${formatDateTime(item.disputed_at) || '–'}.</div>`;
 
-  // Display Paid/Shares and Settlements as clean two-column lists
   detailArea.innerHTML = `
     <div style="margin-bottom:18px;">
       <div style="font-weight:600;font-size:1.09em;color:#1b2837;">${item.remarks}</div>
@@ -207,16 +215,24 @@ function renderApprovalDetails(container, user, item) {
         ${item.settlements.length
           ? item.settlements.map(st => `
             <tr>
-              <td style="padding:2px 12px 2px 0; color:#555;min-width:5em;">${st.from} owes ${st.to}:</td>
-              <td style="padding:2px 10px; color:#666;"><b>${st.amount} ${CURRENCY}</b></td>
+              <td style="padding:2px 10px 2px 0; color:#555;min-width:8em; text-align:right;">
+                ${st.from}
+              </td>
+              <td style="padding:2px 2px; color:#888;width:29px;text-align:center;">
+                <span style="font-size:1.21em;">&#8594;</span>
+              </td>
+              <td style="padding:2px 10px 2px 0; color:#333;">
+                ${st.to}:
+                <b>${st.amount} ${CURRENCY}</b>
+              </td>
             </tr>
           `).join('')
           : '<tr><td>No settlements needed</td></tr>'}
       </table>
     </div>
     <div style="border-top:1px solid #e8eaed;margin-top:12px;padding-top:13px; margin-bottom:10px;">
-      <div style="font-size:0.96em;color:#556;margin-bottom:6px;">Participants approvals:</div>
-      ${branchApprovalTree(item, currentUser)}
+      <div style="font-size:0.96em;color:#556;margin-bottom:9px;">Participants approvals:</div>
+      ${branchApprovalTreeSVG(item, currentUser)}
       <div id="actionArea" style="margin-top:18px;">${msg}</div>
     </div>
   `;
@@ -224,7 +240,7 @@ function renderApprovalDetails(container, user, item) {
   const actionArea = detailArea.querySelector('#actionArea');
   if (!isDisputed && userStatus === 'pending') {
     actionArea.innerHTML += `
-      <div style="height:16px"></div>
+      <div style="height:12px"></div>
       <button id="acceptBtn" style="margin-right:14px;background:#e7f6ea;color:#13a568;padding:10px 28px;font-size:1.09em; border:1px solid #13a568;border-radius:8px;cursor:pointer;font-weight:600;">Accept</button>
       <button id="disputeBtn" style="background:#ffecec;color:#d73323;padding:10px 28px;font-size:1.09em; border:1px solid #d73323;border-radius:8px;cursor:pointer;font-weight:600;">Dispute</button>
       <div id="disputeEntry" style="display:none;margin-top:13px;">
