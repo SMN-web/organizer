@@ -253,13 +253,23 @@ async function showCreatedByMeEditPanel(container, user, item) {
     container.innerHTML = `<div style="color:#b21414;padding:2em;font-size:1.13em;">Auth or friend list error: ${e.message || e}</div>`;
     return;
   }
-  // Build the initial prefilled edit state!
-  const selectedFriends = item.splits.map(s => s.name || s.username);
-  const payers = item.splits.filter(s => Number(s.paid) > 0).map(s => s.name || s.username);
+
+  // Helper to find friend object from FRIENDS list
+  function getFriendById(username) {
+    return FRIENDS.find(f => f.username === username) || { username, name: username };
+  }
+
+  // -- Robust prefill: always use username for state, display names as needed --
+  const selectedFriends = [];
+  const payers = [];
   const payerAmounts = {};
-  item.splits.forEach(s => { payerAmounts[s.name || s.username] = s.paid; });
+  (item.splits || []).forEach(s => {
+    if (!selectedFriends.includes(s.username)) selectedFriends.push(s.username);
+    if (Number(s.paid) > 0 && !payers.includes(s.username)) payers.push(s.username);
+    payerAmounts[s.username] = s.paid;
+  });
+
   let state = {
-    // always in edit mode for disputed expense!
     editing: true,
     selectedFriends: [...selectedFriends],
     payers: [...payers],
@@ -270,10 +280,6 @@ async function showCreatedByMeEditPanel(container, user, item) {
   };
 
   renderAll();
-
-  function getFriendById(id) {
-    return FRIENDS.find(f => f.id === id || f.username === id) || { id, name: id, username: id };
-  }
 
   function renderAll() {
     container.innerHTML = `
@@ -322,15 +328,15 @@ async function showCreatedByMeEditPanel(container, user, item) {
     };
     renderFriendsOptions('');
     const chips = container.querySelector('.friends-chosen');
-    chips.innerHTML = state.selectedFriends.map(id =>
-      `<span class="chosen-chip" data-id="${id}">${getFriendById(id).name}${state.editing && id!==loggedInUsername ? '<span class="chip-x">×</span>' : ''}</span>`
+    chips.innerHTML = state.selectedFriends.map(username =>
+      `<span class="chosen-chip" data-id="${username}">${getFriendById(username).name}${state.editing && username!==loggedInUsername ? '<span class="chip-x">×</span>' : ''}</span>`
     ).join('');
     if (state.editing) {
       chips.querySelectorAll('.chosen-chip').forEach(chip => {
         chip.onclick = () => {
           if(chip.dataset.id===loggedInUsername) return;
           state.selectedFriends = state.selectedFriends.filter(fid => fid !== chip.dataset.id);
-          state.payers = state.payers.filter(pid => pid !== chip.dataset.id); 
+          state.payers = state.payers.filter(pid => pid !== chip.dataset.id);
           delete state.payerAmounts[chip.dataset.id];
           renderAll();
         };
@@ -352,13 +358,13 @@ async function showCreatedByMeEditPanel(container, user, item) {
       opts.appendChild(div);
     } else {
       matches.forEach(f => {
-        const isSel = state.selectedFriends.includes(f.id);
+        const isSel = state.selectedFriends.includes(f.username);
         let div = document.createElement('div');
         div.className = "selector-item" + (isSel ? " selected used" : "");
         div.textContent = f.name + (f.username && f.name!==f.username ? " (" + f.username + ")" : "");
         if (!isSel && state.editing) {
           div.onclick = () => {
-            state.selectedFriends.push(f.id);
+            state.selectedFriends.push(f.username);
             state.selectedFriends = Array.from(new Set(state.selectedFriends)).sort((a,b)=>a===loggedInUsername?-1:b===loggedInUsername?1:0);
             renderAll();
           };
@@ -395,43 +401,43 @@ async function showCreatedByMeEditPanel(container, user, item) {
   function renderPayerSection() {
     const payersDiv = container.querySelector('.payers-chosen');
     payersDiv.innerHTML = "";
-    let addOptions = state.selectedFriends.filter(id => !state.payers.includes(id));
-    addOptions.forEach(id => {
+    let addOptions = state.selectedFriends.filter(username => !state.payers.includes(username));
+    addOptions.forEach(username => {
       let chip = document.createElement('span');
       chip.className = 'chosen-chip';
-      chip.textContent = getFriendById(id).name;
+      chip.textContent = getFriendById(username).name;
       let x = document.createElement('span');
       x.className = 'chip-x'; x.textContent = '+';
       chip.appendChild(x);
       if (state.editing) {
         chip.onclick = () => {
-          state.payers.push(id); state.payerAmounts[id] = '';
+          state.payers.push(username); state.payerAmounts[username] = '';
           renderAll();
         };
       }
       chip.style.background = "#f7f7f7"; chip.style.color = "#393939"; chip.style.border = "1.1px solid #d2dbe0";
       payersDiv.appendChild(chip);
     });
-    state.payers.forEach(id => {
+    state.payers.forEach(username => {
       let chip = document.createElement('span');
       chip.className = 'chosen-chip selected-payer';
       chip.innerHTML = `
-        ${getFriendById(id).name}
+        ${getFriendById(username).name}
         ${state.editing ? '<span class="chip-x" style="pointer-events:all;">×</span>' : ''}
-        <input type="number" class="payer-amt" min="0" step="1" value="${state.payerAmounts[id] ?? ''}" placeholder="Amt" ${state.editing ? '' : 'readonly'} />
+        <input type="number" class="payer-amt" min="0" step="1" value="${state.payerAmounts[username] ?? ''}" placeholder="Amt" ${state.editing ? '' : 'readonly'} />
       `;
       if (state.editing) {
         chip.onclick = e => {
           if (e.target.classList.contains('chip-x') || e.target === chip) {
-            state.payers = state.payers.filter(pid => pid !== id);
-            delete state.payerAmounts[id];
+            state.payers = state.payers.filter(pid => pid !== username);
+            delete state.payerAmounts[username];
             renderAll();
           }
         };
         chip.querySelector('.payer-amt').oninput = (ev) => {
           let val = ev.target.value.replace(/[^0-9]/g, '');
           ev.target.value = val;
-          state.payerAmounts[id] = val;
+          state.payerAmounts[username] = val;
           updateTotalDisplay();
         };
       }
@@ -441,7 +447,7 @@ async function showCreatedByMeEditPanel(container, user, item) {
   }
 
   function updateTotalDisplay() {
-    let sum = state.payers.reduce((acc, id) => acc + rup(state.payerAmounts[id]), 0);
+    let sum = state.payers.reduce((acc, username) => acc + rup(state.payerAmounts[username]), 0);
     const disp = container.querySelector('#totalDisplay');
     if (state.payers.length) {
       disp.style.display = '';
@@ -455,49 +461,30 @@ async function showCreatedByMeEditPanel(container, user, item) {
     const calcBtn = container.querySelector('.calc-btn');
     const msgBox = container.querySelector('.calc-btn-msg');
     calcBtn.onclick = () => {
-      if (state.editing) {
-        msgBox.textContent = "";
-        if (!state.selectedFriends.includes(loggedInUsername) || state.selectedFriends.length < 2) {
-          msgBox.textContent = "Please select yourself and at least one more friend.";
+      // ============= Validation always on username ==============
+      if (!state.selectedFriends.includes(loggedInUsername) || state.selectedFriends.length < 2) {
+        msgBox.textContent = "Please select yourself and at least one more friend.";
+        return;
+      }
+      if (!state.payers.includes(loggedInUsername) || !/^\d+$/.test(state.payerAmounts[loggedInUsername] || "") || rup(state.payerAmounts[loggedInUsername]) < 0) {
+        msgBox.textContent = "You must be added as a payer and have a paid amount (0 or more).";
+        return;
+      }
+      for (let username of state.payers) {
+        if (!/^\d+$/.test(state.payerAmounts[username] || "") || rup(state.payerAmounts[username]) < 0) {
+          msgBox.textContent = "All payers must have a non-negative paid amount.";
           return;
-        }
-        if (!state.payers.includes(loggedInUsername) || !/^\d+$/.test(state.payerAmounts[loggedInUsername] || "") || rup(state.payerAmounts[loggedInUsername]) < 0) {
-          msgBox.textContent = "You must be added as a payer and have a paid amount (0 or more).";
-          return;
-        }
-        for (let id of state.payers) {
-          if (!/^\d+$/.test(state.payerAmounts[id] || "") || rup(state.payerAmounts[id]) < 0) {
-            msgBox.textContent = "All payers must have a non-negative paid amount.";
-            return;
-          }
-        }
-        let total = state.payers.reduce((acc, id) => acc + rup(state.payerAmounts[id]), 0);
-        if (total <= 0) {
-          msgBox.textContent = "Total paid amount must be positive.";
-          return;
-        }
-        msgBox.textContent = "";
-        state.lastSplit = { sharers: state.selectedFriends.slice(), total };
-        state.editing = false;
-        renderAll();
-      } else {
-        if (confirm("Editing will clear the current distribution. Continue?")) {
-          state = {
-            editing: true,
-            selectedFriends: item.splits.map(s => s.name || s.username),
-            payers: item.splits.filter(s => Number(s.paid) > 0).map(s => s.name || s.username),
-            payerAmounts: (() => {
-              let pa = {};
-              item.splits.forEach(s => { pa[s.name || s.username] = s.paid; });
-              return pa;
-            })(),
-            lastSplit: null,
-            spendDate: (item.date && item.date.length === 10) ? item.date : (item.date ? item.date.split(' ')[0] : todayDate()),
-            remarks: item.remarks || ""
-          };
-          renderAll();
         }
       }
+      let total = state.payers.reduce((acc, username) => acc + rup(state.payerAmounts[username]), 0);
+      if (total <= 0) {
+        msgBox.textContent = "Total paid amount must be positive.";
+        return;
+      }
+      msgBox.textContent = "";
+      state.lastSplit = { sharers: state.selectedFriends.slice(), total };
+      state.editing = false;
+      renderAll();
     };
   }
 
@@ -511,34 +498,33 @@ async function showCreatedByMeEditPanel(container, user, item) {
     `;
     let locked = {};
     let lockError = {};
-
     function renderList() {
       const splitDiv = splitWrap.querySelector('.split-list');
       splitDiv.innerHTML = '';
       let lockedSum = Object.values(locked).reduce((a, b) => a + rup(b), 0);
-      let unlocked = sharers.filter(id => !(locked[id]));
+      let unlocked = sharers.filter(username => !(locked[username]));
       let toSplit = totalAmount - lockedSum;
       let share = unlocked.length > 0 ? rup(toSplit / unlocked.length) : 0;
       let sumPreview = lockedSum + share * unlocked.length;
       let diff = sumPreview - totalAmount;
-      sharers.forEach((id, idx) => {
-        let isLocked = id in locked;
-        let value = isLocked ? rup(locked[id]) : share;
+      sharers.forEach((username, idx) => {
+        let isLocked = username in locked;
+        let value = isLocked ? rup(locked[username]) : share;
         if (!isLocked && diff > 0 && idx === sharers.length - 1) value -= diff;
         let showErr = false;
         if (value < 0 || (isLocked && value > totalAmount)) {
-          lockError[id] = true;
+          lockError[username] = true;
           showErr = true;
         } else {
-          lockError[id] = false;
+          lockError[username] = false;
         }
         splitDiv.innerHTML += `
           <div class="split-row${isLocked ? " locked-row" : ""}">
-            <span class="split-row-name">${getFriendById(id).name}</span>
-            <input type="number" class="split-amt" min="0" step="1" value="${value}" data-id="${id}"
+            <span class="split-row-name">${getFriendById(username).name}</span>
+            <input type="number" class="split-amt" min="0" step="1" value="${value}" data-id="${username}"
               ${isLocked ? 'readonly' : ''}
               style="background:${isLocked ? '#e2eef4' : '#fff'};color:${isLocked ? (showErr ? '#c43422' : '#156b97'):'#25304d'};border:2.2px solid ${(showErr ? '#e44b56' : isLocked ? '#288944':'#d3dae4')};">
-            <button class="lock-btn" data-id="${id}" aria-label="${isLocked ? 'Unlock' : 'Lock'}" style="background:none;border:none;font-size:1.42em;">
+            <button class="lock-btn" data-id="${username}" aria-label="${isLocked ? 'Unlock' : 'Lock'}" style="background:none;border:none;font-size:1.42em;">
               ${isLocked
                 ? `<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#288944" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="8" rx="2" fill="#e2faf4"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="16" r="1.5" fill="#288944" /></svg>`
                 : `<svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="#96a1b5" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="8" rx="2" fill="#f8fafc"/><path d="M17 11V7a5 5 0 1 0-10 0"/><circle cx="12" cy="16" r="1.5" fill="#96a1b5" /></svg>`
@@ -553,28 +539,24 @@ async function showCreatedByMeEditPanel(container, user, item) {
       });
       splitDiv.querySelectorAll('.lock-btn').forEach(btn => {
         btn.onclick = () => {
-          let id = btn.dataset.id;
-          let val = splitDiv.querySelector(`.split-amt[data-id="${id}"]`).value;
-          if (rup(val) > totalAmount) {
-            lockError[id] = true;
-            renderList();
-            return;
-          } else if (rup(val) < 0) {
-            lockError[id] = true;
+          let username = btn.dataset.id;
+          let val = splitDiv.querySelector(`.split-amt[data-id="${username}"]`).value;
+          if (rup(val) > totalAmount || rup(val) < 0) {
+            lockError[username] = true;
             renderList();
             return;
           }
-          if (locked[id] === undefined) {
-            locked[id] = rup(val);
+          if (locked[username] === undefined) {
+            locked[username] = rup(val);
           } else {
-            delete locked[id];
+            delete locked[username];
           }
           renderList();
         };
       });
       splitDiv.querySelectorAll('.split-amt').forEach(input => {
         input.onblur = () => {
-          let id = input.dataset.id;
+          let username = input.dataset.id;
           let val = input.value.replace(/[^0-9]/g, '');
           if (Number(val) > totalAmount || Number(val) < 0) {
             input.value = '';
@@ -582,7 +564,7 @@ async function showCreatedByMeEditPanel(container, user, item) {
           }
         };
         input.oninput = () => {
-          let id = input.dataset.id;
+          let username = input.dataset.id;
           let val = input.value.replace(/[^0-9]/g, '');
           input.value = val;
           if (Number(val) > totalAmount || Number(val) < 0) {
@@ -630,13 +612,14 @@ async function showCreatedByMeEditPanel(container, user, item) {
         distributeMsg.textContent = "Negative values not allowed.";
         return;
       }
-      const splits = sharers.map(id => ({
-        username: id,
-        paid: Number(state.payerAmounts[id] ?? 0),
-        share: shares[id]
+      const splits = sharers.map(username => ({
+        username: username,
+        paid: Number(state.payerAmounts[username] ?? 0),
+        share: shares[username]
       }));
 
-      distributeMsg.textContent = "Processing preview (wire save/preview logic next)!";
+      distributeMsg.textContent = "Processing preview (add preview and Save here)...";
+      // Here you can insert settlement preview + save logic for update.
     };
   }
 }
