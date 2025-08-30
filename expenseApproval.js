@@ -7,6 +7,7 @@ function parseDBDatetimeAsUTC(dt) {
   if (!m) return new Date(dt);
   return new Date(Date.UTC(+m[1], m[2]-1, +m[3], +m[4], +m[5], +m[6]));
 }
+
 function timeAgo(dateStr) {
   if (!dateStr) return "";
   const then = parseDBDatetimeAsUTC(dateStr);
@@ -27,9 +28,19 @@ function timeAgo(dateStr) {
   const years = Math.floor(days / 365);
   return `${years}y ago`;
 }
+
 function escapeHtml(str) {
   return String(str || "").replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
+}
+
+// Helper to format "YYYY-MM-DD" as "12-Aug-25"
+function formatDisplayDate(dateStr) {
+  if (!dateStr) return '';
+  const [full] = dateStr.split(' ');
+  const [y, m, d] = full.split('-');
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${parseInt(d,10)}-${months[parseInt(m,10)-1]}-${y.slice(2)}`;
 }
 
 let approvalsData = [];
@@ -173,7 +184,6 @@ function approvalBranchHTML(creator, rows, currentUser) {
 }
 
 function renderApprovalDetails(container, user, item) {
-  // No spinner for back! Spinner only for initial/detail/action loads.
   container.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
       <button id="backBtn" style="background:none;border:1px solid #ddd;border-radius:8px;padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:1em;">← Back</button>
@@ -183,7 +193,6 @@ function renderApprovalDetails(container, user, item) {
     <div id="detailArea"></div>
   `;
 
-  // Attach the back handler immediately
   container.querySelector('#backBtn').onclick = function() {
     renderApprovalsArea(container, user);
   };
@@ -212,52 +221,53 @@ function renderApprovalDetails(container, user, item) {
   else if (userStatus === 'accepted')
     statusMsg = `<div style="color:#188c3d;font-weight:700;font-size:1.1em; margin:18px 0 0 0;">You have accepted this expense <span style="color:#656;font-weight:500;">${timeAgo(userTimestamp)}</span>.</div>`;
 
+  // ---- The only code revised block: ----
   detailArea.innerHTML = `
     <div style="margin-bottom:18px;">
       <div style="font-weight:700;font-size:1.14em;color:#1b2837;">${escapeHtml(item.remarks)}</div>
-      <div style="color:#566b89;font-size:1em;margin-bottom:3px;">${escapeHtml(item.date)}</div>
+      <div style="color:#566b89;font-size:1em;">${formatDisplayDate(item.date)}</div>
       <div style="color:#209;font-size:0.98em;margin-bottom:5px;">by ${escapeHtml(item.created_by)}</div>
       <div style="font-size:1.08em;color:#222;margin-bottom:2px;">Total: <span style="font-weight:700;">${item.total_amount} ${CURRENCY}</span></div>
       <div style="color:#888;font-size:0.99em; margin-bottom:4px;">Status last updated: <b>${timeAgo(item.status_at)}</b></div>
     </div>
-    <div style="margin-bottom:10px;">
-      <div style="font-weight:700;margin-bottom:5px;">Paid/Shares</div>
-      <table style="border-collapse:collapse;width:auto;">
-        ${item.splits.map(s => `
+
+    <div style="font-weight:700;margin:18px 0 6px 0;color:#164fa4;letter-spacing:.2px;">Paid/Shares</div>
+    <table style="border-collapse:collapse;width:auto;margin-bottom:12px;">
+      ${item.splits.map(s => `
+        <tr>
+          <td style="padding:2px 12px 2px 0; color:#221;font-weight:700;min-width:5em;">${escapeHtml(s.name)}:</td>
+          <td style="padding:2px 10px; color:#222;">paid <span style="font-weight:700;color:#222">${s.paid} ${CURRENCY}</span></td>
+          <td style="padding:2px 5px; color:#567;">share <span style="font-weight:700;color:#222">${s.share} ${CURRENCY}</span></td>
+        </tr>
+      `).join('')}
+    </table>
+
+    <div style="font-weight:700;margin:18px 0 6px 0;color:#23875e;letter-spacing:.2px;">Settlements</div>
+    <table style="border-collapse:collapse;margin-bottom:11px;">
+      ${item.settlements.length
+        ? item.settlements.map(st => `
           <tr>
-            <td style="padding:2px 12px 2px 0; color:#221;font-weight:700;min-width:5em;">${escapeHtml(s.name)}:</td>
-            <td style="padding:2px 10px; color:#222;">paid <span style="font-weight:700;color:#222">${s.paid} ${CURRENCY}</span></td>
-            <td style="padding:2px 5px; color:#567;">share <span style="font-weight:700;color:#222">${s.share} ${CURRENCY}</span></td>
+            <td style="padding:2px 10px 2px 0; color:#555;min-width:8em;text-align:right;">
+              ${escapeHtml(st.from)}
+            </td>
+            <td style="padding:2px 2px; color:#888;width:29px;text-align:center;">
+              <span style="font-size:1.21em;">&#8594;</span>
+            </td>
+            <td style="padding:2px 10px 2px 0; color:#333;">
+              ${escapeHtml(st.to)}: <span style="font-weight:700;color:#222">${st.amount} ${CURRENCY}</span>
+            </td>
           </tr>
-        `).join('')}
-      </table>
-    </div>
-    <div style="margin-bottom:10px;">
-      <div style="font-weight:700;margin-bottom:5px;">Settlements</div>
-      <table style="border-collapse:collapse;">
-        ${item.settlements.length
-          ? item.settlements.map(st => `
-            <tr>
-              <td style="padding:2px 10px 2px 0; color:#555;min-width:8em; text-align:right;">
-                ${escapeHtml(st.from)}
-              </td>
-              <td style="padding:2px 2px; color:#888;width:29px;text-align:center;">
-                <span style="font-size:1.21em;">&#8594;</span>
-              </td>
-              <td style="padding:2px 10px 2px 0; color:#333;">
-                ${escapeHtml(st.to)}: <span style="font-weight:700;color:#222">${st.amount} ${CURRENCY}</span>
-              </td>
-            </tr>
-          `).join('')
-          : '<tr><td>No settlements needed</td></tr>'}
-      </table>
-    </div>
+        `).join('')
+        : '<tr><td>No settlements needed</td></tr>'}
+    </table>
+
     <div style="border-top:1px solid #e8eaed;margin-top:10px;padding-top:10px; margin-bottom:10px;">
       <div style="font-size:1.01em;color:#556;margin-bottom:7px;font-weight:700;">Participants approvals:</div>
       ${approvalBranchHTML(item.created_by, partList, currentUser)}
       <div id="actionArea">${statusMsg}</div>
     </div>
   `;
+  // ---- end revised block ----
 
   const actionArea = detailArea.querySelector('#actionArea');
   if (!isDisputed && userStatus === 'pending') {
