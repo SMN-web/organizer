@@ -413,8 +413,8 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
 .section-switch, .approval-subtabs {
   justify-content: center !important;
   display: flex !important;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 5px;
+  margin-bottom: 13px;
   margin-top: 8px;
 }
 
@@ -422,23 +422,26 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
   background: #f1f5fa;
   color: #1761a0;
   border: none;
-  border-radius: 14px;
-  padding: 8px 24px;
-  font-size: 1.04em;
+  border-radius: 9px;
+  padding: 4px 13px;
+  font-size: 0.98em;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.18s, color 0.12s, box-shadow 0.16s;
   outline: none;
-  margin: 0 1px;
-  box-shadow: 0 0 0 0 #fff, 0 2.5px 10px #b6cefb30;
+  box-shadow: none;
+  min-width: 0;
 }
+
 .approval-subtab.active, .tab-btn.active {
   background: #2268c5;
   color: #fff;
-  box-shadow: 0 4px 28px #6198fa28;
+  box-shadow: 0 2px 9px #6198fa1a;
 }
+
 .approval-subtab:hover:not(.active),
 .tab-btn:hover:not(.active) {
   background: #e5ecfa;
   color: #1b3c7c;
 }
+
