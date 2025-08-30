@@ -42,6 +42,42 @@ function formatDisplayDate(dateStr) {
   return `${parseInt(d,10)}-${months[parseInt(m,10)-1]}-${y.slice(2)}`;
 }
 
+function approvalBranchHTML(creator, rows) {
+  const rowHeight = 31;
+  const branchHeight = rows.length * rowHeight - 8;
+  const statusColor = s => s === "accepted" ? "#187f2c" : (s === "disputed" ? "#cc2020" : "#b08c00");
+  const nameColor = s => s === "accepted" ? "#187f2c" : (s === "disputed" ? "#cc2020" : "#a89a00");
+  return `
+  <div>
+    <div style="font-weight:700;color:#222;font-size:0.99em;letter-spacing:0.04em;margin-bottom:1.5px;">
+      ${escapeHtml(creator)}
+    </div>
+    <div style="display:flex;">
+      <div style="display:flex;flex-direction:column;align-items:center;width:22px;position:relative;">
+        <div style="height:2px;"></div>
+        <div style="width:0; border-left:2.2px solid #b0b8be; height:${branchHeight}px; min-height:13px;"></div>
+      </div>
+      <div>
+      ${rows.map(r=>`
+        <div style="display:flex;align-items:center;height:${rowHeight}px;">
+          <div style="width:24px;border-bottom:2.2px solid #b0b8be;"></div>
+          <span style="color:${nameColor(r.status)};font-weight:600;font-size:0.98em;margin-left:8px;margin-right:8px;">
+            ${escapeHtml(r.name)}
+          </span>
+          <span style="color:${statusColor(r.status)};font-weight:700;font-size:0.96em;margin-right:7px;">
+            ${r.status.charAt(0).toUpperCase()+r.status.slice(1)}
+          </span>
+          ${(r.status !=="pending" && r.timestamp)
+            ? `<span style="color:#848189;font-size:0.93em;font-weight:500;margin-left:4px;">${timeAgo(r.timestamp)}</span>`
+            : ""}
+        </div>
+      `).join('\n')}
+      </div>
+    </div>
+  </div>
+  `;
+}
+
 export async function showCreatedByMePanel(container, user) {
   container.innerHTML = '';
   showSpinner(container);
@@ -131,6 +167,13 @@ function showCreatedByMeDetails(container, user, item) {
     showCreatedByMePanel(container, user);
   };
   const detailArea = container.querySelector('#detailArea');
+  // Dispute message
+  let disputeMsg = "";
+  if (item.status === "disputed" && item.disputed_by) {
+    disputeMsg = `<div style="color:#d12020;font-weight:700;font-size:0.98em;margin:15px 0 8px 0;">
+      ${escapeHtml(item.disputed_by)} has disputed this expense <span style="color:#656;font-weight:500;">${timeAgo(item.disputed_at)}</span>.
+    </div>`;
+  }
   detailArea.innerHTML = `
     <div style="margin-bottom:12px;">
       <div style="font-weight:700;font-size:1em;color:#1b2837;">${escapeHtml(item.remarks)}</div>
@@ -167,9 +210,14 @@ function showCreatedByMeDetails(container, user, item) {
         `).join('')
         : '<tr><td>No settlements needed</td></tr>'}
     </table>
-    ${item.status === "disputed"
-      ? `<button id="editBtn" style="margin-top:17px; padding:8px 24px; font-size:1em; border-radius:8px; background:#2268c5; color:#fff; border:none; font-weight:600;">Edit</button>`
-      : ""}
+    <div style="border-top:1px solid #e8eaed;margin-top:10px;padding-top:8px;margin-bottom:9px;">
+      <div style="font-size:0.96em;color:#556;margin-bottom:6px;font-weight:700;">Participants approvals:</div>
+      ${approvalBranchHTML(item.created_by, item.involvedStatus)}
+      ${disputeMsg}
+      ${(item.status === "disputed")
+        ? `<button id="editBtn" style="margin-top:14px; padding:8px 24px; font-size:1em; border-radius:8px; background:#2268c5; color:#fff; border:none; font-weight:600;">Edit</button>`
+        : ""}
+    </div>
   `;
   if (item.status === "disputed") {
     detailArea.querySelector('#editBtn').onclick = () => showEditMessage(container, user, item);
@@ -182,7 +230,7 @@ function showEditMessage(container, user, item) {
       <div style="font-size:1.03em;font-weight:500;color:#316;">
         <span style="font-size:2em;">🛠️</span>
         <br>
-        <b>Edit Mode:</b> 
+        <b>Edit Mode:</b>
         Here you will soon be able to edit all aspects of your expense—participants, shares, paid, date, remarks, and redistribute.
         <br><br>On save, all previous data and approvals will be reset and replaced.
       </div>
