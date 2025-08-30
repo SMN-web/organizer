@@ -1,5 +1,6 @@
 import { showSpinner, hideSpinner, delay } from './spinner.js';
 
+// helpers
 function formatDisplayDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -10,13 +11,13 @@ function formatDisplayDate(dateStr) {
   const year = String(d.getFullYear()).slice(-2);
   return `${day}-${month}-${year}`;
 }
-
 function highlightText(text, searchTerm) {
   if (!searchTerm) return text;
   const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
   return text.replace(regex, '<mark style="background:#ffeb3b;padding:1px 2px;border-radius:2px;">$1</mark>');
 }
 
+// Module state:
 let approvalsData = [];
 let currentSearch = '';
 let currentDateFilter = '';
@@ -47,7 +48,7 @@ export async function showExpenseApproval(container, user) {
   hideSpinner(container);
 
   if (errMsg) {
-    container.innerHTML = `<div style="font-weight:600;font-size:1.13em;line-height:1.6;margin-bottom:10px;">Pending Approvals</div>
+    container.innerHTML = `<div style="font-weight:600;font-size:1.13em;margin-bottom:10px;">Pending Approvals</div>
       <div style="color:#d12020;font-size:1.1em;margin:2em 0;text-align:center;">${errMsg}</div>`;
     return;
   }
@@ -135,8 +136,11 @@ function renderApprovalDetails(container, user, item) {
 
   const detailArea = container.querySelector('#detailArea');
   // Find user's status for this action
-  let userActionRow = item.involvedStatus.find(u => u.name === user.name);
-  let userStatus = userActionRow ? userActionRow.status : null;
+  let currentUser = user?.name || user?.firebaseUser?.displayName || user?.firebaseUser?.email;
+  let myStatusRow = item.involvedStatus.find(p =>
+    (p.name === currentUser) || (user?.firebaseUser?.email && p.name && p.name.toLowerCase() === user.firebaseUser.email.toLowerCase())
+  );
+  let userStatus = myStatusRow ? myStatusRow.status : null;
 
   detailArea.innerHTML = `
     <div style="margin-bottom:18px;">
@@ -145,9 +149,21 @@ function renderApprovalDetails(container, user, item) {
       <div style="color:#209;font-size:0.96em;margin-bottom:5px;">by ${item.created_by}</div>
       <div style="font-size:1em;color:#222;">Total: <span style="font-weight:600;">${item.total_amount}</span></div>
     </div>
-    <div style="border-top:1px solid #e8eaed;margin-top:12px;padding-top:12px;">
+    <div>
+      <div style="font-weight:600;margin-bottom:7px;">Paid/Shares</div>
+      <ul style="padding-left:18px;">
+        ${item.splits.map(s => `<li>${s.name}: paid <b>${s.paid}</b>, share <b>${s.share}</b></li>`).join('')}
+      </ul>
+      <div style="font-weight:600;margin-bottom:6px;margin-top:12px;">Settlements</div>
+      <ul style="padding-left:18px;">
+        ${item.settlements.length
+          ? item.settlements.map(st => `<li>${st.from} owes ${st.to}: <b>${st.amount}</b> (${st.payer_status})</li>`).join('')
+          : '<li>No settlements needed</li>'}
+      </ul>
+    </div>
+    <div style="border-top:1px solid #e8eaed;margin-top:12px;padding-top:13px;">
       <div style="font-size:0.96em;color:#556;margin-bottom:8px;">Participants approvals:</div>
-      <div style="display:flex;flex-wrap:wrap;gap:9px;margin-bottom:16px;">
+      <div style="display:flex;flex-wrap:wrap;gap:9px;margin-bottom:2px;">
         ${item.involvedStatus.map(person => `
           <span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:16px;font-size:0.93em;
             ${person.status === 'accepted' ? 'background:#e8f5e8;color:#2d7d2d;' :
@@ -157,7 +173,7 @@ function renderApprovalDetails(container, user, item) {
               ${person.status === 'accepted' ? 'background:#4caf50;' :
                 person.status === 'disputed' ? 'background:#f44336;' :
                 'background:#ff9800;'}"></span>
-            ${person.name}
+            ${person.name}${person.status === 'disputed' && person.remarks ? ` <span style="color:#ba0000;font-style:italic;">- ${person.remarks}</span>` : ''}
           </span>
         `).join('')}
       </div>
@@ -165,15 +181,26 @@ function renderApprovalDetails(container, user, item) {
     </div>
   `;
 
-  // Action area: Only show if user status is 'pending'
+  // Action area:
   const actionArea = detailArea.querySelector('#actionArea');
   if (userStatus === 'pending') {
     actionArea.innerHTML = `
       <button id="acceptBtn" style="margin-right:15px;background:#e7f6ea;color:#13a568;padding:9px 21px;border:1px solid #13a568;border-radius:8px;cursor:pointer;font-weight:600;">Accept</button>
       <button id="disputeBtn" style="background:#ffecec;color:#d73323;padding:9px 21px;border:1px solid #d73323;border-radius:8px;cursor:pointer;font-weight:600;">Dispute</button>
+      <div id="disputeEntry" style="display:none;margin-top:10px;">
+        <textarea id="disputeRemarks" placeholder="Enter reason..." style="width:98%;min-height:44px;"></textarea>
+        <button id="submitDispute" style="margin-top:7px;">Submit Dispute</button>
+      </div>
     `;
     actionArea.querySelector('#acceptBtn').onclick = () => handleApprovalAction(container, user, item, "accept");
-    actionArea.querySelector('#disputeBtn').onclick = () => handleApprovalAction(container, user, item, "dispute");
+    actionArea.querySelector('#disputeBtn').onclick = () => {
+      actionArea.querySelector('#disputeEntry').style.display = '';
+    };
+    actionArea.querySelector('#submitDispute').onclick = () => {
+      const reason = actionArea.querySelector('#disputeRemarks').value.trim();
+      if (!reason) { alert("Please enter dispute reason!"); return; }
+      handleApprovalAction(container, user, item, "dispute", reason);
+    };
   } else if (userStatus === 'accepted') {
     actionArea.innerHTML = `<div style="color:#208c42;font-weight:600;font-size:1em;">You have accepted this expense.</div>`;
   } else if (userStatus === 'disputed') {
@@ -181,21 +208,19 @@ function renderApprovalDetails(container, user, item) {
   }
 }
 
-async function handleApprovalAction(container, user, item, action) {
+async function handleApprovalAction(container, user, item, action, remarks='') {
   showSpinner(container);
   try {
     const token = await user.firebaseUser.getIdToken(true);
     const resp = await fetch("https://ex-ap.nafil-8895-s.workers.dev/api/approval-action", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ spend_id: item.spend_id, action })
+      body: JSON.stringify({ spend_id: item.spend_id, action, remarks })
     });
     const result = await resp.json();
-    await delay(650);
+    await delay(500);
     if (!result.ok) throw new Error(result.error || "Unknown error");
-    // refresh UI (for a real app: re-fetch from backend, here optimistically)
-    item.involvedStatus.find(p => p.name === user.name).status = action === "accept" ? "accepted" : "disputed";
-    renderApprovalDetails(container, user, item);
+    await showExpenseApproval(container, user);
   } catch (e) {
     container.innerHTML = `<div style="color:#d12020;padding:2em;text-align:center;">${e.message}</div>
     <button onclick="location.reload()" style="margin-top:1.5em;padding:9px 21px;font-size:1em;background:#fafbfc;border:1px solid #ddd;border-radius:9px;">Reload</button>`;
