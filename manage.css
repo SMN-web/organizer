@@ -410,33 +410,55 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
 }
 
 /* Place in your main CSS or inside a <style> tag loaded with your app */
+.spend-header {
+  margin-top: 4px !important;
+  padding-bottom: 2px;
+}
+
+.spend-header .centered-title {
+  font-size: 1.1em;
+  font-weight: 600;
+  line-height: 1.18;
+  letter-spacing: 0.01em;
+  margin-bottom: 1px;
+  margin-top: 4px;
+}
+
+.spend-header .spend-desc {
+  font-size: 0.95em;
+  color: #656c75;
+  font-weight: 400;
+  margin: 0 0 7px 0;
+  line-height: 1.28;
+  letter-spacing: 0.01em;
+}
+
 .section-switch, .approval-subtabs {
   justify-content: center !important;
   display: flex !important;
-  gap: 5px;
-  margin-bottom: 13px;
-  margin-top: 8px;
+  gap: 6px;
+  margin-bottom: 11px;
+  margin-top: 6px;
 }
 
 .approval-subtab, .tab-btn {
   background: #f1f5fa;
   color: #1761a0;
   border: none;
-  border-radius: 9px;
-  padding: 4px 13px;
-  font-size: 0.98em;
+  border-radius: 8px;
+  padding: 3px 11px;
+  font-size: 0.97em;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.18s, color 0.12s, box-shadow 0.16s;
+  transition: background 0.13s, color 0.11s, box-shadow 0.12s;
   outline: none;
   box-shadow: none;
-  min-width: 0;
 }
 
 .approval-subtab.active, .tab-btn.active {
   background: #2268c5;
   color: #fff;
-  box-shadow: 0 2px 9px #6198fa1a;
+  box-shadow: 0 1px 4px #6198fa1a;
 }
 
 .approval-subtab:hover:not(.active),
@@ -444,4 +466,5 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
   background: #e5ecfa;
   color: #1b3c7c;
 }
+
 
