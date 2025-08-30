@@ -1,6 +1,7 @@
+// expenseApproval.js
+
 import { showSpinner, hideSpinner, delay } from './spinner.js';
 
-// helpers
 function formatDisplayDate(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -17,7 +18,6 @@ function highlightText(text, searchTerm) {
   return text.replace(regex, '<mark style="background:#ffeb3b;padding:1px 2px;border-radius:2px;">$1</mark>');
 }
 
-// Module state:
 let approvalsData = [];
 let currentSearch = '';
 let currentDateFilter = '';
@@ -78,9 +78,7 @@ function renderApprovalsArea(container, user) {
     let filtered = approvalsData;
     const s = searchInput.value.trim().toLowerCase();
     const d = dateFilter.value;
-    // date filter
     if (d) filtered = filtered.filter(item => item.date === d);
-    // search
     if (s) filtered = filtered.filter(item =>
       item.remarks.toLowerCase().includes(s) ||
       item.created_by.toLowerCase().includes(s)
@@ -135,12 +133,16 @@ function renderApprovalDetails(container, user, item) {
   container.querySelector('#backBtn').onclick = () => renderApprovalsArea(container, user);
 
   const detailArea = container.querySelector('#detailArea');
-  // Find user's status for this action
   let currentUser = user?.name || user?.firebaseUser?.displayName || user?.firebaseUser?.email;
   let myStatusRow = item.involvedStatus.find(p =>
     (p.name === currentUser) || (user?.firebaseUser?.email && p.name && p.name.toLowerCase() === user.firebaseUser.email.toLowerCase())
   );
   let userStatus = myStatusRow ? myStatusRow.status : null;
+  const isDisputed = !!item.disputed_by;
+  const youDisputed = isDisputed && item.disputed_by === currentUser;
+  let disputeMsg = "";
+  if (isDisputed && youDisputed) disputeMsg = `<div style="color:#d12020;font-weight:600;font-size:1em;">You have disputed this expense.<br><span style="font-weight:400;">${item.dispute_remarks}</span></div>`;
+  else if (isDisputed) disputeMsg = `<div style="color:#d12020;font-weight:600;font-size:1em;">${item.disputed_by} has disputed this expense.<br><span style="font-weight:400;">${item.dispute_remarks}</span></div>`;
 
   detailArea.innerHTML = `
     <div style="margin-bottom:18px;">
@@ -177,14 +179,13 @@ function renderApprovalDetails(container, user, item) {
           </span>
         `).join('')}
       </div>
-      <div id="actionArea"></div>
+      <div id="actionArea">${disputeMsg}</div>
     </div>
   `;
 
-  // Action area:
   const actionArea = detailArea.querySelector('#actionArea');
-  if (userStatus === 'pending') {
-    actionArea.innerHTML = `
+  if (!isDisputed && userStatus === 'pending') {
+    actionArea.innerHTML += `
       <button id="acceptBtn" style="margin-right:15px;background:#e7f6ea;color:#13a568;padding:9px 21px;border:1px solid #13a568;border-radius:8px;cursor:pointer;font-weight:600;">Accept</button>
       <button id="disputeBtn" style="background:#ffecec;color:#d73323;padding:9px 21px;border:1px solid #d73323;border-radius:8px;cursor:pointer;font-weight:600;">Dispute</button>
       <div id="disputeEntry" style="display:none;margin-top:10px;">
@@ -201,11 +202,8 @@ function renderApprovalDetails(container, user, item) {
       if (!reason) { alert("Please enter dispute reason!"); return; }
       handleApprovalAction(container, user, item, "dispute", reason);
     };
-  } else if (userStatus === 'accepted') {
-    actionArea.innerHTML = `<div style="color:#208c42;font-weight:600;font-size:1em;">You have accepted this expense.</div>`;
-  } else if (userStatus === 'disputed') {
-    actionArea.innerHTML = `<div style="color:#d12020;font-weight:600;font-size:1em;">You have disputed this expense.</div>`;
   }
+  addStatusCSS();
 }
 
 async function handleApprovalAction(container, user, item, action, remarks='') {
@@ -222,13 +220,13 @@ async function handleApprovalAction(container, user, item, action, remarks='') {
     if (!result.ok) throw new Error(result.error || "Unknown error");
     await showExpenseApproval(container, user);
   } catch (e) {
-    container.innerHTML = `<div style="color:#d12020;padding:2em;text-align:center;">${e.message}</div>
-    <button onclick="location.reload()" style="margin-top:1.5em;padding:9px 21px;font-size:1em;background:#fafbfc;border:1px solid #ddd;border-radius:9px;">Reload</button>`;
+    alert(e.message);
+    await showExpenseApproval(container, user);
   }
   hideSpinner(container);
 }
 
-// shared CSS
+// CSS helper
 function addStatusCSS() {
   const cssId = "expense-approval-css";
   if (!document.getElementById(cssId)) {
