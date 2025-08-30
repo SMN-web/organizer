@@ -1,5 +1,3 @@
-// expenseApproval.js
-
 import { showSpinner, hideSpinner, delay } from './spinner.js';
 
 function formatDisplayDate(dateStr) {
@@ -11,6 +9,11 @@ function formatDisplayDate(dateStr) {
   const month = monthNames[d.getMonth()];
   const year = String(d.getFullYear()).slice(-2);
   return `${day}-${month}-${year}`;
+}
+function formatDateTime(dateTimeStr) {
+  if (!dateTimeStr) return "";
+  const d = new Date(dateTimeStr);
+  return `${formatDisplayDate(dateTimeStr)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 function highlightText(text, searchTerm) {
   if (!searchTerm) return text;
@@ -140,9 +143,10 @@ function renderApprovalDetails(container, user, item) {
   let userStatus = myStatusRow ? myStatusRow.status : null;
   const isDisputed = !!item.disputed_by;
   const youDisputed = isDisputed && item.disputed_by === currentUser;
-  let disputeMsg = "";
-  if (isDisputed && youDisputed) disputeMsg = `<div style="color:#d12020;font-weight:600;font-size:1em;">You have disputed this expense.<br><span style="font-weight:400;">${item.dispute_remarks}</span></div>`;
-  else if (isDisputed) disputeMsg = `<div style="color:#d12020;font-weight:600;font-size:1em;">${item.disputed_by} has disputed this expense.<br><span style="font-weight:400;">${item.dispute_remarks}</span></div>`;
+
+  let msg = "";
+  if (isDisputed && youDisputed) msg = `<div style="color:#d12020;font-weight:600;font-size:1em;">You have disputed this expense at ${formatDateTime(item.disputed_at) || '–'}.</div>`;
+  else if (isDisputed) msg = `<div style="color:#d12020;font-weight:600;font-size:1em;">${item.disputed_by} has disputed this expense at ${formatDateTime(item.disputed_at) || '–'}.</div>`;
 
   detailArea.innerHTML = `
     <div style="margin-bottom:18px;">
@@ -150,6 +154,7 @@ function renderApprovalDetails(container, user, item) {
       <div style="color:#566b89;font-size:1em;margin-bottom:3px;">${formatDisplayDate(item.date)}</div>
       <div style="color:#209;font-size:0.96em;margin-bottom:5px;">by ${item.created_by}</div>
       <div style="font-size:1em;color:#222;">Total: <span style="font-weight:600;">${item.total_amount}</span></div>
+      <div style="color:#888;font-size:0.98em;">Status last updated: <b>${formatDateTime(item.status_at)}</b></div>
     </div>
     <div>
       <div style="font-weight:600;margin-bottom:7px;">Paid/Shares</div>
@@ -175,11 +180,11 @@ function renderApprovalDetails(container, user, item) {
               ${person.status === 'accepted' ? 'background:#4caf50;' :
                 person.status === 'disputed' ? 'background:#f44336;' :
                 'background:#ff9800;'}"></span>
-            ${person.name}${person.status === 'disputed' && person.remarks ? ` <span style="color:#ba0000;font-style:italic;">- ${person.remarks}</span>` : ''}
+            ${person.name}
           </span>
         `).join('')}
       </div>
-      <div id="actionArea">${disputeMsg}</div>
+      <div id="actionArea">${msg}</div>
     </div>
   `;
 
@@ -189,8 +194,7 @@ function renderApprovalDetails(container, user, item) {
       <button id="acceptBtn" style="margin-right:15px;background:#e7f6ea;color:#13a568;padding:9px 21px;border:1px solid #13a568;border-radius:8px;cursor:pointer;font-weight:600;">Accept</button>
       <button id="disputeBtn" style="background:#ffecec;color:#d73323;padding:9px 21px;border:1px solid #d73323;border-radius:8px;cursor:pointer;font-weight:600;">Dispute</button>
       <div id="disputeEntry" style="display:none;margin-top:10px;">
-        <textarea id="disputeRemarks" placeholder="Enter reason..." style="width:98%;min-height:44px;"></textarea>
-        <button id="submitDispute" style="margin-top:7px;">Submit Dispute</button>
+        <button id="submitDispute" style="margin-top:7px;">Confirm Dispute</button>
       </div>
     `;
     actionArea.querySelector('#acceptBtn').onclick = () => handleApprovalAction(container, user, item, "accept");
@@ -198,22 +202,20 @@ function renderApprovalDetails(container, user, item) {
       actionArea.querySelector('#disputeEntry').style.display = '';
     };
     actionArea.querySelector('#submitDispute').onclick = () => {
-      const reason = actionArea.querySelector('#disputeRemarks').value.trim();
-      if (!reason) { alert("Please enter dispute reason!"); return; }
-      handleApprovalAction(container, user, item, "dispute", reason);
+      handleApprovalAction(container, user, item, "dispute");
     };
   }
   addStatusCSS();
 }
 
-async function handleApprovalAction(container, user, item, action, remarks='') {
+async function handleApprovalAction(container, user, item, action) {
   showSpinner(container);
   try {
     const token = await user.firebaseUser.getIdToken(true);
     const resp = await fetch("https://ex-ap.nafil-8895-s.workers.dev/api/approval-action", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ spend_id: item.spend_id, action, remarks })
+      body: JSON.stringify({ spend_id: item.spend_id, action })
     });
     const result = await resp.json();
     await delay(500);
@@ -226,7 +228,6 @@ async function handleApprovalAction(container, user, item, action, remarks='') {
   hideSpinner(container);
 }
 
-// CSS helper
 function addStatusCSS() {
   const cssId = "expense-approval-css";
   if (!document.getElementById(cssId)) {
