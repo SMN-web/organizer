@@ -72,8 +72,8 @@ export async function showExpenseApproval(container, user) {
   hideSpinner(container);
 
   if (errMsg) {
-    container.innerHTML = `<div style="font-weight:600;font-size:1.13em;margin-bottom:10px;">Pending Approvals</div>
-      <div style="color:#d12020;font-size:1.1em;margin:2em 0;text-align:center;">${escapeHtml(errMsg)}</div>`;
+    container.innerHTML = `<div style="font-weight:600;font-size:1.09em;margin-bottom:8px;">Pending Approvals</div>
+      <div style="color:#d12020;font-size:1em;margin:1.3em 0 1em 0;text-align:center;">${escapeHtml(errMsg)}</div>`;
     return;
   }
   renderApprovalsArea(container, user);
@@ -81,14 +81,14 @@ export async function showExpenseApproval(container, user) {
 
 function renderApprovalsArea(container, user) {
   container.innerHTML = `
-    <div style="font-weight:600;font-size:1.13em;margin-bottom:10px;">Pending Approvals</div>
-    <div style="display:flex;gap:13px;margin-bottom:18px;align-items:center;">
+    <div style="font-weight:600;font-size:1.01em;margin-bottom:7px;">Pending Approvals</div>
+    <div style="display:flex;gap:11px;margin-bottom:14px;align-items:center;">
       <input type="text" id="searchInput" placeholder="Search in remarks, names..." style="
-        flex:1;padding:10px 15px;border:1px solid #ddd;border-radius:8px;
-        font-size:1em;outline:none;transition:border-color 0.2s;">
+        flex:1;padding:7px 11px;border:1px solid #ddd;border-radius:6px;
+        font-size:0.96em;outline:none;transition:border-color 0.2s;">
       <input type="date" id="dateFilter" style="
-        padding:10px 15px;border:1px solid #ddd;border-radius:8px;
-        font-size:1em;outline:none;min-width:140px;">
+        padding:7px 11px;border:1px solid #ddd;border-radius:6px;
+        font-size:0.96em;outline:none;min-width:110px;">
     </div>
     <div class="approval-folder-list"></div>
   `;
@@ -110,7 +110,7 @@ function renderApprovalsArea(container, user) {
     );
     listArea.innerHTML = '';
     if (!filtered.length) {
-      listArea.innerHTML = `<div style="color:#666;text-align:center;margin:3em 0;font-size:1.1em;">
+      listArea.innerHTML = `<div style="color:#666;text-align:center;margin:2em 0 1em 0;font-size:0.98em;">
         No pending approvals found.
       </div>`;
       return;
@@ -124,15 +124,15 @@ function renderApprovalsArea(container, user) {
       const row = document.createElement("div");
       row.className = "approval-folder";
       row.tabIndex = 0;
-      row.style = `display:flex;align-items:flex-start;gap:13px;
-        padding:12px 10px 14px 10px;
-        border-bottom:1px solid #eee;font-size:1.05em;cursor:pointer;transition:background 0.2s;`;
+      row.style = `display:flex;align-items:flex-start;gap:11px;
+        padding:9px 7px 10px 7px;
+        border-bottom:1px solid #eee;font-size:0.97em;cursor:pointer;transition:background 0.2s;`;
       row.innerHTML = `
-        <span class="sn" style="min-width:2em;font-weight:600;color:#357;flex-shrink:0;margin-top:7px;">${item.sn}.</span>
+        <span class="sn" style="min-width:2em;font-weight:600;color:#357;flex-shrink:0;margin-top:6px;">${item.sn}.</span>
         <div class="approval-main" style="flex:1 1 0;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;row-gap:2px;">
-          <div class="remarks" style="font-weight:600;color:#1b2837;margin-bottom:3px;">${escapeHtml(item.remarks||"")}</div>
-          <div class="date" style="color:#566b89;font-size:0.97em;">${formatDisplayDate(item.date||"")}</div>
-          <div class="by" style="color:#209;font-size:0.97em;">by ${escapeHtml(item.created_by||"")}</div>
+          <div class="remarks" style="font-weight:600;color:#1b2837;margin-bottom:2.5px;">${escapeHtml(item.remarks||"")}</div>
+          <div class="date" style="color:#566b89;font-size:0.95em;">${formatDisplayDate(item.date||"")}</div>
+          <div class="by" style="color:#209;font-size:0.93em;">by ${escapeHtml(item.created_by||"")}</div>
         </div>
         ${statusHtml}
       `;
@@ -149,32 +149,32 @@ function renderApprovalsArea(container, user) {
 }
 
 function approvalBranchHTML(creator, rows, currentUser) {
-  const rowHeight = 38;
+  const rowHeight = 31;
   const branchHeight = rows.length * rowHeight - 8;
   const statusColor = s => s === "accepted" ? "#187f2c" : (s === "disputed" ? "#cc2020" : "#b08c00");
   const nameColor = s => s === "accepted" ? "#187f2c" : (s === "disputed" ? "#cc2020" : "#a89a00");
   return `
   <div>
-    <div style="font-weight:800;color:#222;font-size:1.09em;letter-spacing:0.4px;margin-bottom:2px;margin-left:0;">
+    <div style="font-weight:700;color:#222;font-size:0.99em;letter-spacing:0.04em;margin-bottom:1.5px;margin-left:0;">
       ${escapeHtml(creator)}
     </div>
     <div style="display:flex;">
-      <div style="display:flex;flex-direction:column;align-items:center;width:34px;position:relative;">
+      <div style="display:flex;flex-direction:column;align-items:center;width:22px;position:relative;">
         <div style="height:2px;"></div>
-        <div style="width:0; border-left:3px solid #b0b8be; height:${branchHeight}px; min-height:20px;"></div>
+        <div style="width:0; border-left:2.2px solid #b0b8be; height:${branchHeight}px; min-height:13px;"></div>
       </div>
       <div>
       ${rows.map(r=>`
         <div style="display:flex;align-items:center;height:${rowHeight}px;">
-          <div style="width:36px;border-bottom:3px solid #b0b8be;"></div>
-          <span style="color:${nameColor(r.status)};font-weight:600;font-size:1.09em;margin-left:10px;margin-right:8px;">
+          <div style="width:24px;border-bottom:2.2px solid #b0b8be;"></div>
+          <span style="color:${nameColor(r.status)};font-weight:600;font-size:0.98em;margin-left:8px;margin-right:8px;">
             ${escapeHtml(r.name)}
           </span>
-          <span style="color:${statusColor(r.status)};font-weight:700;font-size:1em;margin-right:10px;">
+          <span style="color:${statusColor(r.status)};font-weight:700;font-size:0.96em;margin-right:7px;">
             ${r.status.charAt(0).toUpperCase()+r.status.slice(1)}
           </span>
-          ${r.status !=="pending" && r.timestamp ? `<span style="color:#848189;font-size:0.97em;font-weight:500;margin-left:4px;">${timeAgo(r.timestamp)}</span>` : ""}
-          ${r.name===currentUser ? "<span style='margin-left:8px;font-size:0.98em;color:#222;font-weight:700;'>(You)</span>" : ""}
+          ${r.status !=="pending" && r.timestamp ? `<span style="color:#848189;font-size:0.93em;font-weight:500;margin-left:4px;">${timeAgo(r.timestamp)}</span>` : ""}
+          ${r.name===currentUser ? "<span style='margin-left:7px;font-size:0.95em;color:#222;font-weight:600;'>(You)</span>" : ""}
         </div>
       `).join('\n')}
       </div>
@@ -185,9 +185,9 @@ function approvalBranchHTML(creator, rows, currentUser) {
 
 function renderApprovalDetails(container, user, item) {
   container.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-      <button id="backBtn" style="background:none;border:1px solid #ddd;border-radius:8px;padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:1em;">← Back</button>
-      <h3 style="margin:0;font-weight:600;font-size:1.2em;color:#1b2837;">Approval Details</h3>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <button id="backBtn" style="background:none;border:1px solid #ddd;border-radius:7px;padding:6px 14px;cursor:pointer;display:flex;align-items:center;gap:7px;font-size:0.96em;">← Back</button>
+      <h3 style="margin:0;font-weight:600;font-size:1.07em;color:#1b2837;">Approval Details</h3>
       <div></div>
     </div>
     <div id="detailArea"></div>
@@ -215,45 +215,44 @@ function renderApprovalDetails(container, user, item) {
   const youDisputed = isDisputed && item.disputed_by === currentUser;
   let statusMsg = "";
   if (isDisputed && youDisputed)
-    statusMsg = `<div style="color:#d12020;font-weight:700;font-size:1.1em;margin:18px 0 0 0;">You have disputed this expense <span style="color:#656;font-weight:500;">${timeAgo(item.disputed_at)}</span>.</div>`;
+    statusMsg = `<div style="color:#d12020;font-weight:700;font-size:0.98em;margin:14px 0 0 0;">You have disputed this expense <span style="color:#656;font-weight:500;">${timeAgo(item.disputed_at)}</span>.</div>`;
   else if (isDisputed)
-    statusMsg = `<div style="color:#d12020;font-weight:700;font-size:1.1em;margin:18px 0 0 0;">${escapeHtml(item.disputed_by)} has disputed this expense <span style="color:#656;font-weight:500;">${timeAgo(item.disputed_at)}</span>.</div>`;
+    statusMsg = `<div style="color:#d12020;font-weight:700;font-size:0.98em;margin:14px 0 0 0;">${escapeHtml(item.disputed_by)} has disputed this expense <span style="color:#656;font-weight:500;">${timeAgo(item.disputed_at)}</span>.</div>`;
   else if (userStatus === 'accepted')
-    statusMsg = `<div style="color:#188c3d;font-weight:700;font-size:1.1em; margin:18px 0 0 0;">You have accepted this expense <span style="color:#656;font-weight:500;">${timeAgo(userTimestamp)}</span>.</div>`;
+    statusMsg = `<div style="color:#188c3d;font-weight:700;font-size:0.98em; margin:14px 0 0 0;">You have accepted this expense <span style="color:#656;font-weight:500;">${timeAgo(userTimestamp)}</span>.</div>`;
 
-  // ---- The only code revised block: ----
   detailArea.innerHTML = `
-    <div style="margin-bottom:18px;">
-      <div style="font-weight:700;font-size:1.14em;color:#1b2837;">${escapeHtml(item.remarks)}</div>
-      <div style="color:#566b89;font-size:1em;">${formatDisplayDate(item.date)}</div>
-      <div style="color:#209;font-size:0.98em;margin-bottom:5px;">by ${escapeHtml(item.created_by)}</div>
-      <div style="font-size:1.08em;color:#222;margin-bottom:2px;">Total: <span style="font-weight:700;">${item.total_amount} ${CURRENCY}</span></div>
-      <div style="color:#888;font-size:0.99em; margin-bottom:4px;">Status last updated: <b>${timeAgo(item.status_at)}</b></div>
+    <div style="margin-bottom:12px;">
+      <div style="font-weight:700;font-size:1em;color:#1b2837;">${escapeHtml(item.remarks)}</div>
+      <div style="color:#566b89;font-size:0.97em;">${formatDisplayDate(item.date)}</div>
+      <div style="color:#209;font-size:0.93em;margin-bottom:4px;">by ${escapeHtml(item.created_by)}</div>
+      <div style="font-size:0.99em;color:#222;margin-bottom:2px;">Total: <span style="font-weight:700;">${item.total_amount} ${CURRENCY}</span></div>
+      <div style="color:#888;font-size:0.96em; margin-bottom:3px;">Status last updated: <b>${timeAgo(item.status_at)}</b></div>
     </div>
 
-    <div style="font-weight:700;margin:18px 0 6px 0;color:#164fa4;letter-spacing:.2px;">Paid/Shares</div>
-    <table style="border-collapse:collapse;width:auto;margin-bottom:12px;">
+    <div style="font-weight:700;margin:10px 0 5px 0;color:#164fa4;letter-spacing:.2px;">Paid/Shares</div>
+    <table style="border-collapse:collapse;width:auto;margin-bottom:9px;">
       ${item.splits.map(s => `
         <tr>
-          <td style="padding:2px 12px 2px 0; color:#221;font-weight:700;min-width:5em;">${escapeHtml(s.name)}:</td>
-          <td style="padding:2px 10px; color:#222;">paid <span style="font-weight:700;color:#222">${s.paid} ${CURRENCY}</span></td>
+          <td style="padding:2px 8px 2px 0; color:#221;font-weight:600;min-width:5em;">${escapeHtml(s.name)}:</td>
+          <td style="padding:2px 8px; color:#222;">paid <span style="font-weight:700;color:#222">${s.paid} ${CURRENCY}</span></td>
           <td style="padding:2px 5px; color:#567;">share <span style="font-weight:700;color:#222">${s.share} ${CURRENCY}</span></td>
         </tr>
       `).join('')}
     </table>
 
-    <div style="font-weight:700;margin:18px 0 6px 0;color:#23875e;letter-spacing:.2px;">Settlements</div>
-    <table style="border-collapse:collapse;margin-bottom:11px;">
+    <div style="font-weight:700;margin:10px 0 5px 0;color:#23875e;letter-spacing:.2px;">Settlements</div>
+    <table style="border-collapse:collapse;margin-bottom:8px;">
       ${item.settlements.length
         ? item.settlements.map(st => `
           <tr>
-            <td style="padding:2px 10px 2px 0; color:#555;min-width:8em;text-align:right;">
+            <td style="padding:2px 8px 2px 0; color:#555;min-width:8em;text-align:right;">
               ${escapeHtml(st.from)}
             </td>
-            <td style="padding:2px 2px; color:#888;width:29px;text-align:center;">
-              <span style="font-size:1.21em;">&#8594;</span>
+            <td style="padding:2px 2px; color:#888;width:24px;text-align:center;">
+              <span style="font-size:1.12em;">&#8594;</span>
             </td>
-            <td style="padding:2px 10px 2px 0; color:#333;">
+            <td style="padding:2px 9px 2px 0; color:#333;">
               ${escapeHtml(st.to)}: <span style="font-weight:700;color:#222">${st.amount} ${CURRENCY}</span>
             </td>
           </tr>
@@ -261,23 +260,22 @@ function renderApprovalDetails(container, user, item) {
         : '<tr><td>No settlements needed</td></tr>'}
     </table>
 
-    <div style="border-top:1px solid #e8eaed;margin-top:10px;padding-top:10px; margin-bottom:10px;">
-      <div style="font-size:1.01em;color:#556;margin-bottom:7px;font-weight:700;">Participants approvals:</div>
+    <div style="border-top:1px solid #e8eaed;margin-top:10px;padding-top:8px; margin-bottom:9px;">
+      <div style="font-size:0.96em;color:#556;margin-bottom:6px;font-weight:700;">Participants approvals:</div>
       ${approvalBranchHTML(item.created_by, partList, currentUser)}
       <div id="actionArea">${statusMsg}</div>
     </div>
   `;
-  // ---- end revised block ----
 
   const actionArea = detailArea.querySelector('#actionArea');
   if (!isDisputed && userStatus === 'pending') {
     actionArea.innerHTML += `
-      <div style="height:10px"></div>
-      <button id="acceptBtn" style="margin-right:13px;background:#e7f6ea;color:#13a568;padding:10px 27px;font-size:1.09em; border:1.5px solid #13a568;border-radius:8px;cursor:pointer;font-weight:700;">Accept</button>
-      <button id="disputeBtn" style="background:#ffecec;color:#d73323;padding:10px 27px;font-size:1.09em; border:1.5px solid #d73323;border-radius:8px;cursor:pointer;font-weight:700;">Dispute</button>
-      <div id="disputeEntry" style="display:none;margin-top:12px;">
-        <textarea id="disputeRemarks" placeholder="Enter reason..." style="width:98%;min-height:44px;border-radius:6px;border:1px solid #ccc;font-size:1em;padding:7px;"></textarea>
-        <button id="submitDispute" style="margin-top:9px;padding:8px 20px;font-size:1.07em;">Submit Dispute</button>
+      <div style="height:9px"></div>
+      <button id="acceptBtn" style="margin-right:10px;background:#e7f6ea;color:#13a568;padding:7px 22px;font-size:0.97em; border:1.2px solid #13a568;border-radius:7px;cursor:pointer;font-weight:700;">Accept</button>
+      <button id="disputeBtn" style="background:#ffecec;color:#d73323;padding:7px 22px;font-size:0.97em; border:1.2px solid #d73323;border-radius:7px;cursor:pointer;font-weight:700;">Dispute</button>
+      <div id="disputeEntry" style="display:none;margin-top:8px;">
+        <textarea id="disputeRemarks" placeholder="Enter reason..." style="width:98%;min-height:39px;border-radius:6px;border:1px solid #ccc;font-size:0.96em;padding:5px;"></textarea>
+        <button id="submitDispute" style="margin-top:7px;padding:6px 14px;font-size:0.97em;">Submit Dispute</button>
       </div>
     `;
     actionArea.querySelector('#acceptBtn').onclick = () => handleApprovalAction(container, user, item, "accept");
@@ -305,7 +303,7 @@ async function handleApprovalAction(container, user, item, action, remarks="") {
       body: JSON.stringify(bodyObj)
     });
     const result = await resp.json();
-    await delay(400);
+    await delay(350);
     hideSpinner(container);
     if (!result.ok) throw new Error(result.error || "Unknown error");
     await showExpenseApproval(container, user);
@@ -323,20 +321,23 @@ function addStatusCSS() {
     style.id = cssId;
     style.textContent = `
       .status-pill {
-        min-width: 92px;
-        margin-left: 9px;
-        border-radius: 13px;
-        padding: 2.5px 11px;
+        min-width: 82px;
+        margin-left: 7px;
+        border-radius: 11px;
+        padding: 2px 8px;
         font-weight: 600;
         text-align: center;
         background: #ecf4ff;
         color: #157;
         height: fit-content;
         flex-shrink: 0;
+        font-size: 0.97em;
       }
       .status-pill.disputed { background: #fedee0; color: #d22; }
       mark { background: #ffeb3b !important; padding: 1px 2px !important; border-radius: 2px !important; }
-      .approval-branch-tree span, .approval-branch-tree div { line-height: 1.25; }
+      .approval-branch-tree span, .approval-branch-tree div { line-height: 1.17; }
+      .approval-folder { font-size: 0.97em; }
+      .approval-main { font-size: 0.96em; }
     `;
     document.head.appendChild(style);
   }
