@@ -1,3 +1,5 @@
+const CURRENCY = "QAR"; // only set here; for multi-currency, update how this is sourced
+
 import { showSpinner, hideSpinner, delay } from './spinner.js';
 
 function formatDisplayDate(dateStr) {
@@ -143,7 +145,6 @@ function renderApprovalDetails(container, user, item) {
   let userStatus = myStatusRow ? myStatusRow.status : null;
   const isDisputed = !!item.disputed_by;
   const youDisputed = isDisputed && item.disputed_by === currentUser;
-
   let msg = "";
   if (isDisputed && youDisputed) msg = `<div style="color:#d12020;font-weight:600;font-size:1em;">You have disputed this expense at ${formatDateTime(item.disputed_at) || '–'}.</div>`;
   else if (isDisputed) msg = `<div style="color:#d12020;font-weight:600;font-size:1em;">${item.disputed_by} has disputed this expense at ${formatDateTime(item.disputed_at) || '–'}.</div>`;
@@ -153,18 +154,18 @@ function renderApprovalDetails(container, user, item) {
       <div style="font-weight:600;font-size:1.09em;color:#1b2837;">${item.remarks}</div>
       <div style="color:#566b89;font-size:1em;margin-bottom:3px;">${formatDisplayDate(item.date)}</div>
       <div style="color:#209;font-size:0.96em;margin-bottom:5px;">by ${item.created_by}</div>
-      <div style="font-size:1em;color:#222;">Total: <span style="font-weight:600;">${item.total_amount}</span></div>
+      <div style="font-size:1em;color:#222;">Total: <span style="font-weight:600;">${item.total_amount} ${CURRENCY}</span></div>
       <div style="color:#888;font-size:0.98em;">Status last updated: <b>${formatDateTime(item.status_at)}</b></div>
     </div>
     <div>
       <div style="font-weight:600;margin-bottom:7px;">Paid/Shares</div>
       <ul style="padding-left:18px;">
-        ${item.splits.map(s => `<li>${s.name}: paid <b>${s.paid}</b>, share <b>${s.share}</b></li>`).join('')}
+        ${item.splits.map(s => `<li>${s.name}: paid <b>${s.paid} ${CURRENCY}</b>, share <b>${s.share} ${CURRENCY}</b></li>`).join('')}
       </ul>
       <div style="font-weight:600;margin-bottom:6px;margin-top:12px;">Settlements</div>
       <ul style="padding-left:18px;">
         ${item.settlements.length
-          ? item.settlements.map(st => `<li>${st.from} owes ${st.to}: <b>${st.amount}</b> (${st.payer_status})</li>`).join('')
+          ? item.settlements.map(st => `<li>${st.from} owes ${st.to}: <b>${st.amount} ${CURRENCY}</b> (${st.payer_status})</li>`).join('')
           : '<li>No settlements needed</li>'}
       </ul>
     </div>
@@ -194,7 +195,8 @@ function renderApprovalDetails(container, user, item) {
       <button id="acceptBtn" style="margin-right:15px;background:#e7f6ea;color:#13a568;padding:9px 21px;border:1px solid #13a568;border-radius:8px;cursor:pointer;font-weight:600;">Accept</button>
       <button id="disputeBtn" style="background:#ffecec;color:#d73323;padding:9px 21px;border:1px solid #d73323;border-radius:8px;cursor:pointer;font-weight:600;">Dispute</button>
       <div id="disputeEntry" style="display:none;margin-top:10px;">
-        <button id="submitDispute" style="margin-top:7px;">Confirm Dispute</button>
+        <textarea id="disputeRemarks" placeholder="Enter reason..." style="width:98%;min-height:44px;"></textarea>
+        <button id="submitDispute" style="margin-top:7px;">Submit Dispute</button>
       </div>
     `;
     actionArea.querySelector('#acceptBtn').onclick = () => handleApprovalAction(container, user, item, "accept");
@@ -202,20 +204,24 @@ function renderApprovalDetails(container, user, item) {
       actionArea.querySelector('#disputeEntry').style.display = '';
     };
     actionArea.querySelector('#submitDispute').onclick = () => {
-      handleApprovalAction(container, user, item, "dispute");
+      const reason = actionArea.querySelector('#disputeRemarks').value.trim();
+      if (!reason) { alert("Please enter dispute reason!"); return; }
+      handleApprovalAction(container, user, item, "dispute", reason);
     };
   }
   addStatusCSS();
 }
 
-async function handleApprovalAction(container, user, item, action) {
+async function handleApprovalAction(container, user, item, action, remarks="") {
   showSpinner(container);
   try {
     const token = await user.firebaseUser.getIdToken(true);
+    const bodyObj = { spend_id: item.spend_id, action };
+    if (action === "dispute") bodyObj.remarks = remarks;
     const resp = await fetch("https://ex-ap.nafil-8895-s.workers.dev/api/approval-action", {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ spend_id: item.spend_id, action })
+      body: JSON.stringify(bodyObj)
     });
     const result = await resp.json();
     await delay(500);
