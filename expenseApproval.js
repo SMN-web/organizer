@@ -1,15 +1,14 @@
-const CURRENCY = "QAR"; // For multi-currency, make this dynamic
 
-import { showSpinner, hideSpinner, delay } from './spinner.js';
+const CURRENCY = "QAR";
 
-// --- Time parsing and "time ago" display ---
+// =========== Time Parsing Utilities =============
 function parseDBDatetimeAsUTC(dt) {
-  // "YYYY-MM-DD HH:mm:ss" as UTC
   const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
   if (!m) return new Date(dt);
   return new Date(Date.UTC(+m[1], m[2]-1, +m[3], +m[4], +m[5], +m[6]));
 }
 function timeAgo(dateStr) {
+  if (!dateStr) return "";
   const then = parseDBDatetimeAsUTC(dateStr);
   const now = new Date();
   const seconds = Math.floor((now - then) / 1000);
@@ -29,22 +28,22 @@ function timeAgo(dateStr) {
   return `${years}y ago`;
 }
 function escapeHtml(str) {
-  return String(str).replace(/[<>&"]/g, t =>
+  return String(str || "").replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
 }
 
+// ============ Frontend State =============
 let approvalsData = [];
 let currentSearch = '';
 let currentDateFilter = '';
 
+// ============== Main Entry ==============
 export async function showExpenseApproval(container, user) {
-  container.innerHTML = '';
-  showSpinner(container);
+  container.innerHTML = '<div style="padding:2em 0;text-align:center;">Loading...</div>';
 
   let errMsg = '';
   try {
     if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function') {
-      hideSpinner(container);
       container.innerHTML = `<div style="color:#d12020;margin:2em;">You must be logged in to view approvals.</div>`;
       return;
     }
@@ -53,23 +52,22 @@ export async function showExpenseApproval(container, user) {
       headers: { Authorization: 'Bearer ' + token }
     });
     const text = await resp.text();
-    await delay(650);
     try { approvalsData = JSON.parse(text); } catch (e) { errMsg = "Invalid backend response: " + text; }
     if (!Array.isArray(approvalsData)) {
       if (approvalsData && approvalsData.error) errMsg = "Backend error: " + approvalsData.error;
       else errMsg = "Unexpected backend error: " + text;
     }
   } catch (e) { errMsg = "Network error: " + e.message; }
-  hideSpinner(container);
 
   if (errMsg) {
     container.innerHTML = `<div style="font-weight:600;font-size:1.13em;margin-bottom:10px;">Pending Approvals</div>
-      <div style="color:#d12020;font-size:1.1em;margin:2em 0;text-align:center;">${errMsg}</div>`;
+      <div style="color:#d12020;font-size:1.1em;margin:2em 0;text-align:center;">${escapeHtml(errMsg)}</div>`;
     return;
   }
   renderApprovalsArea(container, user);
 }
 
+// ============= List View ==============
 function renderApprovalsArea(container, user) {
   container.innerHTML = `
     <div style="font-weight:600;font-size:1.13em;margin-bottom:10px;">Pending Approvals</div>
@@ -83,6 +81,7 @@ function renderApprovalsArea(container, user) {
     </div>
     <div class="approval-folder-list"></div>
   `;
+
   const listArea = container.querySelector('.approval-folder-list');
   const searchInput = container.querySelector('#searchInput');
   const dateFilter = container.querySelector('#dateFilter');
@@ -95,12 +94,14 @@ function renderApprovalsArea(container, user) {
     const d = dateFilter.value;
     if (d) filtered = filtered.filter(item => item.date === d);
     if (s) filtered = filtered.filter(item =>
-      item.remarks.toLowerCase().includes(s) ||
-      item.created_by.toLowerCase().includes(s)
+      (item.remarks||"").toLowerCase().includes(s) ||
+      (item.created_by||"").toLowerCase().includes(s)
     );
     listArea.innerHTML = '';
     if (!filtered.length) {
-      listArea.innerHTML = `<div style="color:#666;text-align:center;margin:3em 0;font-size:1.1em;">No matching results found</div>`;
+      listArea.innerHTML = `<div style="color:#666;text-align:center;margin:3em 0;font-size:1.1em;">
+        No pending approvals found.
+      </div>`;
       return;
     }
     filtered.forEach(item => {
@@ -118,9 +119,9 @@ function renderApprovalsArea(container, user) {
       row.innerHTML = `
         <span class="sn" style="min-width:2em;font-weight:600;color:#357;flex-shrink:0;margin-top:7px;">${item.sn}.</span>
         <div class="approval-main" style="flex:1 1 0;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;row-gap:2px;">
-          <div class="remarks" style="font-weight:600;color:#1b2837;margin-bottom:3px;">${highlightText(item.remarks, s)}</div>
-          <div class="date" style="color:#566b89;font-size:0.97em;">${escapeHtml(item.date)}</div>
-          <div class="by" style="color:#209;font-size:0.97em;">by ${highlightText(item.created_by, s)}</div>
+          <div class="remarks" style="font-weight:600;color:#1b2837;margin-bottom:3px;">${escapeHtml(item.remarks||"")}</div>
+          <div class="date" style="color:#566b89;font-size:0.97em;">${escapeHtml(item.date||"")}</div>
+          <div class="by" style="color:#209;font-size:0.97em;">by ${escapeHtml(item.created_by||"")}</div>
         </div>
         ${statusHtml}
       `;
@@ -136,26 +137,28 @@ function renderApprovalsArea(container, user) {
   addStatusCSS();
 }
 
+// =============== Branch View ===============
 function approvalBranchHTML(creator, rows, currentUser) {
-  // rows: [{name, status, timestamp}]
   const statusColor = s => s === "accepted" ? "#187f2c" : (s === "disputed" ? "#cc2020" : "#b08c00");
   const nameColor = s => s === "accepted" ? "#107a10" : (s === "disputed" ? "#cc2020" : "#a89a00");
-
+  // If no rows (should not happen), show just creator
+  if (!rows.length) return `<div style="margin-top:17px;"><b>${escapeHtml(creator)}</b></div>`;
   return `
   <div style="margin-top:18px;">
     <div style="display:flex;align-items:flex-start;">
       <div style="display:flex;flex-direction:column;align-items:center;width:80px;">
         <span style="font-weight:700;color:#222;font-size:1.06em; margin-bottom:3px; padding:4px 6px;">${escapeHtml(creator)}</span>
-        <div style="border-left:2.5px solid #b0b8be; height:${rows.length*32}px; margin-top:2px;"></div>
+        <div style="border-left:2.5px solid #b0b8be; height:${rows.length*32-10}px; margin-top:2px;"></div>
       </div>
       <div style="display:flex;flex-direction:column;justify-content:flex-start;">
         ${rows.map(r=>`
         <div style="display:flex;align-items:center;height:32px;">
           <div style="width:30px;border-bottom:2.5px solid #b0b8be;"></div>
           <span style="color:${nameColor(r.status)};font-weight:600;font-size:1.04em;margin-left:10px;">${escapeHtml(r.name)}</span>
-          <span style="margin-left:12px;color:${statusColor(r.status)};font-size:0.99em;font-weight:600;">${r.status.charAt(0).toUpperCase() + r.status.slice(1)}
-          ${r.status !== "pending" && r.timestamp ? `<span style="margin-left:7px;color:#656;">${timeAgo(r.timestamp)}</span>` : ""}
-          ${r.name===currentUser ? " <span style='font-size:0.99em;color:#111'>(You)</span>" : ""}
+          <span style="margin-left:12px;color:${statusColor(r.status)};font-size:0.99em;font-weight:600;">
+            ${r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+            ${r.status !== "pending" && r.timestamp ? `<span style="margin-left:7px;color:#656;">${timeAgo(r.timestamp)}</span>` : ""}
+            ${r.name === currentUser ? " <span style='font-size:0.99em;color:#111'>(You)</span>" : ""}
           </span>
         </div>`).join('\n')}
       </div>
@@ -164,6 +167,7 @@ function approvalBranchHTML(creator, rows, currentUser) {
   `;
 }
 
+// ========== Detail ----------
 function renderApprovalDetails(container, user, item) {
   container.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
@@ -183,7 +187,6 @@ function renderApprovalDetails(container, user, item) {
   let userStatus = myStatusRow ? myStatusRow.status : null;
   let userTimestamp = myStatusRow ? myStatusRow.timestamp : null;
 
-  // Prepare participant list with timestamps for timeline color/status
   const partList = item.involvedStatus.map(p => ({
     name: p.name,
     status: p.status,
@@ -192,13 +195,11 @@ function renderApprovalDetails(container, user, item) {
 
   const isDisputed = !!item.disputed_by;
   const youDisputed = isDisputed && item.disputed_by === currentUser;
-  const youAccepted = userStatus === 'accepted';
   let statusMsg = "";
   if (isDisputed && youDisputed) statusMsg = `<div style="color:#d12020;font-weight:600;font-size:1em;">You have disputed this expense <span style="color:#656;font-weight:400;">${timeAgo(item.disputed_at)}</span>.</div>`;
   else if (isDisputed) statusMsg = `<div style="color:#d12020;font-weight:600;font-size:1em;">${escapeHtml(item.disputed_by)} has disputed this expense <span style="color:#656;font-weight:400;">${timeAgo(item.disputed_at)}</span>.</div>`;
   else if (userStatus === 'accepted') statusMsg = `<div style="color:#188c3d;font-weight:600;font-size:1em;">You have accepted this expense <span style="color:#656;font-weight:400;">${timeAgo(userTimestamp)}</span>.</div>`;
 
-  // Clean, bold currency display for share
   detailArea.innerHTML = `
     <div style="margin-bottom:18px;">
       <div style="font-weight:600;font-size:1.09em;color:#1b2837;">${escapeHtml(item.remarks)}</div>
@@ -270,8 +271,9 @@ function renderApprovalDetails(container, user, item) {
   addStatusCSS();
 }
 
+// ==== Posting accept/dispute ====
 async function handleApprovalAction(container, user, item, action, remarks="") {
-  showSpinner(container);
+  container.innerHTML = '<div style="padding:2em 0;text-align:center;">Processing...</div>';
   try {
     const token = await user.firebaseUser.getIdToken(true);
     const bodyObj = { spend_id: item.spend_id, action };
@@ -282,16 +284,15 @@ async function handleApprovalAction(container, user, item, action, remarks="") {
       body: JSON.stringify(bodyObj)
     });
     const result = await resp.json();
-    await delay(500);
     if (!result.ok) throw new Error(result.error || "Unknown error");
     await showExpenseApproval(container, user);
   } catch (e) {
     alert(e.message);
     await showExpenseApproval(container, user);
   }
-  hideSpinner(container);
 }
 
+// ========== Styles =========
 function addStatusCSS() {
   const cssId = "expense-approval-css";
   if (!document.getElementById(cssId)) {
