@@ -137,7 +137,6 @@ function renderApprovalsArea(container, user) {
   addStatusCSS();
 }
 
-// =============== Branch View ===============
 function approvalBranchHTML(creator, rows, currentUser) {
   const rowHeight = 38;
   const branchHeight = rows.length * rowHeight - 8;
@@ -173,116 +172,115 @@ function approvalBranchHTML(creator, rows, currentUser) {
   `;
 }
 
-// ========== Detail ----------
 function renderApprovalDetails(container, user, item) {
-  container.innerHTML = '';
-  showSpinner(container);
+  // No spinner for back! Spinner only for initial/detail/action loads.
+  container.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <button id="backBtn" style="background:none;border:1px solid #ddd;border-radius:8px;padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:1em;">← Back</button>
+      <h3 style="margin:0;font-weight:600;font-size:1.2em;color:#1b2837;">Approval Details</h3>
+      <div></div>
+    </div>
+    <div id="detailArea"></div>
+  `;
 
-  setTimeout(() => { // avoid flicker effect, show spinner during render
-    container.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-        <button id="backBtn" style="background:none;border:1px solid #ddd;border-radius:8px;padding:8px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:1em;">← Back</button>
-        <h3 style="margin:0;font-weight:600;font-size:1.2em;color:#1b2837;">Approval Details</h3>
-        <div></div>
-      </div>
-      <div id="detailArea"></div>
-    `;
-    hideSpinner(container);
+  // Attach the back handler immediately
+  container.querySelector('#backBtn').onclick = function() {
+    renderApprovalsArea(container, user);
+  };
 
-    const detailArea = container.querySelector('#detailArea');
-    let currentUser = user?.name || user?.firebaseUser?.displayName || user?.firebaseUser?.email;
-    let myStatusRow = item.involvedStatus.find(p =>
-      (p.name === currentUser) || (user?.firebaseUser?.email && p.name && p.name.toLowerCase() === user.firebaseUser.email.toLowerCase())
-    );
-    let userStatus = myStatusRow ? myStatusRow.status : null;
-    let userTimestamp = myStatusRow ? myStatusRow.timestamp : null;
+  const detailArea = container.querySelector('#detailArea');
+  let currentUser = user?.name || user?.firebaseUser?.displayName || user?.firebaseUser?.email;
+  let myStatusRow = item.involvedStatus.find(p =>
+    (p.name === currentUser) || (user?.firebaseUser?.email && p.name && p.name.toLowerCase() === user.firebaseUser.email.toLowerCase())
+  );
+  let userStatus = myStatusRow ? myStatusRow.status : null;
+  let userTimestamp = myStatusRow ? myStatusRow.timestamp : null;
 
-    const partList = item.involvedStatus.map(p => ({
-      name: p.name,
-      status: p.status,
-      timestamp: p.timestamp
-    }));
+  const partList = item.involvedStatus.map(p => ({
+    name: p.name,
+    status: p.status,
+    timestamp: p.timestamp
+  }));
 
-    const isDisputed = !!item.disputed_by;
-    const youDisputed = isDisputed && item.disputed_by === currentUser;
-    let statusMsg = "";
-    if (isDisputed && youDisputed)
-      statusMsg = `<div style="color:#d12020;font-weight:700;font-size:1.1em;margin:18px 0 0 0;">You have disputed this expense <span style="color:#656;font-weight:500;">${timeAgo(item.disputed_at)}</span>.</div>`;
-    else if (isDisputed)
-      statusMsg = `<div style="color:#d12020;font-weight:700;font-size:1.1em;margin:18px 0 0 0;">${escapeHtml(item.disputed_by)} has disputed this expense <span style="color:#656;font-weight:500;">${timeAgo(item.disputed_at)}</span>.</div>`;
-    else if (userStatus === 'accepted')
-      statusMsg = `<div style="color:#188c3d;font-weight:700;font-size:1.1em; margin:18px 0 0 0;">You have accepted this expense <span style="color:#656;font-weight:500;">${timeAgo(userTimestamp)}</span>.</div>`;
+  const isDisputed = !!item.disputed_by;
+  const youDisputed = isDisputed && item.disputed_by === currentUser;
+  let statusMsg = "";
+  if (isDisputed && youDisputed)
+    statusMsg = `<div style="color:#d12020;font-weight:700;font-size:1.1em;margin:18px 0 0 0;">You have disputed this expense <span style="color:#656;font-weight:500;">${timeAgo(item.disputed_at)}</span>.</div>`;
+  else if (isDisputed)
+    statusMsg = `<div style="color:#d12020;font-weight:700;font-size:1.1em;margin:18px 0 0 0;">${escapeHtml(item.disputed_by)} has disputed this expense <span style="color:#656;font-weight:500;">${timeAgo(item.disputed_at)}</span>.</div>`;
+  else if (userStatus === 'accepted')
+    statusMsg = `<div style="color:#188c3d;font-weight:700;font-size:1.1em; margin:18px 0 0 0;">You have accepted this expense <span style="color:#656;font-weight:500;">${timeAgo(userTimestamp)}</span>.</div>`;
 
-    detailArea.innerHTML = `
-      <div style="margin-bottom:18px;">
-        <div style="font-weight:700;font-size:1.14em;color:#1b2837;">${escapeHtml(item.remarks)}</div>
-        <div style="color:#566b89;font-size:1em;margin-bottom:3px;">${escapeHtml(item.date)}</div>
-        <div style="color:#209;font-size:0.98em;margin-bottom:5px;">by ${escapeHtml(item.created_by)}</div>
-        <div style="font-size:1.08em;color:#222;margin-bottom:2px;">Total: <span style="font-weight:700;">${item.total_amount} ${CURRENCY}</span></div>
-        <div style="color:#888;font-size:0.99em; margin-bottom:4px;">Status last updated: <b>${timeAgo(item.status_at)}</b></div>
-      </div>
-      <div style="margin-bottom:10px;">
-        <div style="font-weight:700;margin-bottom:5px;">Paid/Shares</div>
-        <table style="border-collapse:collapse;width:auto;">
-          ${item.splits.map(s => `
+  detailArea.innerHTML = `
+    <div style="margin-bottom:18px;">
+      <div style="font-weight:700;font-size:1.14em;color:#1b2837;">${escapeHtml(item.remarks)}</div>
+      <div style="color:#566b89;font-size:1em;margin-bottom:3px;">${escapeHtml(item.date)}</div>
+      <div style="color:#209;font-size:0.98em;margin-bottom:5px;">by ${escapeHtml(item.created_by)}</div>
+      <div style="font-size:1.08em;color:#222;margin-bottom:2px;">Total: <span style="font-weight:700;">${item.total_amount} ${CURRENCY}</span></div>
+      <div style="color:#888;font-size:0.99em; margin-bottom:4px;">Status last updated: <b>${timeAgo(item.status_at)}</b></div>
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="font-weight:700;margin-bottom:5px;">Paid/Shares</div>
+      <table style="border-collapse:collapse;width:auto;">
+        ${item.splits.map(s => `
+          <tr>
+            <td style="padding:2px 12px 2px 0; color:#221;font-weight:700;min-width:5em;">${escapeHtml(s.name)}:</td>
+            <td style="padding:2px 10px; color:#222;">paid <span style="font-weight:700;color:#222">${s.paid} ${CURRENCY}</span></td>
+            <td style="padding:2px 5px; color:#567;">share <span style="font-weight:700;color:#222">${s.share} ${CURRENCY}</span></td>
+          </tr>
+        `).join('')}
+      </table>
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="font-weight:700;margin-bottom:5px;">Settlements</div>
+      <table style="border-collapse:collapse;">
+        ${item.settlements.length
+          ? item.settlements.map(st => `
             <tr>
-              <td style="padding:2px 12px 2px 0; color:#221;font-weight:700;min-width:5em;">${escapeHtml(s.name)}:</td>
-              <td style="padding:2px 10px; color:#222;">paid <span style="font-weight:700;color:#222">${s.paid} ${CURRENCY}</span></td>
-              <td style="padding:2px 5px; color:#567;">share <span style="font-weight:700;color:#222">${s.share} ${CURRENCY}</span></td>
+              <td style="padding:2px 10px 2px 0; color:#555;min-width:8em; text-align:right;">
+                ${escapeHtml(st.from)}
+              </td>
+              <td style="padding:2px 2px; color:#888;width:29px;text-align:center;">
+                <span style="font-size:1.21em;">&#8594;</span>
+              </td>
+              <td style="padding:2px 10px 2px 0; color:#333;">
+                ${escapeHtml(st.to)}: <span style="font-weight:700;color:#222">${st.amount} ${CURRENCY}</span>
+              </td>
             </tr>
-          `).join('')}
-        </table>
-      </div>
-      <div style="margin-bottom:10px;">
-        <div style="font-weight:700;margin-bottom:5px;">Settlements</div>
-        <table style="border-collapse:collapse;">
-          ${item.settlements.length
-            ? item.settlements.map(st => `
-              <tr>
-                <td style="padding:2px 10px 2px 0; color:#555;min-width:8em; text-align:right;">
-                  ${escapeHtml(st.from)}
-                </td>
-                <td style="padding:2px 2px; color:#888;width:29px;text-align:center;">
-                  <span style="font-size:1.21em;">&#8594;</span>
-                </td>
-                <td style="padding:2px 10px 2px 0; color:#333;">
-                  ${escapeHtml(st.to)}: <span style="font-weight:700;color:#222">${st.amount} ${CURRENCY}</span>
-                </td>
-              </tr>
-            `).join('')
-            : '<tr><td>No settlements needed</td></tr>'}
-        </table>
-      </div>
-      <div style="border-top:1px solid #e8eaed;margin-top:10px;padding-top:10px; margin-bottom:10px;">
-        <div style="font-size:1.01em;color:#556;margin-bottom:7px;font-weight:700;">Participants approvals:</div>
-        ${approvalBranchHTML(item.created_by, partList, currentUser)}
-        <div id="actionArea">${statusMsg}</div>
+          `).join('')
+          : '<tr><td>No settlements needed</td></tr>'}
+      </table>
+    </div>
+    <div style="border-top:1px solid #e8eaed;margin-top:10px;padding-top:10px; margin-bottom:10px;">
+      <div style="font-size:1.01em;color:#556;margin-bottom:7px;font-weight:700;">Participants approvals:</div>
+      ${approvalBranchHTML(item.created_by, partList, currentUser)}
+      <div id="actionArea">${statusMsg}</div>
+    </div>
+  `;
+
+  const actionArea = detailArea.querySelector('#actionArea');
+  if (!isDisputed && userStatus === 'pending') {
+    actionArea.innerHTML += `
+      <div style="height:10px"></div>
+      <button id="acceptBtn" style="margin-right:13px;background:#e7f6ea;color:#13a568;padding:10px 27px;font-size:1.09em; border:1.5px solid #13a568;border-radius:8px;cursor:pointer;font-weight:700;">Accept</button>
+      <button id="disputeBtn" style="background:#ffecec;color:#d73323;padding:10px 27px;font-size:1.09em; border:1.5px solid #d73323;border-radius:8px;cursor:pointer;font-weight:700;">Dispute</button>
+      <div id="disputeEntry" style="display:none;margin-top:12px;">
+        <textarea id="disputeRemarks" placeholder="Enter reason..." style="width:98%;min-height:44px;border-radius:6px;border:1px solid #ccc;font-size:1em;padding:7px;"></textarea>
+        <button id="submitDispute" style="margin-top:9px;padding:8px 20px;font-size:1.07em;">Submit Dispute</button>
       </div>
     `;
-
-    const actionArea = detailArea.querySelector('#actionArea');
-    if (!isDisputed && userStatus === 'pending') {
-      actionArea.innerHTML += `
-        <div style="height:10px"></div>
-        <button id="acceptBtn" style="margin-right:13px;background:#e7f6ea;color:#13a568;padding:10px 27px;font-size:1.09em; border:1.5px solid #13a568;border-radius:8px;cursor:pointer;font-weight:700;">Accept</button>
-        <button id="disputeBtn" style="background:#ffecec;color:#d73323;padding:10px 27px;font-size:1.09em; border:1.5px solid #d73323;border-radius:8px;cursor:pointer;font-weight:700;">Dispute</button>
-        <div id="disputeEntry" style="display:none;margin-top:12px;">
-          <textarea id="disputeRemarks" placeholder="Enter reason..." style="width:98%;min-height:44px;border-radius:6px;border:1px solid #ccc;font-size:1em;padding:7px;"></textarea>
-          <button id="submitDispute" style="margin-top:9px;padding:8px 20px;font-size:1.07em;">Submit Dispute</button>
-        </div>
-      `;
-      actionArea.querySelector('#acceptBtn').onclick = () => handleApprovalAction(container, user, item, "accept");
-      actionArea.querySelector('#disputeBtn').onclick = () => {
-        actionArea.querySelector('#disputeEntry').style.display = '';
-      };
-      actionArea.querySelector('#submitDispute').onclick = () => {
-        const reason = actionArea.querySelector('#disputeRemarks').value.trim();
-        if (!reason) { alert("Please enter dispute reason!"); return; }
-        handleApprovalAction(container, user, item, "dispute", reason);
-      };
-    }
-    addStatusCSS();
-  }, 350); // show spinner min 350ms for feedback
+    actionArea.querySelector('#acceptBtn').onclick = () => handleApprovalAction(container, user, item, "accept");
+    actionArea.querySelector('#disputeBtn').onclick = () => {
+      actionArea.querySelector('#disputeEntry').style.display = '';
+    };
+    actionArea.querySelector('#submitDispute').onclick = () => {
+      const reason = actionArea.querySelector('#disputeRemarks').value.trim();
+      if (!reason) { alert("Please enter dispute reason!"); return; }
+      handleApprovalAction(container, user, item, "dispute", reason);
+    };
+  }
+  addStatusCSS();
 }
 
 async function handleApprovalAction(container, user, item, action, remarks="") {
