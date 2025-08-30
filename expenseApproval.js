@@ -1,26 +1,36 @@
-const CURRENCY = "QAR";
+const CURRENCY = "QAR"; // For multi-currency, make this dynamic
 
 import { showSpinner, hideSpinner, delay } from './spinner.js';
 
-function formatDisplayDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d)) return dateStr;
-  const day = String(d.getDate()).padStart(2, '0');
-  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const month = monthNames[d.getMonth()];
-  const year = String(d.getFullYear()).slice(-2);
-  return `${day}-${month}-${year}`;
+// --- Time parsing and "time ago" display ---
+function parseDBDatetimeAsUTC(dt) {
+  // "YYYY-MM-DD HH:mm:ss" as UTC
+  const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
+  if (!m) return new Date(dt);
+  return new Date(Date.UTC(+m[1], m[2]-1, +m[3], +m[4], +m[5], +m[6]));
 }
-function formatDateTime(dateTimeStr) {
-  if (!dateTimeStr) return "";
-  const d = new Date(dateTimeStr);
-  return `${formatDisplayDate(dateTimeStr)} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+function timeAgo(dateStr) {
+  const then = parseDBDatetimeAsUTC(dateStr);
+  const now = new Date();
+  const seconds = Math.floor((now - then) / 1000);
+  if (isNaN(seconds)) return "";
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 4) return `${weeks}w ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  const years = Math.floor(days / 365);
+  return `${years}y ago`;
 }
-function highlightText(text, searchTerm) {
-  if (!searchTerm) return text;
-  const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-  return text.replace(regex, '<mark style="background:#ffeb3b;padding:1px 2px;border-radius:2px;">$1</mark>');
+function escapeHtml(str) {
+  return String(str).replace(/[<>&"]/g, t =>
+    t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
 }
 
 let approvalsData = [];
@@ -109,7 +119,7 @@ function renderApprovalsArea(container, user) {
         <span class="sn" style="min-width:2em;font-weight:600;color:#357;flex-shrink:0;margin-top:7px;">${item.sn}.</span>
         <div class="approval-main" style="flex:1 1 0;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;row-gap:2px;">
           <div class="remarks" style="font-weight:600;color:#1b2837;margin-bottom:3px;">${highlightText(item.remarks, s)}</div>
-          <div class="date" style="color:#566b89;font-size:0.97em;">${formatDisplayDate(item.date)}</div>
+          <div class="date" style="color:#566b89;font-size:0.97em;">${escapeHtml(item.date)}</div>
           <div class="by" style="color:#209;font-size:0.97em;">by ${highlightText(item.created_by, s)}</div>
         </div>
         ${statusHtml}
@@ -126,42 +136,30 @@ function renderApprovalsArea(container, user) {
   addStatusCSS();
 }
 
-/** SVG Branch tree UI for approvals. */
-function branchApprovalTreeSVG(item, currentUser){
-  const CIRCLE_RADIUS = 14, V_GAP = 45, H_GAP = 48;
-  const creator = item.created_by;
-  // Participants below
-  const participants = item.involvedStatus.map((p, i) => {
-    let fill, text, txtColor="#222";
-    if (p.status==='accepted') { fill='#e8f5e8';txtColor="#237c30"; }
-    else if (p.status==='pending') { fill='#fff8dc';txtColor="#9c7a00"; }
-    else { fill='#ffeaea';txtColor="#c61010"; }
-    return { ...p, fill, txtColor, idx: i };
-  });
-  // SVG dimensions
-  const height = (participants.length+1) * V_GAP, width = 230;
-  const startY = V_GAP;
-  let lines = "", circles = "", texts = "";
-  // Vertical stem from creator to first participant
-  lines += `<line x1="${width/2}" y1="${CIRCLE_RADIUS*2}" x2="${width/2}" y2="${startY}" stroke="#bbb" stroke-width="2"/>`;
-  // For each, draw a branch and node
-  participants.forEach((p,i) => {
-    const y = startY + V_GAP * i;
-    lines += `<line x1="${width/2}" y1="${y}" x2="${width/2 + H_GAP}" y2="${y}" stroke="#bbb" stroke-width="2"/>`;
-    circles += `<circle cx="${width/2 + H_GAP + 36}" cy="${y}" r="${CIRCLE_RADIUS}" fill="${p.fill}" stroke="#bbb" stroke-width="1.5"/>`;
-    texts += `<text x="${width/2 + H_GAP + 36}" y="${y+5}" text-anchor="middle" font-size="1em" fill="${p.txtColor}" font-weight="600">${p.name}</text>`;
-    texts += `<text x="${width/2 + H_GAP + 36}" y="${y+21}" text-anchor="middle" font-size="0.7em" fill="#888">${p.status.charAt(0).toUpperCase()+p.status.slice(1)}</text>`;
-  });
-  // Creator badge at top
-  let creatorCircle = `<circle cx="${width/2}" cy="${CIRCLE_RADIUS*2}" r="${CIRCLE_RADIUS}" fill="#e0e7fb" stroke="#5066d0" stroke-width="2"/>`;
-  let creatorText = `<text x="${width/2}" y="${CIRCLE_RADIUS*2+5}" text-anchor="middle" font-size="1.05em" fill="#223" font-weight="600">${creator}</text>`;
+function approvalBranchHTML(creator, rows, currentUser) {
+  // rows: [{name, status, timestamp}]
+  const statusColor = s => s === "accepted" ? "#187f2c" : (s === "disputed" ? "#cc2020" : "#b08c00");
+  const nameColor = s => s === "accepted" ? "#107a10" : (s === "disputed" ? "#cc2020" : "#a89a00");
+
   return `
-  <div style="display:flex;align-items:flex-start; margin-bottom:12px;">
-    <svg width="${width}" height="${height+12}">
-      ${creatorCircle}
-      ${creatorText}
-      ${lines} ${circles} ${texts}
-    </svg>
+  <div style="margin-top:18px;">
+    <div style="display:flex;align-items:flex-start;">
+      <div style="display:flex;flex-direction:column;align-items:center;width:80px;">
+        <span style="font-weight:700;color:#222;font-size:1.06em; margin-bottom:3px; padding:4px 6px;">${escapeHtml(creator)}</span>
+        <div style="border-left:2.5px solid #b0b8be; height:${rows.length*32}px; margin-top:2px;"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;justify-content:flex-start;">
+        ${rows.map(r=>`
+        <div style="display:flex;align-items:center;height:32px;">
+          <div style="width:30px;border-bottom:2.5px solid #b0b8be;"></div>
+          <span style="color:${nameColor(r.status)};font-weight:600;font-size:1.04em;margin-left:10px;">${escapeHtml(r.name)}</span>
+          <span style="margin-left:12px;color:${statusColor(r.status)};font-size:0.99em;font-weight:600;">${r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+          ${r.status !== "pending" && r.timestamp ? `<span style="margin-left:7px;color:#656;">${timeAgo(r.timestamp)}</span>` : ""}
+          ${r.name===currentUser ? " <span style='font-size:0.99em;color:#111'>(You)</span>" : ""}
+          </span>
+        </div>`).join('\n')}
+      </div>
+    </div>
   </div>
   `;
 }
@@ -183,67 +181,78 @@ function renderApprovalDetails(container, user, item) {
     (p.name === currentUser) || (user?.firebaseUser?.email && p.name && p.name.toLowerCase() === user.firebaseUser.email.toLowerCase())
   );
   let userStatus = myStatusRow ? myStatusRow.status : null;
+  let userTimestamp = myStatusRow ? myStatusRow.timestamp : null;
+
+  // Prepare participant list with timestamps for timeline color/status
+  const partList = item.involvedStatus.map(p => ({
+    name: p.name,
+    status: p.status,
+    timestamp: p.timestamp
+  }));
+
   const isDisputed = !!item.disputed_by;
   const youDisputed = isDisputed && item.disputed_by === currentUser;
-  let msg = "";
-  if (isDisputed && youDisputed) msg = `<div style="color:#d12020;font-weight:600;font-size:1em;">You have disputed this expense at ${formatDateTime(item.disputed_at) || '–'}.</div>`;
-  else if (isDisputed) msg = `<div style="color:#d12020;font-weight:600;font-size:1em;">${item.disputed_by} has disputed this expense at ${formatDateTime(item.disputed_at) || '–'}.</div>`;
+  const youAccepted = userStatus === 'accepted';
+  let statusMsg = "";
+  if (isDisputed && youDisputed) statusMsg = `<div style="color:#d12020;font-weight:600;font-size:1em;">You have disputed this expense <span style="color:#656;font-weight:400;">${timeAgo(item.disputed_at)}</span>.</div>`;
+  else if (isDisputed) statusMsg = `<div style="color:#d12020;font-weight:600;font-size:1em;">${escapeHtml(item.disputed_by)} has disputed this expense <span style="color:#656;font-weight:400;">${timeAgo(item.disputed_at)}</span>.</div>`;
+  else if (userStatus === 'accepted') statusMsg = `<div style="color:#188c3d;font-weight:600;font-size:1em;">You have accepted this expense <span style="color:#656;font-weight:400;">${timeAgo(userTimestamp)}</span>.</div>`;
 
+  // Clean, bold currency display for share
   detailArea.innerHTML = `
     <div style="margin-bottom:18px;">
-      <div style="font-weight:600;font-size:1.09em;color:#1b2837;">${item.remarks}</div>
-      <div style="color:#566b89;font-size:1em;margin-bottom:3px;">${formatDisplayDate(item.date)}</div>
-      <div style="color:#209;font-size:0.96em;margin-bottom:5px;">by ${item.created_by}</div>
+      <div style="font-weight:600;font-size:1.09em;color:#1b2837;">${escapeHtml(item.remarks)}</div>
+      <div style="color:#566b89;font-size:1em;margin-bottom:3px;">${escapeHtml(item.date)}</div>
+      <div style="color:#209;font-size:0.96em;margin-bottom:5px;">by ${escapeHtml(item.created_by)}</div>
       <div style="font-size:1em;color:#222;margin-bottom:2px;">Total: <span style="font-weight:600;">${item.total_amount} ${CURRENCY}</span></div>
-      <div style="color:#888;font-size:0.98em;">Status last updated: <b>${formatDateTime(item.status_at)}</b></div>
+      <div style="color:#888;font-size:0.98em;">Status last updated: <b>${timeAgo(item.status_at)}</b></div>
     </div>
-    <div style="margin-bottom:14px;">
+    <div style="margin-bottom:10px;">
       <div style="font-weight:600;margin-bottom:5px;">Paid/Shares</div>
       <table style="border-collapse:collapse;width:auto;">
         ${item.splits.map(s => `
           <tr>
-            <td style="padding:2px 12px 2px 0; color:#474;min-width:5em;">${s.name}:</td>
-            <td style="padding:2px 10px; color:#666;">paid <b>${s.paid} ${CURRENCY}</b></td>
-            <td style="padding:2px 5px; color:#888;">share <b>${s.share} ${CURRENCY}</b></td>
+            <td style="padding:2px 12px 2px 0; color:#221;font-weight:600;min-width:5em;">${escapeHtml(s.name)}:</td>
+            <td style="padding:2px 10px; color:#222;">paid <span style="font-weight:700;color:#222">${s.paid} ${CURRENCY}</span></td>
+            <td style="padding:2px 5px; color:#567;">share <span style="font-weight:700;color:#222">${s.share} ${CURRENCY}</span></td>
           </tr>
         `).join('')}
       </table>
     </div>
-    <div style="margin-bottom:12px;">
+    <div style="margin-bottom:10px;">
       <div style="font-weight:600;margin-bottom:5px;">Settlements</div>
       <table style="border-collapse:collapse;">
         ${item.settlements.length
           ? item.settlements.map(st => `
             <tr>
               <td style="padding:2px 10px 2px 0; color:#555;min-width:8em; text-align:right;">
-                ${st.from}
+                ${escapeHtml(st.from)}
               </td>
               <td style="padding:2px 2px; color:#888;width:29px;text-align:center;">
                 <span style="font-size:1.21em;">&#8594;</span>
               </td>
               <td style="padding:2px 10px 2px 0; color:#333;">
-                ${st.to}:
-                <b>${st.amount} ${CURRENCY}</b>
+                ${escapeHtml(st.to)}: <span style="font-weight:700;color:#222">${st.amount} ${CURRENCY}</span>
               </td>
             </tr>
           `).join('')
           : '<tr><td>No settlements needed</td></tr>'}
       </table>
     </div>
-    <div style="border-top:1px solid #e8eaed;margin-top:12px;padding-top:13px; margin-bottom:10px;">
+    <div style="border-top:1px solid #e8eaed;margin-top:10px;padding-top:10px; margin-bottom:10px;">
       <div style="font-size:0.96em;color:#556;margin-bottom:9px;">Participants approvals:</div>
-      ${branchApprovalTreeSVG(item, currentUser)}
-      <div id="actionArea" style="margin-top:18px;">${msg}</div>
+      ${approvalBranchHTML(item.created_by, partList, currentUser)}
+      <div id="actionArea" style="margin-top:15px;">${statusMsg}</div>
     </div>
   `;
 
   const actionArea = detailArea.querySelector('#actionArea');
   if (!isDisputed && userStatus === 'pending') {
     actionArea.innerHTML += `
-      <div style="height:12px"></div>
-      <button id="acceptBtn" style="margin-right:14px;background:#e7f6ea;color:#13a568;padding:10px 28px;font-size:1.09em; border:1px solid #13a568;border-radius:8px;cursor:pointer;font-weight:600;">Accept</button>
-      <button id="disputeBtn" style="background:#ffecec;color:#d73323;padding:10px 28px;font-size:1.09em; border:1px solid #d73323;border-radius:8px;cursor:pointer;font-weight:600;">Dispute</button>
-      <div id="disputeEntry" style="display:none;margin-top:13px;">
+      <div style="height:10px"></div>
+      <button id="acceptBtn" style="margin-right:13px;background:#e7f6ea;color:#13a568;padding:10px 27px;font-size:1.09em; border:1px solid #13a568;border-radius:8px;cursor:pointer;font-weight:600;">Accept</button>
+      <button id="disputeBtn" style="background:#ffecec;color:#d73323;padding:10px 27px;font-size:1.09em; border:1px solid #d73323;border-radius:8px;cursor:pointer;font-weight:600;">Dispute</button>
+      <div id="disputeEntry" style="display:none;margin-top:12px;">
         <textarea id="disputeRemarks" placeholder="Enter reason..." style="width:98%;min-height:44px;border-radius:6px;border:1px solid #ccc;font-size:1em;padding:7px;"></textarea>
         <button id="submitDispute" style="margin-top:9px;padding:8px 20px;font-size:1.07em;">Submit Dispute</button>
       </div>
