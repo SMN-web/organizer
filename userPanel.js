@@ -31,32 +31,29 @@ export async function showUserPanel(container, auth) {
         width:90vw;max-width:340px;background:#fff;border-radius:12px;box-shadow:0 4px 24px #0002;border:1px solid #eee;
         z-index:150;transition:opacity 0.22s cubic-bezier(.45,1.6,.41,1),transform 0.17s cubic-bezier(.45,1.6,.41,1);display:flex;flex-direction:column;">
         
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div id="userHeader" style="display:flex;align-items:center;padding:18px 0px 16px 18px;cursor:pointer;">
-            <span id="avatarCircle"
-              style="background:#e1e6ef;color:#355;font-weight:700;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;font-size:1.2em;margin-right:13px;">
-            </span>
-            <span id="menuName" style="font-size:1.12em;font-weight:600;"></span>
-          </div>
-          <div style="padding-right:18px;">
-            <select id="currencyDropdown"
-              style="padding:4px 14px 4px 9px;font-size:1em;border-radius:7px;border:1.3px solid #cdd5de;outline:none;cursor:pointer;background:#f6f8fa;">
-              <option value="QAR">QAR</option>
-              <option value="INR">INR</option>
-            </select>
-          </div>
+        <div id="userHeader" style="display:flex;align-items:center;padding:18px 18px 16px 18px;cursor:pointer;">
+          <span id="avatarCircle"
+            style="background:#e1e6ef;color:#355;font-weight:700;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;font-size:1.2em;margin-right:13px;">
+          </span>
+          <span id="menuName" style="font-size:1.12em;font-weight:600;"></span>
         </div>
-        
         <div style="border-bottom:1px solid #ececec;"></div>
         <div style="padding:16px 18px;border-bottom:1px solid #ececec;cursor:pointer;" id="dashboard">Dashboard</div>
         <div style="padding:16px 18px;border-bottom:1px solid #ececec;cursor:pointer;" id="spend">Manage Spend</div>
         <div style="padding:16px 18px;cursor:pointer;" id="friends">Friends</div>
         <div style="flex:1;"></div>
-        <div style="padding:12px 16px 14px 16px; border-top:1px solid #f3f3f3; text-align:left;">
-          <button id="logoutBtn"
-            style="background:none;color:#d00;border:none;font-size:1em;padding:0.2em 0.9em;cursor:pointer;text-align:left;">
-            Logout
-          </button>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px 14px 16px; border-top:1px solid #f3f3f3;">
+          <!-- Left: Logout -->
+          <a id="logoutBtn"
+            style="color:#246bdb; font-size:1em; font-weight:700; text-decoration:underline;
+              background:none; border:none; cursor:pointer; user-select:auto;">Logout</a>
+          <!-- Right: Currency selector -->
+          <select id="currencyDropdown"
+            style="padding:4px 14px 4px 9px; font-size:1em; border-radius:7px; border:1.3px solid #cdd5de;
+              outline:none; cursor:pointer; background:#f6f8fa; min-width:68px;">
+            <option value="QAR">QAR</option>
+            <option value="INR">INR</option>
+          </select>
         </div>
       </div>
       <div id="loadingOverlay"
@@ -80,11 +77,10 @@ export async function showUserPanel(container, auth) {
   const currencyDropdown = container.querySelector("#currencyDropdown");
 
   // --- CURRENCY DROPDOWN logic ---
-  const lsCurrency = localStorage.getItem('currency') || "QAR";
-  currencyDropdown.value = lsCurrency;
+  currencyDropdown.value = localStorage.getItem('currency') || "QAR";
   currencyDropdown.onchange = () => {
     localStorage.setItem('currency', currencyDropdown.value);
-    // optionally: dispatch a custom event or reload UI as needed
+    // Optionally dispatch event or update UI
   };
 
   // --- HEARTBEAT LOGIC (START) ---
@@ -190,7 +186,9 @@ export async function showUserPanel(container, auth) {
   container.querySelector("#friends").onclick = () => selectTab('friends');
   userHeader.onclick = () => selectTab('userprofile');
 
-  logoutBtn.onclick = async () => {
+  // Hyperlink only for logout!
+  logoutBtn.onclick = async (e) => {
+    e.preventDefault();
     localStorage.clear();
     await auth.signOut();
     location.reload();
@@ -202,7 +200,7 @@ export async function showUserPanel(container, auth) {
     simpleMenu.style.pointerEvents = "none";
   }
 
-  // --- Modern reliable notification -> friends inbox tab redirect ---
+  // --- Notification -> friends inbox tab redirect ---
   function showFriendsInbox(tabContainer, userContext) {
     showFriends(tabContainer, userContext);
     const t0 = Date.now();
