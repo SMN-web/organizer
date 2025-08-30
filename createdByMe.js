@@ -221,15 +221,7 @@ function showCreatedByMeDetails(container, user, item) {
 // Paste the full 'showCreatedByMeEditPanel' implementation from the previous answer here!
 // In createdByMe.js - paste this after your helpers, and call this from your edit button
 
-function rup(val) { return Math.ceil(Number(val) || 0); }
-function todayDate() {
-  const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-}
-function escapeHtml(str) {
-  return String(str || "").replace(/[<>&"]/g, t =>
-    t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
-}
+
 
 async function showCreatedByMeEditPanel(container, user, item) {
   let FRIENDS = [];
