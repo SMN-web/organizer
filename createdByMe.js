@@ -221,6 +221,16 @@ function showCreatedByMeDetails(container, user, item) {
 // Paste the full 'showCreatedByMeEditPanel' implementation from the previous answer here!
 // In createdByMe.js - paste this after your helpers, and call this from your edit button
 
+function rup(val) { return Math.ceil(Number(val) || 0); }
+function todayDate() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function escapeHtml(str) {
+  return String(str || "").replace(/[<>&"]/g, t =>
+    t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
+}
+
 async function showCreatedByMeEditPanel(container, user, item) {
   let FRIENDS = [];
   let loggedInUsername = null;
@@ -254,20 +264,29 @@ async function showCreatedByMeEditPanel(container, user, item) {
     return;
   }
 
-  // Helper to find friend object from FRIENDS list
+  // Helper for display
   function getFriendById(username) {
-    return FRIENDS.find(f => f.username === username) || { username, name: username };
+    return FRIENDS.find(f => f.username === username);
   }
 
-  // -- Robust prefill: always use username for state, display names as needed --
+  // Prefill state ONLY with known usernames (robust against deleted/unknowns)
   const selectedFriends = [];
   const payers = [];
   const payerAmounts = {};
   (item.splits || []).forEach(s => {
-    if (!selectedFriends.includes(s.username)) selectedFriends.push(s.username);
-    if (Number(s.paid) > 0 && !payers.includes(s.username)) payers.push(s.username);
-    payerAmounts[s.username] = s.paid;
+    // prefill only if user is actually in FRIENDS
+    if (FRIENDS.some(f => f.username === s.username)) {
+      if (!selectedFriends.includes(s.username)) selectedFriends.push(s.username);
+      if (Number(s.paid) > 0 && !payers.includes(s.username)) payers.push(s.username);
+      payerAmounts[s.username] = s.paid;
+    }
   });
+
+  // For diagnostics, you may want to know if any user not found in FRIENDS
+  const notFound = (item.splits || []).filter(s => !FRIENDS.some(f=>f.username===s.username));
+  if (notFound.length) {
+    console.warn("Some usernames from splits not found in FRIENDS:", notFound.map(s=>s.username));
+  }
 
   let state = {
     editing: true,
@@ -329,7 +348,9 @@ async function showCreatedByMeEditPanel(container, user, item) {
     renderFriendsOptions('');
     const chips = container.querySelector('.friends-chosen');
     chips.innerHTML = state.selectedFriends.map(username =>
-      `<span class="chosen-chip" data-id="${username}">${getFriendById(username).name}${state.editing && username!==loggedInUsername ? '<span class="chip-x">×</span>' : ''}</span>`
+      `<span class="chosen-chip" data-id="${username}">${
+        getFriendById(username)?.name || `[Unknown: ${username}]`
+      }${state.editing && username!==loggedInUsername ? '<span class="chip-x">×</span>' : ''}</span>`
     ).join('');
     if (state.editing) {
       chips.querySelectorAll('.chosen-chip').forEach(chip => {
@@ -405,7 +426,7 @@ async function showCreatedByMeEditPanel(container, user, item) {
     addOptions.forEach(username => {
       let chip = document.createElement('span');
       chip.className = 'chosen-chip';
-      chip.textContent = getFriendById(username).name;
+      chip.textContent = getFriendById(username)?.name || `[Unknown: ${username}]`;
       let x = document.createElement('span');
       x.className = 'chip-x'; x.textContent = '+';
       chip.appendChild(x);
@@ -422,7 +443,7 @@ async function showCreatedByMeEditPanel(container, user, item) {
       let chip = document.createElement('span');
       chip.className = 'chosen-chip selected-payer';
       chip.innerHTML = `
-        ${getFriendById(username).name}
+        ${getFriendById(username)?.name || `[Unknown: ${username}]`}
         ${state.editing ? '<span class="chip-x" style="pointer-events:all;">×</span>' : ''}
         <input type="number" class="payer-amt" min="0" step="1" value="${state.payerAmounts[username] ?? ''}" placeholder="Amt" ${state.editing ? '' : 'readonly'} />
       `;
@@ -461,7 +482,6 @@ async function showCreatedByMeEditPanel(container, user, item) {
     const calcBtn = container.querySelector('.calc-btn');
     const msgBox = container.querySelector('.calc-btn-msg');
     calcBtn.onclick = () => {
-      // ============= Validation always on username ==============
       if (!state.selectedFriends.includes(loggedInUsername) || state.selectedFriends.length < 2) {
         msgBox.textContent = "Please select yourself and at least one more friend.";
         return;
@@ -520,7 +540,7 @@ async function showCreatedByMeEditPanel(container, user, item) {
         }
         splitDiv.innerHTML += `
           <div class="split-row${isLocked ? " locked-row" : ""}">
-            <span class="split-row-name">${getFriendById(username).name}</span>
+            <span class="split-row-name">${getFriendById(username)?.name || `[Unknown: ${username}]`}</span>
             <input type="number" class="split-amt" min="0" step="1" value="${value}" data-id="${username}"
               ${isLocked ? 'readonly' : ''}
               style="background:${isLocked ? '#e2eef4' : '#fff'};color:${isLocked ? (showErr ? '#c43422' : '#156b97'):'#25304d'};border:2.2px solid ${(showErr ? '#e44b56' : isLocked ? '#288944':'#d3dae4')};">
@@ -612,6 +632,7 @@ async function showCreatedByMeEditPanel(container, user, item) {
         distributeMsg.textContent = "Negative values not allowed.";
         return;
       }
+
       const splits = sharers.map(username => ({
         username: username,
         paid: Number(state.payerAmounts[username] ?? 0),
