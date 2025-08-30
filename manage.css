@@ -1,52 +1,445 @@
-body, html {
+body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
+.manage-spend-wrapper { max-width: 430px; margin: 44px auto 0 auto; background: #fff; border-radius:14px; box-shadow: 0 10px 30px #c3dae41a; padding:22px 8px 38px 8px; min-height: 70vh; }
+.spend-header { margin-top:32px; }
+.centered-title { text-align:center; margin:0 0 .11em 0; font-size:2em; font-weight:700;}
+.spend-desc { text-align:center; margin-bottom:1em; font-size:1.07em; color:#5f627c;}
+.section-switch { display: flex; gap:12px; justify-content:center; margin:14px 0 13px 0;}
+.tab-btn { color:#28508B; cursor:pointer; border:none; background:#f6f8fa; padding:7px 16px; border-radius:12px; font-size:1.04em; font-weight:500; transition:background .12s;}
+.tab-btn.active { background: #e5effc; color:#2355a2; font-weight:600;}
+.selector-group { margin-bottom: 10px; }
+.selector-label { font-weight:500; margin-bottom:4px; font-size:1.04em; }
+.custom-dropdown { position: relative; width: 100%; }
+.dropdown-selected { background:#fff; border-radius:7px; border:1px solid #d3dae4; padding:.67em 1em; font-size:1em; cursor:pointer; width:100%; min-height:18px;}
+.dropdown-selected:focus {outline:2px solid #bdd0fd;}
+.dropdown-menu { position:absolute; left:0; right:0; top:110%; z-index:199; background:#fff; border-radius:10px; border:1px solid #dde1ed; box-shadow:0 6px 17px -8px #b0adbb14; padding:.04em 0 .37em 0; }
+.dropdown-search { width:94%; margin:7px auto 8px auto; display:block; padding:.45em 1em; border-radius:8px; border:1px solid #dde1ed; background: #f6f8fa; font-size:.97em;}
+.dropdown-options { max-height:158px; overflow-y:auto;}
+.selector-item { cursor:pointer; border-radius:5px; padding:8px 15px; font-size:1.01em; color:#27304d; background:#f7f9fc; margin:1.2px 0; transition:background .12s;}
+.selector-item.selected, .selector-item.used { background:#e6eef7; color:#1150ac;}
+.selector-item:active, .selector-item:hover { background:#e2e5ec;}
+.chosen-list { display:flex; flex-wrap:wrap; gap:7px; margin:7px 0 2px 0;}
+.chosen-chip { background:#f3f4f6; color:#234579; font-weight:500; border-radius:13px; padding:5px 11px 5px 8px; font-size:1em; box-shadow:0 1px 6px -4px #aec6ef17; cursor:pointer; user-select:none; position:relative; display:flex; align-items:center; gap:2px; border:1px solid #d1dbe5;}
+.chosen-chip.selected-payer { background: #e9f2fc; color:#0150b7; border-color:#bfd5ea; }
+.chosen-chip .chip-x { font-size:.97em; color: #b13939; margin-left:5px; opacity:.82; pointer-events:none;}
+.chosen-chip .payer-amt { margin-left:10px; width:62px; background:#fafdff; border:1px solid #cedae0; border-radius:8px; font-size:.97em; padding:4px 8px; text-align:right;}
+.total-display { margin: 8px 0 6px 0; font-size:1.10em; color:#233d68; text-align:right; font-weight:500;}
+.primary-btn { background: linear-gradient(90deg,#6b8def 80%,#b8d5fa 100%); color:#fff; border:none; border-radius:7px; padding:.80em 1.7em; font-weight:600; margin-top:1.09em; font-size:1.13em; box-shadow:0 2px 8px -4px #497af480; transition:background .15s; display:block; width:98%; margin-left:auto; margin-right:auto;}
+.primary-btn:disabled {opacity:.51;}
+.split-results-container { margin-top:14px;}
+.split-list { margin:10px 0 14px 0;}
+.split-row { background:#fff; border-radius:10px; border:1.1px solid #e6e8f5; display:flex; align-items:center; gap:13px; margin-bottom:7px; padding:8px 22px 8px 17px; box-shadow:0 1px 5px -5px #bfd9e821;}
+.locked-row { background:#eaf5fa !important; border: 1.3px solid #4bb1df !important; }
+.lock-btn { font-size:1.45em; background:none; border:none; color:#1661b1; margin-left:5px; cursor:pointer; vertical-align:middle;}
+.lock-btn svg { vertical-align: middle;}
+.split-row-name { min-width:63px; font-weight:500; letter-spacing:-0.01em; }
+.save-all-btn { margin-top:1.2em; }
+.save-result-msg { margin-top:9px; color:#25853f; font-size:1.08em; }
+.fab-calculator { position: fixed; right: 8vw; bottom: 7vh; width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(135deg,#769bef 75%,#bdd8f9 100%); color:#fff; font-size: 2em; display:flex; align-items:center; justify-content:center; border:none; cursor:pointer; z-index:10001; box-shadow: 0 9px 26px -4px #4668de1d; transition: background .17s;}
+.fab-calculator:active, .fab-calculator:focus { background:#628ce5; }
+.calculator-modal-overlay { position: fixed; inset: 0; background:rgba(40,52,72,0.10); z-index:99999; display:flex; align-items:center; justify-content:center;}
+.calculator-modal { background: #fcfdff; border-radius:15px; box-shadow: 0 17px 48px -12px #6688fa2a; padding: 21px 17px 19px 17px; width: 356px; max-width:98vw; margin: 0 auto; position: relative; display: flex; flex-direction:column; animation: fadeInCalc .36s;}
+@keyframes fadeInCalc { from { opacity: 0; transform: translateY(24px);} to { opacity: 1; transform: none;} }
+.calc-header { display: flex; justify-content: space-between; align-items: center; font-weight:600; font-size: 1.09em; margin-bottom:10px;}
+.close-calc-btn { background: none; border: none; color: #b33; font-size: 1.5em; cursor: pointer; }
+.calculator-display { width: 98%; font-size: 1.37em; padding: 11px 1em 11px 0.7em; border-radius: 8px; border: 1.2px solid #c7cddb; background: #f7fafd; text-align: right; margin-bottom: 18px; font-family: 'Segoe UI', sans-serif; }
+.calculator-buttons { display: grid; gap: 8px 10px; grid-template-columns: repeat(4,1fr); margin: 1.17em 0 0.6em 0; justify-items: center; }
+.calc-btn { border-radius: 9px; border: none; font-size: 1.19em; font-weight: 600; padding: 0.55em 0; background:#edf2f6; color:#233d68; cursor: pointer; box-shadow: 0 2px 4px -3px #aac2f833; transition: background .11s, color .12s;}
+.calc-btn:active, .calc-btn:focus { background: #dae6f5; color:#2056a1;}
+.calc-btn.op-red { background: #fbeaea; color: #d80b0b;}
+.calc-btn.op-lilac { background: #f0eefd; color: #6c61b0; }
+.zero-wide { grid-column: 1/3; }
+.equals-btn { background: linear-gradient(90deg,#7f99ea 80%,#c2e8fd 100%); color:#fff; font-size:1.3em; font-weight:bold; grid-column: 4; }
+
+
+/* Style for distribution-meta in your split/distribution panel */
+.distribution-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+  margin: 19px 0 13px 0;
+  align-items: stretch;
+}
+
+/* Date label and picker inline, but label on left, picker on right */
+.distribution-meta label:first-child {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6em;
+  font-weight: 500;
+  font-size: 1em;
+}
+
+/* Date picker field -- styled like dropdown/inputs */
+.distribution-meta input[type="date"] {
+  appearance: none;
+  background: #f7f9fd;
+  border: 1.3px solid #d3dae4;
+  border-radius: 7px;
+  padding: 0.58em 1em 0.58em 1em;
+  color: #1e293b;
+  font-size: 1.07em;
+  outline: none;
+  min-width: 0;
+  width: 180px; /* Adjust as needed: fits most date strings */
+  transition: border 0.17s, box-shadow 0.17s;
   box-sizing: border-box;
-  min-height:100vh;
-  margin:0;
-  padding:0;
+}
+
+.distribution-meta input[type="date"]:focus {
+  border: 1.6px solid #5081ef;
+  box-shadow: 0 0 0 1.5px #bdd0fd80;
+}
+
+/* Make sure the remarks label/field starts on next line and fills width */
+.distribution-meta label:nth-child(2) {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.7em;
+  font-weight: 500;
   font-size: 1em;
 }
 
-.manage-spend-wrapper {
-  max-width: 430px;
-  margin: 44px auto 0 auto;
-  background: #fff;
-  border-radius:14px;
-  box-shadow: 0 10px 30px #c3dae41a;
-  padding:22px 8px 38px 8px;
-  min-height: 70vh;
-  font-size: 1em;
+.distribution-meta input[type="text"] {
+  background: #f7f9fd;
+  border: 1.3px solid #d3dae4;
+  border-radius: 7px;
+  padding: 0.62em 1em;
+  color: #1e293b;
+  font-size: 1.07em;
+  outline: none;
+  margin-top: 0.35em;
+  width: 100%;
+  transition: border 0.17s, box-shadow 0.17s;
+  box-sizing: border-box;
 }
 
+.distribution-meta input[type="text"]:focus {
+  border: 1.6px solid #5081ef;
+  box-shadow: 0 0 0 1.5px #bdd0fd80;
+}
+
+/* Responsive: stack everything cleanly on small screens */
+@media (max-width: 600px) {
+  .distribution-meta label:first-child {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .distribution-meta input[type="date"] {
+    width: 100%;
+  }
+}
+
+/* Split panel container row */
+.split-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  background: #fafcff;
+  border: 1.5px solid #dbe2ee;
+  border-radius: 11px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  transition: border 0.13s, box-shadow 0.13s;
+}
+
+/* Name column */
+.split-row-name {
+  min-width: 45px;
+  font-weight: 500;
+  color: #1a3556;
+  margin-right: 16px;
+}
+
+/* Input matches other stylish inputs */
+.split-amt {
+  flex: 1 0 90px;
+  border: 1.5px solid #d3dae4;
+  border-radius: 7px;
+  background: #f7f9fd;
+  padding: 0.62em 1em;
+  font-size: 1.09em;
+  color: #1e293b;
+  box-sizing: border-box;
+  outline: none;
+  transition: border 0.17s, box-shadow 0.17s;
+}
+
+.split-amt:focus {
+  border: 1.6px solid #5081ef;
+  box-shadow: 0 0 0 1.6px #bdd0fd80;
+  background: #f4faff;
+}
+
+/* Locked state visual feedback */
+.locked-row .split-amt {
+  background: #eaf4ee !important;
+  border: 1.6px solid #8edde0 !important;
+  color: #207554;
+  box-shadow: none !important;
+}
+
+/* Lock icon alignment (optional for SVG or font icon) */
+.split-row .lock-btn {
+  background: none;
+  border: none;
+  padding: 0 0 0 11px;
+  font-size: 1.32em;
+  color: #a6b4c9;
+  cursor: pointer;
+  transition: color 0.14s;
+  outline: none;
+}
+
+.split-row .lock-btn:focus,
+.split-row .lock-btn:hover {
+  color: #4f90ff;
+}
+
+/* On mobile, adjust padding for space */
+@media (max-width: 600px) {
+  .split-row { padding: 10px 8px; }
+  .split-row-name { margin-right: 8px; }
+  .split-amt { font-size: 1.01em; }
+}
+
+.settlement-summary .primary-btn {
+  padding: 0.4em 1.1em;
+  font-size: 1em;
+  border-radius: 7px;
+  margin-top: 0;
+  min-width: 120px;
+  box-shadow: 0 2px 6px -5px #4694fd61;
+  transition: background .12s;
+}
+
+/* Space horizontal buttons neatly */
+.settlement-summary .primary-btn + .primary-btn {
+  margin-left: 9px;
+}
+
+@media (max-width: 480px) {
+  .settlement-summary .primary-btn {
+    font-size: 0.98em;
+    min-width: 93px;
+    padding: 0.38em 0.5em;
+  }
+  .settlement-summary .primary-btn + .primary-btn {
+    margin-left: 5px;
+  }
+}
+
+.distribute-btn-msg {
+  color: #e53935;
+}
+.calc-btn-msg {
+  color: #e53935;   /* or "red" or another shade, e.g. #e53935 */
+}
+
+.split-amt {
+  width: 70px;
+  font-size: 1.12em;
+  padding: 5px 9px;
+  margin: 0 7px;
+  border-radius: 7px;
+  box-sizing: border-box;
+}
+.split-row-name {
+  min-width: 60px;
+  max-width: 120px;
+  font-size: 1.07em;
+  margin-right: 7px;
+}
+.lock-btn {
+  font-size: 1.7em;
+  margin-left: 2px;
+}
+.split-row {
+  gap: 12px;
+  padding: 9px 15px 9px 13px;
+  align-items: center;
+}
+
+.dropdown-search.friends-search {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  background: #fff;                /* Light background */
+  color: #222 !important;          /* Dark text for clarity */
+  font-size: 1.08em;
+  border: 1.2px solid #bfc7d4;  
+  border-radius: 8px;
+  padding: 7px 11px;
+  outline: none;
+  margin-bottom: 7px;
+  transition: border .18s;
+}
+.dropdown-search.friends-search:focus {
+  border-color: #4385d4;
+  background: #f3faff;
+}
+.custom-dropdown, .dropdown-menu {
+  width: 100%;
+  max-width: 350px;
+  box-sizing: border-box;
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #distribution-summary, #distribution-summary * {
+    visibility: visible !important;
+  }
+  #distribution-summary {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100vw !important;           /* Use full page width */
+    min-width: 0 !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0.7in 0.6in 0.7in 0.6in !important;  /* Nice page padding */
+    background: #fff !important;
+    font-size: 1.13em !important;      /* Readably large */
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    text-align: left !important;
+  }
+  .settlement-summary {
+    max-width: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    background: none !important;
+    width: 100% !important;
+  }
+  /* To fix possible floating/inline block issues */
+  #distribution-summary h2,
+  #distribution-summary div,
+  #distribution-summary hr {
+    display: block !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    text-align: left !important;
+  }
+  /* Hide buttons for print */
+  .primary-btn, #save-btn, #new-expense-btn, #share-pdf-btn {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
+
+
+
+.save-btn {
+  margin: 0 auto;
+  display: inline-block;
+  min-width: 120px;
+  font-size: 1em;
+  border-radius: 7px;
+}
+
+.after-save-btn-group {
+  display: flex;
+  justify-content: center;
+  gap: 12px;           /* Space between the buttons */
+  margin: 0 auto;
+  margin-top: 0;
+}
+
+.new-expense-btn,
+.share-pdf-btn {
+  min-width: 120px;
+  font-size: 0.97em;
+  border-radius: 7px;
+}
+
+/*approval expense*/
+
+.approval-list {
+  margin-top: 20px;
+}
+.approval-card {
+  border: 1px solid #e3e3ea;
+  border-radius: 9px;
+  margin: 0 0 13px 0;
+  box-shadow: 0 1px 5px -4px #ccc;
+  background: #fcfcfc;
+  cursor: pointer;
+  transition: box-shadow .14s;
+}
+.approval-card:focus,
+.approval-card:hover {
+  box-shadow: 0 2px 22px -12px #1889e1;
+  border-color: #2188ea;
+}
+.approval-summary {
+  font-size: 1.05em;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 10px 18px;
+  font-weight: 500;
+}
+.approval-date {
+  min-width: 87px;
+  color: #2266ba;
+}
+.approval-remarks {
+  color: #312;
+  font-weight: 400;
+  flex: 1;
+}
+.approval-detail {
+  border-top: 1px solid #d2d6da;
+  padding: 10px 18px 16px 18px;
+  background: #f9fcff;
+}
+.primary-btn {
+  padding: 7px 18px;
+  border-radius: 7px;
+  margin-top: 6px;
+  cursor: pointer;
+  font-size: 1em;
+}
+.action-dispute-btn {
+  background: #e53935 !important;
+  color: #fff !important;
+}
+
+/* Place in your main CSS or inside a <style> tag loaded with your app */
 .spend-header {
   margin-top: 4px !important;
   padding-bottom: 2px;
 }
 
 .spend-header .centered-title {
-  text-align:center;
-  margin:4px 0 0 0;
-  font-size:1.13em;
-  font-weight:600;
-  line-height:1.17;
+  font-size: 1.1em;
+  font-weight: 600;
+  line-height: 1.18;
   letter-spacing: 0.01em;
+  margin-bottom: 1px;
+  margin-top: 4px;
 }
 
 .spend-header .spend-desc {
-  text-align:center;
-  margin: 8px 0 7px 0;
-  font-size:0.97em;
-  color:#656c75;
-  font-weight:400;
-  line-height:1.27;
-  letter-spacing:0.01em;
+  font-size: 0.95em;
+  color: #656c75;
+  font-weight: 400;
+  line-height: 1.28;
+  letter-spacing: 0.01em;
+  margin: 8px 0 7px 0;    /* Experiment with 8px or 12px for best look */
 }
 
+
 .section-switch, .approval-subtabs {
-  display: flex !important;
   justify-content: center !important;
-  gap: 7px;
+  display: flex !important;
+  gap: 6px;
   margin-bottom: 11px;
-  margin-top: 7px;
+  margin-top: 6px;
 }
 
 .approval-subtab, .tab-btn {
@@ -54,8 +447,8 @@ body, html {
   color: #1761a0;
   border: none;
   border-radius: 8px;
-  padding: 3.5px 12px;
-  font-size: 0.98em;
+  padding: 3px 11px;
+  font-size: 0.97em;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.13s, color 0.11s, box-shadow 0.12s;
@@ -69,137 +462,8 @@ body, html {
   box-shadow: 0 1px 4px #6198fa1a;
 }
 
-.approval-subtab:hover:not(.active), .tab-btn:hover:not(.active) {
+.approval-subtab:hover:not(.active),
+.tab-btn:hover:not(.active) {
   background: #e5ecfa;
   color: #1b3c7c;
-}
-
-.approval-folder, .approval-main {
-  font-size: 0.97em !important;
-}
-
-.approval-folder .remarks, #detailArea .remarks {
-  font-size: 1em !important;
-  font-weight: 600 !important;
-}
-
-#detailArea {
-  font-size: 0.98em;
-  line-height: 1.48;
-}
-
-#detailArea table {
-  font-size: 0.96em;
-}
-
-#detailArea td {
-  padding: 2px 5px !important;
-  font-size: 0.97em !important;
-}
-
-#detailArea .status-pill {
-  font-size: 0.94em !important;
-  padding: 2px 8px !important;
-  border-radius: 11px !important;
-}
-
-#detailArea h3 {
-  font-size: 1.09em !important;
-  margin: 0;
-}
-
-#backBtn {
-  font-size: 0.98em !important;
-  padding: 7px 14px !important;
-}
-
-input[type="text"], input[type="date"] {
-  font-size: 0.98em !important;
-  padding: 7px 12px !important;
-  border-radius: 6px !important;
-}
-
-textarea, select {
-  font-size: 0.97em !important;
-  padding: 6px 10px !important;
-  border-radius: 7px !important;
-}
-
-button {
-  font-size: 1em !important;
-}
-
-/* Style for chip/tag friends */
-.chosen-chip, .chosen-chip.selected-payer {
-  font-size: 0.97em !important;
-  padding: 5px 10px 5px 8px;
-}
-
-.chosen-chip .chip-x {
-  font-size: 0.96em;
-}
-
-/* Other utility classes (for forms, modals, rows, calculator, etc) */
-.primary-btn, .save-btn, .new-expense-btn, .share-pdf-btn {
-  font-size: 1em !important;
-  padding: 0.75em 1.5em;
-  border-radius: 7px;
-}
-
-.fab-calculator {
-  font-size: 1.7em !important;
-  width: 52px; height: 52px;
-}
-
-.selector-label, .distribution-meta label {
-  font-size: 0.96em;
-  font-weight: 500;
-}
-
-.split-row, .split-row-name, .split-amt {
-  font-size: 0.98em !important;
-}
-
-.approval-card, .approval-summary, .approval-detail {
-  font-size: 0.96em !important;
-}
-
-/* Responsive: ensure scaling for mobile */
-@media (max-width: 600px) {
-  .manage-spend-wrapper { padding: 11px 2px 20px 2px; }
-  .section-switch, .approval-subtabs { gap:4px; }
-  .split-row { padding: 9px 4px 9px 4px; }
-}
-
-/* Print styles remain as-was for "distribution-summary" */
-@media print {
-  body * { visibility: hidden !important; }
-  #distribution-summary, #distribution-summary * {
-    visibility: visible !important;
-  }
-  #distribution-summary {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-    width: 100vw !important;
-    margin: 0 !important;
-    padding: 0.7in 0.6in 0.7in 0.6in !important;
-    background: #fff !important;
-    font-size: 1.13em !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    text-align: left !important;
-  }
-  .settlement-summary {
-    max-width: none !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    background: none !important;
-    width: 100% !important;
-  }
-  .primary-btn, #save-btn, #new-expense-btn, #share-pdf-btn {
-    display: none !important;
-    visibility: hidden !important;
-  }
 }
