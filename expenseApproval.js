@@ -131,7 +131,7 @@ function renderApprovalsArea(container, user) {
         <span class="sn" style="min-width:2em;font-weight:600;color:#357;flex-shrink:0;margin-top:7px;">${item.sn}.</span>
         <div class="approval-main" style="flex:1 1 0;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;row-gap:2px;">
           <div class="remarks" style="font-weight:600;color:#1b2837;margin-bottom:3px;">${escapeHtml(item.remarks||"")}</div>
-          <div class="date" style="color:#566b89;font-size:0.97em;">${escapeHtml(item.date||"")}</div>
+          <div class="date" style="color:#566b89;font-size:0.97em;">${formatDisplayDate(item.date||"")}</div>
           <div class="by" style="color:#209;font-size:0.97em;">by ${escapeHtml(item.created_by||"")}</div>
         </div>
         ${statusHtml}
