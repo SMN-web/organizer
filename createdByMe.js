@@ -219,10 +219,6 @@ function showCreatedByMeDetails(container, user, item) {
 }
 
 // Paste the full 'showCreatedByMeEditPanel' implementation from the previous answer here!
-
-this is the best working previous code only the issue is object object thats here the edid button working fine,
-
-// Paste the full 'showCreatedByMeEditPanel' implementation from the previous answer here!
 // In createdByMe.js - paste this after your helpers, and call this from your edit button
 
 
