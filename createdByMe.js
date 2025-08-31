@@ -665,4 +665,39 @@ async function showCreatedByMeEditPanel(container, user, item) {
   showSettlementSummary(splits, preview.settlements);
     };
   }
+
+  function showSettlementSummary(splits, settlements) {
+    container.innerHTML = `
+      <div id="distribution-summary">
+      <div class="settlement-summary" style="padding:18px 8px 25px 8px;max-width:430px;margin:33px auto;text-align:center;background:#fff;border-radius:11px;box-shadow:0 4px 24px #d3e6fd16;">
+        <h2 style="margin:10px 0 6px 0;">Final Distribution</h2>
+        <div><strong>Date:</strong> <span>${formatDisplayDate(state.spendDate)}</span></div>
+        <div><strong>Reason:</strong> <span>${state.remarks || '-'}</span></div>
+        <div style="margin:15px 0 12px 0;">Total Amount: <strong>${splits.reduce((a, s) => a + s.paid, 0)} ${CURRENCY}</strong></div>
+        <hr>
+        <div><u>Paid Amounts:</u><br>
+          ${splits.map(s => `<div>${getFriendById(s.username).name} paid: <em>${s.paid} ${CURRENCY}</em></div>`).join('')}
+        </div>
+        <div style="margin:10px 0 0 0"><u>Each Share:</u><br>
+          ${splits.map(s => `<div>${getFriendById(s.username).name}'s share: <em>${s.share} ${CURRENCY}</em></div>`).join('')}
+        </div>
+        <div style="margin:10px 0 0 0"><u>Owes/Settlement:</u></div>
+        ${settlements && settlements.length
+          ? settlements.map(st =>
+              `<div class="row-settle"><strong>${getFriendById(st.from_user).name}</strong> owes <em>${st.amount} ${CURRENCY}</em> to <strong>${getFriendById(st.to_user).name}</strong></div>`
+            ).join('')
+          : `<div>All settled up. No pending amounts.</div>`}
+        <div class="summary-btns">
+  <button class="primary-btn save-btn" id="save-btn">Save</button>
+
+  <div class="after-save-btn-group" style="display:none;">
+    <button class="primary-btn new-expense-btn" id="new-expense-btn">Add New Expense</button>
+    <button class="primary-btn share-pdf-btn" id="share-pdf-btn">Share PDF</button>
+  </div>
+</div>
+        <div id="save-result" style="margin-top:10px;font-weight:bold"></div>
+         
+      </div>
+      </div>
+    `;
 }
