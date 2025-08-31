@@ -638,6 +638,7 @@ async function showCreatedByMeEditPanel(container, user, item) {
         paid: Number(state.payerAmounts[username] ?? 0),
         share: shares[username]
       }));
+      state.splits = splits;
 
       distributeMsg.textContent = "Processing preview (add preview and Save here)...";
       // Here you can insert settlement preview + save logic for update.
@@ -716,8 +717,6 @@ document.getElementById('save-btn').onclick = async () => {
         total_amount: state.totalAmount
       },
       splits: state.splits,           // Array of {username, paid, share}
-      settlements: state.settlements, // Array of {from, to, amount, payer_status?}
-      actions: state.actions          // Array of {username, status, timestamp}
     };
 
     const token = await user.firebaseUser.getIdToken(true);
