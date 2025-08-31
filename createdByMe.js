@@ -1,22 +1,21 @@
 const CURRENCY = localStorage.getItem('currency') || "QAR";
 
-// Helper: for legacy string or {name,username} object
-function displayName(user) {
-  if (!user) return "";
-  if (typeof user === "string") return user;
-  if (typeof user.name === "string") return user.name;
+// Robust helper to handle string or {name,username} objects
+function displayName(x) {
+  if (!x) return "";
+  if (typeof x === "string") return x;
+  if (typeof x === "object" && x.name) return x.name;
   return "";
 }
 
-// Helper for safe escape
-function escapeHtml(str) {
-  return String(str || "").replace(/[<>&"]/g, t =>
-    t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
+function parseDBDatetimeAsUTC(dt) {
+  const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
+  if (!m) return new Date(dt);
+  return new Date(Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]));
 }
-
 function timeAgo(dateStr) {
   if (!dateStr) return "";
-  const then = new Date(dateStr);
+  const then = parseDBDatetimeAsUTC(dateStr);
   const now = new Date();
   const seconds = Math.floor((now - then) / 1000);
   if (isNaN(seconds)) return "";
@@ -34,7 +33,10 @@ function timeAgo(dateStr) {
   const years = Math.floor(days / 365);
   return `${years}y ago`;
 }
-
+function escapeHtml(str) {
+  return String(str || "").replace(/[<>&"]/g, t =>
+    t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
+}
 function formatDisplayDate(dateStr) {
   if (!dateStr) return '';
   const [full] = dateStr.split(' ');
@@ -181,7 +183,7 @@ function showCreatedByMeDetails(container, user, item) {
       ${(item.splits||[]).map(s => `
         <tr>
           <td style="padding:2px 8px 2px 0; color:#221;font-weight:600;min-width:5em;">
-            ${escapeHtml(displayName(s))}:
+            ${escapeHtml(displayName(s))}
           </td>
           <td style="padding:2px 8px; color:#222;">paid <span style="font-weight:700;color:#222">${s.paid} ${CURRENCY}</span></td>
           <td style="padding:2px 5px; color:#567;">share <span style="font-weight:700;color:#222">${s.share} ${CURRENCY}</span></td>
@@ -208,24 +210,23 @@ function showCreatedByMeDetails(container, user, item) {
     </table>
     <div style="border-top:1px solid #e8eaed;margin-top:10px;padding-top:8px;margin-bottom:9px;">
       <div style="font-size:0.96em;color:#556;margin-bottom:6px;font-weight:700;">Participants approvals:</div>
-      ${approvalBranchHTML(
-        item.created_by,
-        (item.involvedStatus || []).map(u => ({
-          ...u,
-          name: displayName(u)
-        }))
-      )}
+      ${approvalBranchHTML(displayName(item.created_by), (item.involvedStatus||[]).map(u => ({...u, name: displayName(u)})))}
       ${disputeMsg}
       ${(item.status === "disputed")
         ? `<button id="editBtn" style="margin-top:14px; padding:8px 24px; font-size:1em; border-radius:8px; background:#2268c5; color:#fff; border:none; font-weight:600;">Edit</button>`
         : ""}
     </div>
   `;
-  if (item.status === "disputed") {
-    detailArea.querySelector('#editBtn').onclick = () => showCreatedByMeEditPanel(container, user, item);
 
+  // -- Guarantee Edit button handler assignment, only after it exists in DOM --
+  if (item.status === "disputed") {
+    const editBtn = detailArea.querySelector('#editBtn');
+    if (editBtn) {
+      editBtn.onclick = () => showCreatedByMeEditPanel(container, user, item);
+    }
   }
 }
+
 
 
 // Paste the full 'showCreatedByMeEditPanel' implementation from the previous answer here!
