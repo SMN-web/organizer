@@ -1,41 +1,35 @@
+.pay-ui-outer-wrap { margin-top: 58px; }
 .pay-ui-friends {
   max-width: 430px;
-  margin: 64px auto 0 auto;
+  margin: 0 auto 0 auto;
   padding: 1.4em .5em 0 .5em;
   background: #fafcfb;
   border-radius: 18px;
   box-shadow: 0 3px 18px #b7d8f53b;
 }
-.pay-ui-head-row {
+.pay-ui-row-main {
   display: flex;
   align-items: center;
   gap: 0.7em;
 }
 .pay-ui-searchinpt {
-  width: 84%;
-  padding: 7px 7px;
   border-radius: 8px;
   border: 1.2px solid #ccd6e8;
   background: #f7fafb;
   font-size: 1.04em;
+  padding: 7px 7px;
 }
-.pay-ui-filter-row {
-  display: flex;
-  gap: 2px;
-  align-items: center;
-}
-.pay-ui-filter {
-  background: #f1f3f9;
-  color: #558;
-  border: none;
-  border-radius: 7px;
-  padding: .33em .8em;
-  font-size: .92em;
-  margin-left: 0.18em; cursor: pointer;
-}
-.pay-ui-filter.active, .pay-ui-filter:hover {
-  background: #306ce4;
-  color: #fff;
+.pay-ui-filter-dropdown-wrap { text-align:right; }
+.pay-ui-filter-dropdown {
+  width: 95%;
+  font-size: 0.99em;
+  padding: 6px 10px 6px 7px;
+  border-radius: 8px;
+  border: 1.2px solid #c6daee;
+  background: #f1f5fa;
+  color: #264889;
+  max-width: 155px;
+  min-width: 79px;
 }
 .pay-ui-friend-list {
   max-height: 62vh;
@@ -57,8 +51,8 @@
   background: #f3f8fc;
 }
 .pay-ui-friend-avatar {
-  background: #eff2f9;
-  color: #227;
+  background: #edeefd;
+  color: #414189;
   font-weight: 700;
   border-radius: 50%;
   height: 36px; width: 36px;
@@ -80,8 +74,7 @@
 }
 .pay-ui-friend-net.receivable { color: #0d9542; }
 .pay-ui-friend-net.payable { color: #de2d2d; }
-.pay-ui-friend-net.settled  { color: #9abbbb; font-weight: 400; }
-/* --- Chat panel/modal -- */
+.pay-ui-friend-net.settled { color: #9abbbb; font-weight: 400; }
 .pay-ui-panel-bg {
   background: #17375725;
   position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
@@ -109,7 +102,12 @@
   margin-bottom: .2em; padding-bottom: .4em;
 }
 .pay-ui-sheet-header {
-  display: flex; align-items: center; gap:17px; margin-bottom: .0em;
+  display: flex; align-items: center; gap:17px;
+}
+.pay-ui-panel-x {
+  position: absolute; right: 15px; top: 6px;
+  border: none; background: none; color: #8899bb; font-size: 1.39em; cursor: pointer; font-weight: 700;
+  z-index: 10;
 }
 .pay-ui-sheet-name {
   font-weight: 600; font-size: 1.07em; color: #224;
@@ -149,12 +147,8 @@
   font-size: 1.18em;
   font-weight: 700;
   margin: 0.1em auto 0 auto;
-  cursor: pointer;
+  cursor: pointer; 
   transition: background .12s;
-}
-.pay-ui-panel-x {
-  position: absolute; right: 15px; top: 14px;
-  border: none; background: none; color: #8899bb; font-size: 1.39em; cursor: pointer; font-weight: 700;
 }
 .pay-ui-bubble {
   max-width: 82%;
