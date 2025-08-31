@@ -1,154 +1,142 @@
 export function showPaymentsPanel(container, user) {
-  // --- DEMO DATA (Replace with real API later)
   const friends = [
-    { id: 1, name: "Rafseed", amount: -70, last: { type: "paid", amount: 40, when: "3d ago" } },
-    { id: 2, name: "Bala", amount: 120, last: { type: "received", amount: 88, when: "1d ago" } },
-    { id: 3, name: "Shyam", amount: 0, last: { type: "settled", when: "6d ago" } },
-    { id: 4, name: "Anju", amount: -25, last: { type: "pending", amount: 25, when: "now" }, pending: true }
+    { id: 1, name: "Rafseed", net: -70, events: [
+      {type:"pay", dir:"to", amount:40, status:"accepted", time:"3d ago"},
+      {type:"pay", dir:"to", amount:30, status:"rejected", time:"9d ago"}
+    ]},
+    { id: 2, name: "Bala", net: 120, events: [
+      {type:"pay", dir:"from", amount:88, status:"accepted", time:"1d ago"},
+      {type:"pay", dir:"to", amount:120, status:"pending", time:"just now"}
+    ]},
+    { id: 3, name: "Shyam", net: 0, events: [
+      {type:"settled", time:"6d ago"}
+    ]},
+    { id: 4, name: "Anju", net: -25, events: [
+      {type:"pay", dir:"to", amount:25, status:"pending", time:"now"},
+    ]}
   ];
 
-  // Helper for initial avatar
   function initials(name) {
     return (name.match(/[A-Z]/gi) || []).slice(0,2).join('').toUpperCase() || name.slice(0,2).toUpperCase();
   }
 
-  container.innerHTML = `
-    <div class="pay-main">
-      <div class="pay-head">Payments & Settlements</div>
-      <div class="friends-card-row">
-        ${
-          friends.map(friend => `
-            <div class="friend-card" data-id="${friend.id}">
-              <span class="friend-avatar">${initials(friend.name)}</span>
-              <span class="friend-name">${friend.name}</span>
-              <span class="friend-balance ${
-                  friend.amount > 0 ? "bal-positive" : friend.amount < 0 ? "bal-negative" : "bal-neutral"
-                }">
-                ${friend.amount > 0 
-                    ? '+' + friend.amount + ' QAR'
-                    : friend.amount < 0
-                      ? friend.amount + ' QAR'
-                      : "Settled"}
-              </span>
-              ${
-                friend.pending
-                ? `<span class="friend-status pending">Pending payment approval</span>`
-                : ''
-              }
-              <span class="friend-history">
-                ${
-                  friend.last
-                  ? friend.last.type === "paid"
-                    ? `You paid ${friend.amount < 0 ? friend.name : ""} ${friend.last.amount} QAR • ${friend.last.when}`
-                    : friend.last.type === "received"
-                      ? `Received ${friend.last.amount} QAR • ${friend.last.when}`
-                      : friend.last.type === "pending"
-                        ? `Requested ${friend.last.amount} QAR • ${friend.last.when}`
-                        : `Settled ${friend.last.when}`
-                  : ""
-                }
-              </span>
-            </div>
-          `).join('')
-        }
+  function renderListUI(filter="") {
+    container.innerHTML = `
+      <div class="pay-ui-friends">
+        <div class="pay-ui-search">
+          <input type="text" id="payFriendSearch" placeholder="Search friend..." autocomplete="off" />
+        </div>
+        <div class="pay-ui-friend-list">
+          ${
+            friends
+              .filter(f => !filter || f.name.toLowerCase().includes(filter))
+              .map(f =>
+                `<div class="pay-ui-friend-row" data-id="${f.id}">
+                  <span class="pay-ui-friend-avatar">${initials(f.name)}</span>
+                  <span class="pay-ui-friend-name">${f.name}</span>
+                  <span class="pay-ui-friend-net ${f.net > 0 ? "receivable" : f.net < 0 ? "payable" : "settled"}">
+                    ${f.net > 0 ? '+'+f.net+' QAR' : f.net < 0 ? f.net+' QAR' : 'Settled'}
+                  </span>
+                </div>`
+              ).join('')
+          }
+        </div>
       </div>
-      <div class="pay-popup-bg" id="pay-popup-bg" style="display:none;">
-        <div class="pay-popup-panel" id="pay-popup-panel"></div>
-      </div>
-    </div>
-  `;
+      <div class="pay-ui-panel-bg" id="payUiPanelBg" style="display:none;"></div>
+    `;
+    container.querySelector("#payFriendSearch").oninput = e =>
+      renderListUI(e.target.value.trim().toLowerCase());
+    container.querySelectorAll(".pay-ui-friend-row").forEach(row => {
+      row.onclick = () => showFriendPanel(Number(row.dataset.id));
+    });
+  }
 
-  // Friend card click — open popup
-  container.querySelectorAll('.friend-card').forEach(card => {
-    card.onclick = () => {
-      const fid = Number(card.dataset.id);
-      const friend = friends.find(f => f.id === fid);
-      showPopupPanel(friend);
-    }
-  });
-
-  // Show details/payment popup for this friend (edit CSS separately)
-  function showPopupPanel(friend) {
-    const panel = container.querySelector("#pay-popup-panel");
-    const bg = container.querySelector("#pay-popup-bg");
-    let message = "";
-    const oweMe = friend.amount > 0;
-    const oweThem = friend.amount < 0;
-    const settled = friend.amount === 0;
-    const pending = !!friend.pending;
-
-    panel.innerHTML = `
-      <button class="popup-close-btn" id="closePayPanel" title="Close">&times;</button>
-      <div class="popup-avatar">${initials(friend.name)}</div>
-      <div class="popup-title">${friend.name}</div>
-      <div class="popup-balance">
+  function showFriendPanel(fid) {
+    const friend = friends.find(f=>f.id===fid);
+    const bg = container.querySelector("#payUiPanelBg");
+    bg.innerHTML = `
+      <div class="pay-ui-sheet-panel">
+        <button class="pay-ui-panel-x" id="payUiClose">&times;</button>
+        <div class="pay-ui-sheet-header">
+          <span class="pay-ui-friend-avatar">${initials(friend.name)}</span>
+          <span class="pay-ui-sheet-name">${friend.name}</span>
+        </div>
+        <div class="pay-ui-sheet-owed">
+          ${friend.net > 0
+            ? `To receive: <span class="receivable">${friend.net} QAR</span>`
+            : friend.net < 0
+              ? `You owe: <span class="payable">${Math.abs(friend.net)} QAR</span>`
+              : `<span class="settled">All settled!</span>`
+          }
+        </div>
+        <div class="pay-ui-sheet-history" id="payUiHistory">
+          ${
+            friend.events.length
+              ? friend.events.map(ev => chatBubble(ev, friend)).join('')
+              : `<div class="pay-ui-history-none">No transactions yet.</div>`
+          }
+        </div>
         ${
-          oweThem
-            ? `You owe <b>${Math.abs(friend.amount)} QAR</b> to ${friend.name}.`
-            : oweMe && !pending
-              ? `<b>${friend.name}</b> owes you <b>${Math.abs(friend.amount)} QAR</b>.`
-              : settled
-                ? `<span class="popup-settled">No outstanding balances.</span>`
-                : ''
+          friend.net<0
+            ? `<button class="pay-ui-pay-btn" id="payUiOpenPay">Pay</button>`
+            : ''
         }
+        <div class="pay-ui-bottom-gap"></div>
       </div>
-      <div class="popup-status">
-        ${
-          pending
-          ? `<div class="pending-info">Waiting for ${friend.name}'s approval for ${Math.abs(friend.amount)} QAR.</div>`
-          : ''
-        }
-      </div>
-      <div class="popup-history">
-        ${
-          friend.last ? `
-            <div>Last: ${
-              friend.last.type === "paid" ? `You paid ${friend.last.amount} QAR (${friend.last.when})`
-              : friend.last.type === "received" ? `Received ${friend.last.amount} QAR (${friend.last.when})`
-              : friend.last.type === "pending" ? `Requested ${friend.last.amount} QAR (${friend.last.when})`
-              : `Settled ${friend.last.when}`
-            }</div>
-          ` : ''
-        }
-      </div>
-      <div class="popup-actions">
-        ${
-          oweThem && !pending
-          ? `<input type="number" min="1" max="${Math.abs(friend.amount)}" class="pay-amount-inpt" id="payamt" placeholder="Enter amount"/><br>
-             <button class="confirm-btn" id="btnPay">Pay</button>`
-          : oweMe && pending
-            ? `<button class="confirm-btn" id="btnAccept">Accept</button> <button class="cancel-btn" id="btnReject">Reject</button>`
-          : ''
-        }
-      </div>
-      <div class="popup-message" id="popup-message"></div>
+      <div id="payUiModal" class="pay-ui-modal" style="display:none;"></div>
     `;
     bg.style.display = "flex";
+    bg.querySelector("#payUiClose").onclick = () => bg.style.display = "none";
+    const payBtn = bg.querySelector("#payUiOpenPay");
+    if(payBtn) payBtn.onclick = () => showPayModal(friend);
+  }
 
-    // Popup close logic
-    panel.querySelector("#closePayPanel").onclick = () => { bg.style.display = 'none'; };
+  function chatBubble(ev, friend) {
+    if (ev.type === "settled")
+      return `<div class="pay-ui-bubble pay-ui-bubble-settled">Settled up (${ev.time})</div>`;
+    let who = ev.dir === "from" ? friend.name : "You";
+    let what = ev.dir === "from"
+      ? `${who} paid you`
+      : `You paid ${friend.name}`;
+    let colorClass =
+      ev.status === "accepted" ? "accepted"
+      : ev.status === "rejected" ? "rejected"
+      : ev.status === "pending" ? "pending"
+      : "";
+    let statusTxt =
+      ev.status === "pending" ? "Awaiting action"
+      : ev.status === "accepted" ? "Accepted"
+      : ev.status === "rejected" ? "Rejected"
+      : "";
+    return `<div class="pay-ui-bubble ${colorClass}">
+      <div>
+        <b>${what} ${ev.amount} QAR</b>
+        ${statusTxt ? `<span class="pay-ui-bubble-status">${statusTxt}</span>` : ""}
+      </div>
+      <div class="pay-ui-bubble-meta">${ev.time}</div>
+    </div>`;
+  }
 
-    // Payment logic
-    const payBtn = panel.querySelector("#btnPay");
-    if (payBtn) payBtn.onclick = () => {
-      const val = Number(panel.querySelector("#payamt").value || 0);
-      const msg = panel.querySelector("#popup-message");
-      if (!val || val < 1 || val > Math.abs(friend.amount)) {
-        msg.textContent = "Enter a valid amount.";
+  function showPayModal(friend){
+    const modal = container.querySelector("#payUiModal");
+    modal.innerHTML = `
+      <div class="pay-ui-modal-content">
+        <div class="pay-ui-modal-owed">You owe ${Math.abs(friend.net)} QAR</div>
+        <input type="number" min="1" max="${Math.abs(friend.net)}" id="payUiAmount" class="pay-ui-modal-inpt" placeholder="Enter amount"/>
+        <button class="pay-ui-modal-ok" id="payUiDoPay">Pay Now</button>
+      </div>
+    `;
+    modal.style.display = "flex";
+    modal.querySelector("#payUiDoPay").onclick = () => {
+      const amt = Number(modal.querySelector("#payUiAmount").value||0);
+      if(!amt || amt < 1 || amt > Math.abs(friend.net)){
+        modal.querySelector("#payUiAmount").style.borderColor="#d33";
         return;
       }
-      msg.textContent = `Demo: You paid ${friend.name} ${val} QAR.`;
-      setTimeout(()=>bg.style.display='none',1400);
-    };
-    const acceptBtn = panel.querySelector("#btnAccept");
-    if (acceptBtn) acceptBtn.onclick = () => {
-      panel.querySelector("#popup-message").textContent = "Payment accepted (demo).";
-      setTimeout(()=>bg.style.display='none',1200);
-    };
-    const rejectBtn = panel.querySelector("#btnReject");
-    if (rejectBtn) rejectBtn.onclick = () => {
-      panel.querySelector("#popup-message").textContent = "Payment rejected (demo).";
-      setTimeout(()=>bg.style.display='none',1200);
+      modal.innerHTML = `<div style="margin:35px auto; color:#129c55;">Paid ${amt} QAR! (demo)</div>`;
+      setTimeout(()=>modal.style.display="none",1300);
     };
   }
+
+  renderListUI();
 }
