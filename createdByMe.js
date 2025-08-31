@@ -641,7 +641,7 @@ async function showCreatedByMeEditPanel(container, user, item) {
 
       distributeMsg.textContent = "Processing preview (add preview and Save here)...";
       // Here you can insert settlement preview + save logic for update.
-      const resp = await fetch("https://cal-sp.nafil-8895-s.workers.dev/api/spends/preview", {
+      const resp = await fetch("https://cr-me.nafil-8895-s.workers.dev/api/spends/preview", {
     method: "POST",
     headers: {
       Authorization: "Bearer " + token,
