@@ -43,7 +43,6 @@ function todayDate() {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
-// Approval Branch Helper
 function approvalBranchHTML(creator, rows) {
   const rowHeight = 31;
   const branchHeight = rows.length * rowHeight - 8;
@@ -80,6 +79,75 @@ function approvalBranchHTML(creator, rows) {
   `;
 }
 
+// Main entry point
+export async function showCreatedByMePanel(container, user) {
+  container.innerHTML = '<div style="padding:30px;text-align:center;font-size:1.05em;">Loading...</div>';
+  let spendsData = [];
+  let errMsg = '';
+  try {
+    if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function') {
+      container.innerHTML = `<div style="color:#d12020;margin:2em;">You must be logged in.</div>`;
+      return;
+    }
+    const token = await user.firebaseUser.getIdToken(true);
+    const resp = await fetch('https://cr-me.nafil-8895-s.workers.dev/api/spends/created-by-me', {
+      headers: { Authorization: "Bearer " + token }
+    });
+    const text = await resp.text();
+    try { spendsData = JSON.parse(text); } catch (e) { errMsg = "Invalid backend response: " + text; }
+    if (!Array.isArray(spendsData)) {
+      if (spendsData && spendsData.error) errMsg = "Backend error: " + spendsData.error;
+      else errMsg = "Unexpected backend error: " + text;
+    }
+  } catch (e) { errMsg = "Network error: " + e.message; }
+  if (errMsg) {
+    container.innerHTML = `<div style="font-weight:600;font-size:1.09em;margin-bottom:8px;">Created By Me</div>
+      <div style="color:#d12020;font-size:1em;margin:1.2em 0 1em 0;text-align:center;">${escapeHtml(errMsg)}</div>`;
+    return;
+  }
+  renderSpendsArea(container, user, spendsData);
+}
+
+function renderSpendsArea(container, user, spendsData) {
+  container.innerHTML = `
+    <div style="font-weight:600;font-size:1.01em;margin-bottom:7px;">Created By Me</div>
+    <div class="createdbyme-folder-list"></div>
+  `;
+  const listArea = container.querySelector('.createdbyme-folder-list');
+  if (!spendsData.length) {
+    listArea.innerHTML = `<div style="color:#666;text-align:center;margin:2em 0 1em 0;font-size:0.98em;">
+      No spends created by you yet.
+    </div>`;
+    return;
+  }
+  spendsData.forEach(item => {
+    const accepted = item.involvedStatus.filter(u => u.status === 'accepted').length;
+    const total = item.involvedStatus.length;
+    const statusHtml = item.status === 'disputed'
+      ? `<span class="status-pill disputed">Disputed</span>`
+      : `<span class="status-pill pending">${item.status === "accepted" ? "Accepted" : "Pending"} ${accepted}/${total}</span>`;
+    const row = document.createElement("div");
+    row.className = "approval-folder";
+    row.tabIndex = 0;
+    row.style = `display:flex;align-items:flex-start;gap:11px;
+      padding:9px 7px 10px 7px;
+      border-bottom:1px solid #eee;font-size:0.97em;cursor:pointer;transition:background 0.2s;`;
+    row.innerHTML = `
+      <span class="sn" style="min-width:2em;font-weight:600;color:#357;flex-shrink:0;margin-top:6px;">${item.sn}.</span>
+      <div class="approval-main" style="flex:1 1 0;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;row-gap:2px;">
+        <div class="remarks" style="font-weight:600;color:#1b2837;margin-bottom:2.5px;">${escapeHtml(item.remarks || "")}</div>
+        <div class="date" style="color:#566b89;font-size:0.95em;">${formatDisplayDate(item.date || "")}</div>
+        <div class="by" style="color:#209;font-size:0.93em;">by You</div>
+      </div>
+      ${statusHtml}
+    `;
+    row.onclick = () => showCreatedByMeDetails(container, user, item);
+    row.onmouseover = () => row.style.backgroundColor = '#f8f9fa';
+    row.onmouseout = () => row.style.backgroundColor = '';
+    listArea.appendChild(row);
+  });
+}
+
 function showCreatedByMeDetails(container, user, item) {
   container.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -97,7 +165,7 @@ function showCreatedByMeDetails(container, user, item) {
   let disputeMsg = "";
   if (item.status === "disputed" && item.disputed_by) {
     disputeMsg = `<div style="color:#d12020;font-weight:700;font-size:0.98em;margin:15px 0 8px 0;">
-      ${escapeHtml(item.disputed_by?.name || "")} has disputed this expense <span style="color:#656;font-weight:500;">${timeAgo(item.disputed_at)}</span>.
+      ${escapeHtml(item.disputed_by)} has disputed this expense <span style="color:#656;font-weight:500;">${timeAgo(item.disputed_at)}</span>.
     </div>`;
   }
   detailArea.innerHTML = `
@@ -105,60 +173,54 @@ function showCreatedByMeDetails(container, user, item) {
       <div style="font-weight:700;font-size:1em;color:#1b2837;">${escapeHtml(item.remarks)}</div>
       <div style="color:#566b89;font-size:0.97em;">${formatDisplayDate(item.date)}</div>
       <div style="color:#209;font-size:0.93em;margin-bottom:4px;">by You</div>
-      <div style="font-size:0.99em;color:#222;margin-bottom:2px;">
-        Total: <span style="font-weight:700;">${item.total_amount} ${CURRENCY}</span>
-      </div>
-      <div style="color:#888;font-size:0.96em; margin-bottom:3px;">
-        Status last updated: <b>${timeAgo(item.status_at)}</b>
-      </div>
+      <div style="font-size:0.99em;color:#222;margin-bottom:2px;">Total: <span style="font-weight:700;">${item.total_amount} ${CURRENCY}</span></div>
+      <div style="color:#888;font-size:0.96em; margin-bottom:3px;">Status last updated: <b>${timeAgo(item.status_at)}</b></div>
     </div>
-
     <div style="font-weight:700;margin:10px 0 5px 0;color:#164fa4;letter-spacing:.2px;">Paid/Shares</div>
     <table style="border-collapse:collapse;width:auto;margin-bottom:9px;">
       ${item.splits.map(s => `
         <tr>
-          <td style="padding:2px 8px 2px 0; color:#221;font-weight:600;min-width:5em;">
-            ${escapeHtml(s?.name || "")}:
-          </td>
+          <td style="padding:2px 8px 2px 0; color:#221;font-weight:600;min-width:5em;">${escapeHtml(s.name)}:</td>
           <td style="padding:2px 8px; color:#222;">paid <span style="font-weight:700;color:#222">${s.paid} ${CURRENCY}</span></td>
           <td style="padding:2px 5px; color:#567;">share <span style="font-weight:700;color:#222">${s.share} ${CURRENCY}</span></td>
         </tr>
       `).join('')}
     </table>
-
     <div style="font-weight:700;margin:10px 0 5px 0;color:#23875e;letter-spacing:.2px;">Settlements</div>
     <table style="border-collapse:collapse;margin-bottom:8px;">
       ${item.settlements.length
         ? item.settlements.map(st => `
           <tr>
             <td style="padding:2px 8px 2px 0; color:#555;min-width:8em;text-align:right;">
-              ${escapeHtml(st.from?.name || "")}
+              ${escapeHtml(st.from)}
             </td>
             <td style="padding:2px 2px; color:#888;width:24px;text-align:center;">
               <span style="font-size:1.12em;">&#8594;</span>
             </td>
             <td style="padding:2px 9px 2px 0; color:#333;">
-              ${escapeHtml(st.to?.name || "")}: <span style="font-weight:700;color:#222">${st.amount} ${CURRENCY}</span>
+              ${escapeHtml(st.to)}: <span style="font-weight:700;color:#222">${st.amount} ${CURRENCY}</span>
             </td>
           </tr>
         `).join('')
         : '<tr><td>No settlements needed</td></tr>'}
     </table>
-
     <div style="border-top:1px solid #e8eaed;margin-top:10px;padding-top:8px;margin-bottom:9px;">
       <div style="font-size:0.96em;color:#556;margin-bottom:6px;font-weight:700;">Participants approvals:</div>
-      ${approvalBranchHTML(item.created_by?.name || "", (item.involvedStatus || []).map(u => ({ ...u, name: u?.name || "" })))}
+      ${approvalBranchHTML(item.created_by, item.involvedStatus)}
       ${disputeMsg}
       ${(item.status === "disputed")
         ? `<button id="editBtn" style="margin-top:14px; padding:8px 24px; font-size:1em; border-radius:8px; background:#2268c5; color:#fff; border:none; font-weight:600;">Edit</button>`
         : ""}
     </div>
   `;
-  // Edit button handler: always assign after .innerHTML, do not change
   if (item.status === "disputed") {
     detailArea.querySelector('#editBtn').onclick = () => showCreatedByMeEditPanel(container, user, item);
   }
 }
+
+// Paste the full 'showCreatedByMeEditPanel' implementation from the previous answer here!
+
+this is the best working previous code only the issue is object object thats here the edid button working fine,
 
 // Paste the full 'showCreatedByMeEditPanel' implementation from the previous answer here!
 // In createdByMe.js - paste this after your helpers, and call this from your edit button
