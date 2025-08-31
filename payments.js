@@ -1,43 +1,21 @@
 export function showPaymentsPanel(container, user) {
   const friends = [
     {
-      id: 1,
-      name: "Rafseed",
-      net: -70,
+      id: 1, name: "Rafseed", net: -70,
       events: Array.from({length: 24}).map((_,i) =>
         (i % 3 === 0)
         ? { type: "pay", dir: "to", amount: 5, status: "accepted", time: `${24-i}m ago` }
         : (i % 3 === 1)
         ? { type: "pay", dir: "to", amount: 10, status: "rejected", time: `${24-i}m ago` }
-        : { type: "pay", dir: "to", amount: 8, status: "pending", time: `${24-i}m ago` }
-      )
+        : { type: "pay", dir: "to", amount: 8, status: "pending", time: `${24-i}m ago` })
     },
-    {
-      id: 2,
-      name: "Bala",
-      net: 120,
-      events: [
-        { type: "pay", dir: "from", amount: 88, status: "accepted", time: "1d ago" },
-        { type: "pay", dir: "to", amount: 120, status: "pending", time: "just now" }
-      ]
-    },
-    {
-      id: 3,
-      name: "Shyam",
-      net: 0,
-      events: [
-        { type: "settled", time: "6d ago" }
-      ]
-    },
-    {
-      id: 4,
-      name: "Anju",
-      net: -25,
-      events: [
-        { type: "pay", dir: "to", amount: 10, status: "accepted", time: "8d ago" },
-        { type: "pay", dir: "to", amount: 15, status: "pending", time: "now" }
-      ]
-    }
+    { id: 2, name: "Bala", net: 120, events: [
+      { type: "pay", dir: "from", amount: 88, status: "accepted", time: "1d ago" },
+      { type: "pay", dir: "to", amount: 120, status: "pending", time: "just now" }] },
+    { id: 3, name: "Shyam", net: 0, events: [{ type: "settled", time: "6d ago" }] },
+    { id: 4, name: "Anju", net: -25, events: [
+      { type: "pay", dir: "to", amount: 10, status: "accepted", time: "8d ago" },
+      { type: "pay", dir: "to", amount: 15, status: "pending", time: "now" }] }
   ];
   const filters = [
     { value: "all", label: "All" },
@@ -50,55 +28,51 @@ export function showPaymentsPanel(container, user) {
   }
   function renderListUI(filterText = "", filterVal = "all") {
     container.innerHTML = `
-      <div class="pay-ui-app-full">
-        <div class="pay-ui-topbar">
+      <div class="pay-ui-friends" style="position:relative;">
+        <div class="pay-ui-headerbar">
           <button class="pay-ui-menubtn" id="payUiMenuBtn">&#9776;</button>
           <span class="pay-ui-topspacer"></span>
           <span class="pay-ui-bellwrap">
-            <span class="pay-ui-bell-icon" id="payUiBell">&#128276;<span class="pay-ui-bell-badge">17</span></span>
+            <span class="pay-ui-bell-icon" id="payUiBell">&#128276;<span class="pay-ui-bell-badge">10</span></span>
           </span>
         </div>
-        <div class="pay-ui-friends">
-          <div class="pay-ui-row-main">
-            <input type="text" id="payFriendSearch" class="pay-ui-searchinpt" placeholder="Search friend..." autocomplete="off" />
-            <div class="pay-ui-filter-dropdown-wrap">
-              <select id="payFriendFilter" class="pay-ui-filter-dropdown">
-                ${filters.map(f => `<option value="${f.value}"${f.value===filterVal?" selected":""}>${f.label}</option>`).join("")}
-              </select>
-            </div>
+        <div class="pay-ui-row-main">
+          <input type="text" id="payFriendSearch" class="pay-ui-searchinpt" placeholder="Search friend..." autocomplete="off" />
+          <div class="pay-ui-filter-dropdown-wrap">
+            <select id="payFriendFilter" class="pay-ui-filter-dropdown">
+              ${filters.map(f => `<option value="${f.value}"${f.value===filterVal?" selected":""}>${f.label}</option>`).join("")}
+            </select>
           </div>
-          <div class="pay-ui-friend-list">
-            ${
-              friends
-                .filter(f => {
-                  const match = !filterText || f.name.toLowerCase().includes(filterText);
-                  if (filterVal === "all") return match;
-                  if (filterVal === "give") return f.net < 0 && match;
-                  if (filterVal === "get") return f.net > 0 && match;
-                  if (filterVal === "done") return f.net === 0 && match;
-                  return match;
-                })
-                .map(f =>
-                  `<div class="pay-ui-friend-row" data-id="${f.id}">
+        </div>
+        <div class="pay-ui-friend-list">
+          ${
+            friends
+              .filter(f => {
+                const match = !filterText || f.name.toLowerCase().includes(filterText);
+                if (filterVal === "all") return match;
+                if (filterVal === "give") return f.net < 0 && match;
+                if (filterVal === "get") return f.net > 0 && match;
+                if (filterVal === "done") return f.net === 0 && match;
+                return match;
+              })
+              .map(f =>
+                `<div class="pay-ui-friend-row" data-id="${f.id}">
                     <span class="pay-ui-friend-avatar">${initials(f.name)}</span>
                     <span class="pay-ui-friend-name">${f.name}</span>
                     <span class="pay-ui-friend-net ${f.net > 0 ? "receivable" : f.net < 0 ? "payable" : "settled"}">
                       ${f.net > 0 ? '+'+f.net+' QAR' : f.net < 0 ? f.net+' QAR' : 'Settled'}
                     </span>
                   </div>`
-                ).join('')
-            }
-          </div>
-          <div class="pay-ui-panel-bg" id="payUiPanelBg" style="display:none;"></div>
+              ).join('')
+          }
         </div>
+        <div class="pay-ui-panel-bg" id="payUiPanelBg" style="display:none;"></div>
       </div>
     `;
     container.querySelector("#payFriendSearch").oninput = e =>
       renderListUI(e.target.value.trim().toLowerCase(), container.querySelector("#payFriendFilter").value);
-
     container.querySelector("#payFriendFilter").onchange = e =>
       renderListUI(container.querySelector("#payFriendSearch").value.trim().toLowerCase(), e.target.value);
-
     container.querySelectorAll(".pay-ui-friend-row").forEach(row => {
       row.onclick = () => showFriendPanel(Number(row.dataset.id));
     });
@@ -107,7 +81,7 @@ export function showPaymentsPanel(container, user) {
     const friend = friends.find(f => f.id === fid);
     const bg = container.querySelector(".pay-ui-panel-bg");
     bg.innerHTML = `
-      <div class="pay-ui-sheet-panel pay-ui-sheet-fixedapp">
+      <div class="pay-ui-sheet-panel pay-ui-sheet-panel-fixed">
         <button class="pay-ui-panel-x" id="payUiClose">&times;</button>
         <div class="pay-ui-sheet-headerrow">
           <div class="pay-ui-sheet-header">
