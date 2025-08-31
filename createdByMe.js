@@ -43,6 +43,7 @@ function todayDate() {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
+// Approval Branch Helper (no change)
 function approvalBranchHTML(creator, rows) {
   const rowHeight = 31;
   const branchHeight = rows.length * rowHeight - 8;
@@ -79,9 +80,9 @@ function approvalBranchHTML(creator, rows) {
   `;
 }
 
-// Main entry point
+// Main entry point, with spinner
 export async function showCreatedByMePanel(container, user) {
-  container.innerHTML = '<div style="padding:30px;text-align:center;font-size:1.05em;">Loading...</div>';
+  container.innerHTML = '<div style="padding:30px;text-align:center;font-size:1.05em;"><span class="spinner"></span> Loading...</div>';
   let spendsData = [];
   let errMsg = '';
   try {
@@ -165,7 +166,7 @@ function showCreatedByMeDetails(container, user, item) {
   let disputeMsg = "";
   if (item.status === "disputed" && item.disputed_by) {
     disputeMsg = `<div style="color:#d12020;font-weight:700;font-size:0.98em;margin:15px 0 8px 0;">
-      ${escapeHtml(item.disputed_by)} has disputed this expense <span style="color:#656;font-weight:500;">${timeAgo(item.disputed_at)}</span>.
+      ${escapeHtml(item.disputed_by?.name || "")} has disputed this expense <span style="color:#656;font-weight:500;">${timeAgo(item.disputed_at)}</span>.
     </div>`;
   }
   detailArea.innerHTML = `
@@ -180,7 +181,7 @@ function showCreatedByMeDetails(container, user, item) {
     <table style="border-collapse:collapse;width:auto;margin-bottom:9px;">
       ${item.splits.map(s => `
         <tr>
-          <td style="padding:2px 8px 2px 0; color:#221;font-weight:600;min-width:5em;">${escapeHtml(s.name)}:</td>
+          <td style="padding:2px 8px 2px 0; color:#221;font-weight:600;min-width:5em;">${escapeHtml(s?.name || "")}:</td>
           <td style="padding:2px 8px; color:#222;">paid <span style="font-weight:700;color:#222">${s.paid} ${CURRENCY}</span></td>
           <td style="padding:2px 5px; color:#567;">share <span style="font-weight:700;color:#222">${s.share} ${CURRENCY}</span></td>
         </tr>
@@ -192,13 +193,13 @@ function showCreatedByMeDetails(container, user, item) {
         ? item.settlements.map(st => `
           <tr>
             <td style="padding:2px 8px 2px 0; color:#555;min-width:8em;text-align:right;">
-              ${escapeHtml(st.from)}
+              ${escapeHtml(st.from?.name || "")}
             </td>
             <td style="padding:2px 2px; color:#888;width:24px;text-align:center;">
               <span style="font-size:1.12em;">&#8594;</span>
             </td>
             <td style="padding:2px 9px 2px 0; color:#333;">
-              ${escapeHtml(st.to)}: <span style="font-weight:700;color:#222">${st.amount} ${CURRENCY}</span>
+              ${escapeHtml(st.to?.name || "")}: <span style="font-weight:700;color:#222">${st.amount} ${CURRENCY}</span>
             </td>
           </tr>
         `).join('')
@@ -206,7 +207,7 @@ function showCreatedByMeDetails(container, user, item) {
     </table>
     <div style="border-top:1px solid #e8eaed;margin-top:10px;padding-top:8px;margin-bottom:9px;">
       <div style="font-size:0.96em;color:#556;margin-bottom:6px;font-weight:700;">Participants approvals:</div>
-      ${approvalBranchHTML(item.created_by, item.involvedStatus)}
+      ${approvalBranchHTML(item.created_by?.name || "", (item.involvedStatus || []).map(u => ({...u, name: u?.name || ""})))}
       ${disputeMsg}
       ${(item.status === "disputed")
         ? `<button id="editBtn" style="margin-top:14px; padding:8px 24px; font-size:1em; border-radius:8px; background:#2268c5; color:#fff; border:none; font-weight:600;">Edit</button>`
@@ -214,9 +215,16 @@ function showCreatedByMeDetails(container, user, item) {
     </div>
   `;
   if (item.status === "disputed") {
-    detailArea.querySelector('#editBtn').onclick = () => showCreatedByMeEditPanel(container, user, item);
+    const editBtn = detailArea.querySelector('#editBtn');
+    editBtn.onclick = () => {
+      // Spinner during edit panel load
+      detailArea.innerHTML = '<div style="padding:40px 0 60px;text-align:center;"><span class="spinner"></span> Loading...</div>';
+      setTimeout(() => showCreatedByMeEditPanel(container, user, item), 90); // call after short spinner visible
+    };
   }
 }
+
+// Use your existing showCreatedByMeEditPanel function (no change needed).
 
 // Paste the full 'showCreatedByMeEditPanel' implementation from the previous answer here!
 // In createdByMe.js - paste this after your helpers, and call this from your edit button
