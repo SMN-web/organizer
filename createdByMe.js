@@ -222,21 +222,7 @@ function showCreatedByMeDetails(container, user, item) {
     </div>
   `;
   if (item.status === "disputed") {
-    let msg = "";
-const btn = document.getElementById('editBtn');
-if (!btn) {
-  msg = "Error: Edit button not found in DOM.";
-} else {
-  btn.onclick = function() {
-    msg = "Edit pressed!";
-    // Or call your edit handler here.
-    // showCreatedByMeEditPanel(container, user, item);
-  };
-}
-const testMsgDiv = document.createElement('div');
-testMsgDiv.style = "color:#b21414;margin:1em;font-weight:600;";
-testMsgDiv.textContent = msg;
-document.body.appendChild(testMsgDiv); // or wherever fits your UI
+    detailArea.querySelector('#editBtn').onclick = () => showCreatedByMeEditPanel(container, user, item);
 
   }
 }
