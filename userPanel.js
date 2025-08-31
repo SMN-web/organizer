@@ -4,6 +4,7 @@ import { showFriends } from './friends.js';
 import { showUserProfile } from './userProfile.js';
 import { fetchNotificationsBadge, mountNotifications } from './notifications.js';
 import { sendHeartbeat } from './heartbeat.js';
+import { showPaymentsPanel } from './payments.js';
 
 let heartbeatTimer = null;
 
@@ -40,14 +41,13 @@ export async function showUserPanel(container, auth) {
         <div style="border-bottom:1px solid #ececec;"></div>
         <div style="padding:16px 18px;border-bottom:1px solid #ececec;cursor:pointer;" id="dashboard">Dashboard</div>
         <div style="padding:16px 18px;border-bottom:1px solid #ececec;cursor:pointer;" id="spend">Manage Spend</div>
+        <div style="padding:16px 18px;border-bottom:1px solid #ececec;cursor:pointer;" id="payments">Payments</div>
         <div style="padding:16px 18px;cursor:pointer;" id="friends">Friends</div>
         <div style="flex:1;"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px 14px 16px; border-top:1px solid #f3f3f3;">
-          <!-- Left: Logout -->
           <a id="logoutBtn"
             style="color:#246bdb; font-size:1em; font-weight:700; text-decoration:underline;
               background:none; border:none; cursor:pointer; user-select:auto;">Logout</a>
-          <!-- Right: Currency selector -->
           <select id="currencyDropdown"
             style="padding:4px 14px 4px 9px; font-size:1em; border-radius:7px; border:1.3px solid #cdd5de;
               outline:none; cursor:pointer; background:#f6f8fa; min-width:68px;">
@@ -80,7 +80,6 @@ export async function showUserPanel(container, auth) {
   currencyDropdown.value = localStorage.getItem('currency') || "QAR";
   currencyDropdown.onchange = () => {
     localStorage.setItem('currency', currencyDropdown.value);
-    // Optionally dispatch event or update UI
   };
 
   // --- HEARTBEAT LOGIC (START) ---
@@ -138,7 +137,6 @@ export async function showUserPanel(container, auth) {
     firebaseUser: auth.currentUser
   };
 
-  // Initial badge load (fetches notifications, spins)
   await fetchNotificationsBadge(userContext, document.getElementById('notifyBell'));
 
   // --- Loading spinner: rotate for ~2 seconds then reveal UI ---
@@ -155,8 +153,10 @@ export async function showUserPanel(container, auth) {
     dashboard: showDashboard,
     spend: showManageSpend,
     friends: showFriends,
-    userprofile: showUserProfile
+    userprofile: showUserProfile,
+    payments: showPaymentsPanel
   };
+
   let lastTab = localStorage.getItem('lastTab') || 'dashboard';
   let tabToLoad = lastTab;
   if (!localStorage.getItem('userSignedIn')) {
@@ -183,10 +183,11 @@ export async function showUserPanel(container, auth) {
 
   container.querySelector("#dashboard").onclick = () => selectTab('dashboard');
   container.querySelector("#spend").onclick = () => selectTab('spend');
+  container.querySelector("#payments").onclick = () => selectTab('payments');
   container.querySelector("#friends").onclick = () => selectTab('friends');
   userHeader.onclick = () => selectTab('userprofile');
 
-  // Hyperlink only for logout!
+  // Logout
   logoutBtn.onclick = async (e) => {
     e.preventDefault();
     localStorage.clear();
@@ -200,7 +201,7 @@ export async function showUserPanel(container, auth) {
     simpleMenu.style.pointerEvents = "none";
   }
 
-  // --- Notification -> friends inbox tab redirect ---
+  // --- Notification -> friends inbox tab redirect, unchanged ---
   function showFriendsInbox(tabContainer, userContext) {
     showFriends(tabContainer, userContext);
     const t0 = Date.now();
@@ -219,9 +220,7 @@ export async function showUserPanel(container, auth) {
     document.getElementById('notifyBell'),
     userContext,
     (type) => {
-      if (type === "friend_request") {
-        showFriendsInbox(mainContent, userContext);
-      }
+      if (type === "friend_request") showFriendsInbox(mainContent, userContext);
     }
   );
 }
