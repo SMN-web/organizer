@@ -641,6 +641,28 @@ async function showCreatedByMeEditPanel(container, user, item) {
 
       distributeMsg.textContent = "Processing preview (add preview and Save here)...";
       // Here you can insert settlement preview + save logic for update.
+      const resp = await fetch("https://cal-sp.nafil-8895-s.workers.dev/api/spends/preview", {
+    method: "POST",
+    headers: {
+      Authorization: "Bearer " + token,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      date: spendDate,
+      remarks: remarks,
+      total_amount: totalAmount,
+      splits
+    })
+  });
+  let preview = {};
+  try {
+    preview = await resp.json();
+  } catch (e) {
+    distributeMsg.textContent = "Backend failed to process preview";
+    return;
+  }
+  // --- Show the summary ---
+  showSettlementSummary(splits, preview.settlements);
     };
   }
 }
