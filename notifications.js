@@ -5,7 +5,6 @@ let notifyCount;
 let dropdown;
 let renderingSetupDone = false;
 
-// Parse "YYYY-MM-DD HH:mm:ss" as UTC and get "just now"/"x ago"
 function timeAgo(dateStr) {
   const then = parseDBDatetimeAsUTC(dateStr);
   const now = new Date();
@@ -25,15 +24,11 @@ function timeAgo(dateStr) {
   const years = Math.floor(days / 365);
   return `${years}y ago`;
 }
-
-// Converts "YYYY-MM-DD HH:mm:ss" to Date object (UTC)
 function parseDBDatetimeAsUTC(dt) {
   const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
   if (!m) return new Date(dt);
   return new Date(Date.UTC(+m[1], m[2]-1, +m[3], +m[4], +m[5], +m[6]));
 }
-
-// Secure HTML output
 function escapeHtml(str) {
   return String(str).replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
@@ -144,7 +139,6 @@ function renderDropdown() {
         const fontWeight = isUnread ? 600 : 400;
         const fadeIn = `animation:ndropfade .32s cubic-bezier(.23,1,.29,1.01) both;animation-delay:${i*0.019}s;`;
         let text = "";
-        // Render custom messages per type and data
         if (n.type === 'friend_request') {
           const dat = JSON.parse(n.data);
           text = `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> sent you a friend request`;
@@ -168,6 +162,11 @@ function renderDropdown() {
           text =
             `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> disputed the expense `
             + `"${escapeHtml(dat.remarks)}". <span style="color:#db4646;font-weight:600;">Requires your attention.</span>`;
+        } else if (n.type === 'expense_approval_fully_accepted') {
+          // DISPUTE CLEARED - NEW UI VISIBLE LINE:
+          const dat = JSON.parse(n.data);
+          text = `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> reported the dispute resolved on expense: `
+              + `"${escapeHtml(dat.remarks)}". <span style="color:#2a974e;font-weight:600;">Awaiting your confirmation.</span>`;
         }
         if (!text) text = `<i style="color:#a7a9ae;">Unknown notification</i>`;
         const timeBadge = n.created_at
