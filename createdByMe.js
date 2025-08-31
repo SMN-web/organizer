@@ -516,12 +516,10 @@ async function showCreatedByMeEditPanel(container, user, item) {
       <h3 style="font-size:1.12em;margin:0 0 10px;font-weight:600;">Split Among Friends</h3>
       <div class="split-list"></div>
       <button type="button" class="primary-btn distribute-btn" style="margin-top:12px;">Distribute</button>
-      <button type="button" class="primary-btn" style="margin-top:12px;margin-left:15px;" id="editAgainBtn">Edit</button>
+      
       <div class="custom-msg distribute-btn-msg" style="margin-top:10px"></div>
     `;
-    splitWrap.querySelector('#editAgainBtn').onclick = () => {
-      state.editing = true; renderAll();
-    };
+    
     function renderList() {
       const splitDiv = splitWrap.querySelector('.split-list');
       splitDiv.innerHTML = '';
