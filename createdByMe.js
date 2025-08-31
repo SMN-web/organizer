@@ -222,7 +222,8 @@ function showCreatedByMeDetails(container, user, item) {
     </div>
   `;
   if (item.status === "disputed") {
-    detailArea.querySelector('#editBtn').onclick = () => showCreatedByMeEditPanel(container, user, item);
+    document.getElementById('editBtn').onclick = function(){ alert('Edit pressed!'); };
+
   }
 }
 
