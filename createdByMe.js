@@ -229,13 +229,12 @@ function showCreatedByMeDetails(container, user, item) {
 // Paste the full 'showCreatedByMeEditPanel' implementation from the previous answer here!
 // In createdByMe.js - paste this after your helpers, and call this from your edit button
 
-
-
 async function showCreatedByMeEditPanel(container, user, item) {
   let FRIENDS = [];
   let loggedInUsername = null;
   let loggedInName = null;
   let token = null;
+  let splitWasEdited = false;
 
   async function getUserProfileAndFriends() {
     if (!user?.firebaseUser) throw new Error("Not logged in");
@@ -264,29 +263,21 @@ async function showCreatedByMeEditPanel(container, user, item) {
     return;
   }
 
-  // Helper for display
   function getFriendById(username) {
     return FRIENDS.find(f => f.username === username);
   }
 
-  // Prefill state ONLY with known usernames (robust against deleted/unknowns)
+  // Prefill state
   const selectedFriends = [];
   const payers = [];
   const payerAmounts = {};
   (item.splits || []).forEach(s => {
-    // prefill only if user is actually in FRIENDS
     if (FRIENDS.some(f => f.username === s.username)) {
       if (!selectedFriends.includes(s.username)) selectedFriends.push(s.username);
       if (Number(s.paid) > 0 && !payers.includes(s.username)) payers.push(s.username);
       payerAmounts[s.username] = s.paid;
     }
   });
-
-  // For diagnostics, you may want to know if any user not found in FRIENDS
-  const notFound = (item.splits || []).filter(s => !FRIENDS.some(f=>f.username===s.username));
-  if (notFound.length) {
-    console.warn("Some usernames from splits not found in FRIENDS:", notFound.map(s=>s.username));
-  }
 
   let state = {
     editing: true,
@@ -295,7 +286,9 @@ async function showCreatedByMeEditPanel(container, user, item) {
     payerAmounts: { ...payerAmounts },
     lastSplit: null,
     spendDate: (item.date && item.date.length === 10) ? item.date : (item.date ? item.date.split(' ')[0] : todayDate()),
-    remarks: item.remarks || ""
+    remarks: item.remarks || "",
+    splits: [],
+    totalAmount: 0
   };
 
   renderAll();
@@ -356,6 +349,7 @@ async function showCreatedByMeEditPanel(container, user, item) {
       chips.querySelectorAll('.chosen-chip').forEach(chip => {
         chip.onclick = () => {
           if(chip.dataset.id===loggedInUsername) return;
+          splitWasEdited = true;
           state.selectedFriends = state.selectedFriends.filter(fid => fid !== chip.dataset.id);
           state.payers = state.payers.filter(pid => pid !== chip.dataset.id);
           delete state.payerAmounts[chip.dataset.id];
@@ -385,6 +379,7 @@ async function showCreatedByMeEditPanel(container, user, item) {
         div.textContent = f.name + (f.username && f.name!==f.username ? " (" + f.username + ")" : "");
         if (!isSel && state.editing) {
           div.onclick = () => {
+            splitWasEdited = true;
             state.selectedFriends.push(f.username);
             state.selectedFriends = Array.from(new Set(state.selectedFriends)).sort((a,b)=>a===loggedInUsername?-1:b===loggedInUsername?1:0);
             renderAll();
@@ -432,6 +427,7 @@ async function showCreatedByMeEditPanel(container, user, item) {
       chip.appendChild(x);
       if (state.editing) {
         chip.onclick = () => {
+          splitWasEdited = true;
           state.payers.push(username); state.payerAmounts[username] = '';
           renderAll();
         };
@@ -449,6 +445,7 @@ async function showCreatedByMeEditPanel(container, user, item) {
       `;
       if (state.editing) {
         chip.onclick = e => {
+          splitWasEdited = true;
           if (e.target.classList.contains('chip-x') || e.target === chip) {
             state.payers = state.payers.filter(pid => pid !== username);
             delete state.payerAmounts[username];
@@ -482,6 +479,10 @@ async function showCreatedByMeEditPanel(container, user, item) {
     const calcBtn = container.querySelector('.calc-btn');
     const msgBox = container.querySelector('.calc-btn-msg');
     calcBtn.onclick = () => {
+      // Always read fresh values from input fields
+      state.spendDate = container.querySelector('.spend-date-input').value.trim();
+      state.remarks = container.querySelector('.spend-remarks-input').value.trim();
+
       if (!state.selectedFriends.includes(loggedInUsername) || state.selectedFriends.length < 2) {
         msgBox.textContent = "Please select yourself and at least one more friend.";
         return;
@@ -502,6 +503,15 @@ async function showCreatedByMeEditPanel(container, user, item) {
         return;
       }
       msgBox.textContent = "";
+
+      // Prompt if split changed
+      if (splitWasEdited || state.lastSplit === null) {
+        if (!confirm("Warning: Changing the participants, amounts, or friends will reset all approvals. Continue?")) {
+          return;
+        }
+        splitWasEdited = false;
+      }
+
       state.lastSplit = { sharers: state.selectedFriends.slice(), total };
       state.editing = false;
       renderAll();
@@ -514,10 +524,17 @@ async function showCreatedByMeEditPanel(container, user, item) {
       <h3 style="font-size:1.12em;margin:0 0 10px;font-weight:600;">Split Among Friends</h3>
       <div class="split-list"></div>
       <button type="button" class="primary-btn distribute-btn" style="margin-top:12px;">Distribute</button>
+      <button type="button" class="primary-btn" style="margin-top:12px;margin-left:15px;" id="editAgainBtn">Edit</button>
       <div class="custom-msg distribute-btn-msg" style="margin-top:10px"></div>
     `;
     let locked = {};
     let lockError = {};
+
+    splitWrap.querySelector('#editAgainBtn').onclick = () => {
+      state.editing = true;
+      renderAll();
+    };
+
     function renderList() {
       const splitDiv = splitWrap.querySelector('.split-list');
       splitDiv.innerHTML = '';
@@ -607,6 +624,7 @@ async function showCreatedByMeEditPanel(container, user, item) {
         shares[input.dataset.id] = val;
       });
 
+      // Always re-read inputs in case user edited fields!
       const spendDate = container.querySelector('.spend-date-input')?.value?.trim();
       const remarks = container.querySelector('.spend-remarks-input')?.value?.trim();
       if (!spendDate) {
@@ -617,12 +635,16 @@ async function showCreatedByMeEditPanel(container, user, item) {
         distributeMsg.textContent = "Please enter a remark";
         return;
       }
+
+      // Recalculate the up-to-date total from payer fields
+      state.totalAmount = state.payers.reduce((sum, username) => sum + Number(state.payerAmounts[username] || 0), 0);
+
       let sum = Object.values(shares).reduce((a, b) => a + b, 0);
-      if (sum !== totalAmount) {
+      if (sum !== state.totalAmount) {
         distributeMsg.textContent = "Distributed amount does not match total.";
         return;
       }
-      let overAssigned = Object.values(shares).some(v => v > totalAmount);
+      let overAssigned = Object.values(shares).some(v => v > state.totalAmount);
       let negativeAssigned = Object.values(shares).some(v => v < 0);
       if (overAssigned) {
         distributeMsg.textContent = "Assigned value exceeds total.";
@@ -634,39 +656,36 @@ async function showCreatedByMeEditPanel(container, user, item) {
       }
 
       const splits = sharers.map(username => ({
-        username: username,
+        username,
         paid: Number(state.payerAmounts[username] ?? 0),
         share: shares[username]
       }));
       state.splits = splits;
-      state.totalAmount = totalAmount;              // <-- new!
-state.spendDate = spendDate;                  // <-- new!
-state.remarks = remarks;  
+      state.spendDate = spendDate;
+      state.remarks = remarks;
 
-      distributeMsg.textContent = "Processing preview (add preview and Save here)...";
-      // Here you can insert settlement preview + save logic for update.
+      distributeMsg.textContent = "Processing preview...";
       const resp = await fetch("https://cr-me.nafil-8895-s.workers.dev/api/spends/preview", {
-    method: "POST",
-    headers: {
-      Authorization: "Bearer " + token,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      date: spendDate,
-      remarks: remarks,
-      total_amount: totalAmount,
-      splits
-    })
-  });
-  let preview = {};
-  try {
-    preview = await resp.json();
-  } catch (e) {
-    distributeMsg.textContent = "Backend failed to process preview";
-    return;
-  }
-  // --- Show the summary ---
-  showSettlementSummary(splits, preview.settlements);
+        method: "POST",
+        headers: {
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          date: spendDate,
+          remarks: remarks,
+          total_amount: state.totalAmount,
+          splits
+        })
+      });
+      let preview = {};
+      try {
+        preview = await resp.json();
+      } catch (e) {
+        distributeMsg.textContent = "Backend failed to process preview";
+        return;
+      }
+      showSettlementSummary(splits, preview.settlements);
     };
   }
 
@@ -675,87 +694,4 @@ state.remarks = remarks;
       <div id="distribution-summary">
       <div class="settlement-summary" style="padding:18px 8px 25px 8px;max-width:430px;margin:33px auto;text-align:center;background:#fff;border-radius:11px;box-shadow:0 4px 24px #d3e6fd16;">
         <h2 style="margin:10px 0 6px 0;">Final Distribution</h2>
-        <div><strong>Date:</strong> <span>${formatDisplayDate(state.spendDate)}</span></div>
-        <div><strong>Reason:</strong> <span>${state.remarks || '-'}</span></div>
-        <div style="margin:15px 0 12px 0;">Total Amount: <strong>${splits.reduce((a, s) => a + s.paid, 0)} ${CURRENCY}</strong></div>
-        <hr>
-        <div><u>Paid Amounts:</u><br>
-          ${splits.map(s => `<div>${getFriendById(s.username).name} paid: <em>${s.paid} ${CURRENCY}</em></div>`).join('')}
-        </div>
-        <div style="margin:10px 0 0 0"><u>Each Share:</u><br>
-          ${splits.map(s => `<div>${getFriendById(s.username).name}'s share: <em>${s.share} ${CURRENCY}</em></div>`).join('')}
-        </div>
-        <div style="margin:10px 0 0 0"><u>Owes/Settlement:</u></div>
-        ${settlements && settlements.length
-          ? settlements.map(st =>
-              `<div class="row-settle"><strong>${getFriendById(st.from_user).name}</strong> owes <em>${st.amount} ${CURRENCY}</em> to <strong>${getFriendById(st.to_user).name}</strong></div>`
-            ).join('')
-          : `<div>All settled up. No pending amounts.</div>`}
-        <div class="summary-btns">
-  <button class="primary-btn save-btn" id="save-btn">Save</button>
-
-  <div class="after-save-btn-group" style="display:none;">
-    <button class="primary-btn new-expense-btn" id="new-expense-btn">Add New Expense</button>
-    <button class="primary-btn share-pdf-btn" id="share-pdf-btn">Share PDF</button>
-  </div>
-</div>
-        <div id="save-result" style="margin-top:10px;font-weight:bold"></div>
-         
-      </div>
-      </div>
-    `;
-document.getElementById('save-btn').onclick = async () => {
-  const saveBtn = document.getElementById('save-btn');
-  const saveMsg = document.getElementById('save-result');
-  saveBtn.disabled = true;
-  saveMsg.textContent = "Saving…";
-  saveMsg.style.color = "#2268c5";
-
-  try {
-    const payload = {
-      spend_id: item.spend_id || item.id, // Or item.spend_id or the correct spend ID
-      updatedSpend: {
-        date: state.spendDate,
-        remarks: state.remarks,
-        total_amount: state.totalAmount
-      },
-      splits: state.splits,           // Array of {username, paid, share}
-    };
-
-    const token = await user.firebaseUser.getIdToken(true);
-    const resp = await fetch("https://cr-me.nafil-8895-s.workers.dev/api/spends/save-edit", {
-      method: "POST",
-      headers: {
-        "Authorization": "Bearer " + token,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    let out = {};
-    try {
-      out = await resp.json();
-    } catch {
-      saveMsg.textContent = "Server error: Could not parse reply.";
-      saveMsg.style.color = "#b22222";
-      saveBtn.disabled = false;
-      return;
-    }
-
-    if (resp.ok && out.ok) {
-      // Jump to initial panel on success
-      showCreatedByMePanel(container, user);
-    } else {
-      saveMsg.textContent = "Save failed: " + (out.error || "Please try again.");
-      saveMsg.style.color = "#b22222";
-      saveBtn.disabled = false;
-    }
-  } catch (e) {
-    saveMsg.textContent = "Save failed: " + (e?.message || "Unknown error.");
-    saveMsg.style.color = "#b22222";
-    saveBtn.disabled = false;
-  }
-};
-
-}
-}
+        <div><strong>Date:</strong> <span>${formatDisplayDat
