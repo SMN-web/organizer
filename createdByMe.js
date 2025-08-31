@@ -632,13 +632,13 @@ async function showCreatedByMeEditPanel(container, user, item) {
           : `<div>All settled up. No pending amounts.</div>`}
         <div class="summary-btns">
         <button class="primary-btn save-btn" id="save-btn">Save</button>
-        <button class="primary-btn" style="margin-left:14px;" id="editBtn">Edit</button>
+     
         </div>
         <div id="save-result" style="margin-top:10px;font-weight:bold"></div>
       </div>
       </div>
     `;
-    document.getElementById('editBtn').onclick = () => { state.editing = true; renderAll(); };
+    
 document.getElementById('save-btn').onclick = async () => {
       state.totalAmount = state.payers.reduce((sum, username) => sum + Number(state.payerAmounts[username] || 0), 0);
       const saveBtn = document.getElementById('save-btn');
