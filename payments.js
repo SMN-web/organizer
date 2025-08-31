@@ -1,5 +1,4 @@
 export function showPaymentsPanel(container, user) {
-  // --- DEMO DATA
   const friends = [
     {
       id: 1,
@@ -40,25 +39,29 @@ export function showPaymentsPanel(container, user) {
       ]
     }
   ];
-
   const filters = [
     { value: "all", label: "All" },
     { value: "give", label: "You Owe" },
     { value: "get", label: "You Get" },
     { value: "done", label: "Settled" }
   ];
-
   function initials(name) {
     return (name.match(/[A-Z]/gi) || []).slice(0,2).join('').toUpperCase() || name.slice(0,2).toUpperCase();
   }
-
   function renderListUI(filterText = "", filterVal = "all") {
     container.innerHTML = `
-      <div class="pay-ui-outer-wrap">
+      <div class="pay-ui-app-full">
+        <div class="pay-ui-topbar">
+          <button class="pay-ui-menubtn" id="payUiMenuBtn">&#9776;</button>
+          <span class="pay-ui-topspacer"></span>
+          <span class="pay-ui-bellwrap">
+            <span class="pay-ui-bell-icon" id="payUiBell">&#128276;<span class="pay-ui-bell-badge">17</span></span>
+          </span>
+        </div>
         <div class="pay-ui-friends">
           <div class="pay-ui-row-main">
-            <input type="text" id="payFriendSearch" class="pay-ui-searchinpt" style="width:70%;" placeholder="Search friend..." autocomplete="off" />
-            <div class="pay-ui-filter-dropdown-wrap" style="width:30%;">
+            <input type="text" id="payFriendSearch" class="pay-ui-searchinpt" placeholder="Search friend..." autocomplete="off" />
+            <div class="pay-ui-filter-dropdown-wrap">
               <select id="payFriendFilter" class="pay-ui-filter-dropdown">
                 ${filters.map(f => `<option value="${f.value}"${f.value===filterVal?" selected":""}>${f.label}</option>`).join("")}
               </select>
@@ -90,7 +93,6 @@ export function showPaymentsPanel(container, user) {
         </div>
       </div>
     `;
-
     container.querySelector("#payFriendSearch").oninput = e =>
       renderListUI(e.target.value.trim().toLowerCase(), container.querySelector("#payFriendFilter").value);
 
@@ -101,13 +103,12 @@ export function showPaymentsPanel(container, user) {
       row.onclick = () => showFriendPanel(Number(row.dataset.id));
     });
   }
-
   function showFriendPanel(fid) {
     const friend = friends.find(f => f.id === fid);
     const bg = container.querySelector(".pay-ui-panel-bg");
     bg.innerHTML = `
-      <div class="pay-ui-sheet-panel pay-ui-sheet-panel-fixed">
-        <button class="pay-ui-panel-x" id="payUiClose" style="top:6px;">&times;</button>
+      <div class="pay-ui-sheet-panel pay-ui-sheet-fixedapp">
+        <button class="pay-ui-panel-x" id="payUiClose">&times;</button>
         <div class="pay-ui-sheet-headerrow">
           <div class="pay-ui-sheet-header">
             <span class="pay-ui-friend-avatar">${initials(friend.name)}</span>
@@ -131,34 +132,29 @@ export function showPaymentsPanel(container, user) {
               : ""
           }
         </div>
-        <div class="pay-ui-bottom-gap"></div>
       </div>
       <div id="payUiModal" class="pay-ui-modal" style="display:none;"></div>
     `;
     bg.style.display = "flex";
     bg.querySelector("#payUiClose").onclick = () => bg.style.display = "none";
-    const payBtn = bg.querySelector("#payUiOpenPay");
-    if (payBtn) payBtn.onclick = () => showPayModal(friend);
+    if (bg.querySelector("#payUiOpenPay")) bg.querySelector("#payUiOpenPay").onclick = () => showPayModal(friend);
   }
-
   function chatBubble(ev, friend) {
     if (ev.type === "settled")
       return `<div class="pay-ui-bubble pay-ui-bubble-settled">Settled up (${ev.time})</div>`;
-    let who = ev.dir === "from" ? friend.name : "You";
-    let what =
-      ev.dir === "from"
-        ? `${who} paid you`
+    let what = ev.dir === "from"
+        ? `${friend.name} paid you`
         : `You paid ${friend.name}`;
     let colorClass =
       ev.status === "accepted" ? "accepted"
-        : ev.status === "rejected" ? "rejected"
-          : ev.status === "pending" ? "pending"
-            : "";
+      : ev.status === "rejected" ? "rejected"
+      : ev.status === "pending" ? "pending"
+      : "";
     let statusTxt =
       ev.status === "pending" ? "Awaiting action"
-        : ev.status === "accepted" ? "Accepted"
-          : ev.status === "rejected" ? "Rejected"
-            : "";
+      : ev.status === "accepted" ? "Accepted"
+      : ev.status === "rejected" ? "Rejected"
+      : "";
     return `<div class="pay-ui-bubble ${colorClass}">
       <div>
         <b>${what} ${ev.amount} QAR</b>
@@ -167,7 +163,6 @@ export function showPaymentsPanel(container, user) {
       <div class="pay-ui-bubble-meta">${ev.time}</div>
     </div>`;
   }
-
   function showPayModal(friend) {
     const modal = container.querySelector("#payUiModal");
     modal.innerHTML = `
