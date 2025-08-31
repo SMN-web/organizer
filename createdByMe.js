@@ -700,10 +700,60 @@ async function showCreatedByMeEditPanel(container, user, item) {
       </div>
       </div>
     `;
-document.getElementById('save-btn').onclick = () => {
-    const saveMsg = document.getElementById('save-result');
-    saveMsg.textContent = "Saving is not available yet. Functionality will be added soon.";
-    saveMsg.style.color = "#1976d2";
-  };
+document.getElementById('save-btn').onclick = async () => {
+  const saveBtn = document.getElementById('save-btn');
+  const saveMsg = document.getElementById('save-result');
+  saveBtn.disabled = true;
+  saveMsg.textContent = "Saving…";
+  saveMsg.style.color = "#2268c5";
+
+  try {
+    const payload = {
+      spend_id: state.editedSpendId, // Or item.spend_id or the correct spend ID
+      updatedSpend: {
+        date: state.spendDate,
+        remarks: state.remarks,
+        total_amount: state.totalAmount
+      },
+      splits: state.splits,           // Array of {username, paid, share}
+      settlements: state.settlements, // Array of {from, to, amount, payer_status?}
+      actions: state.actions          // Array of {username, status, timestamp}
+    };
+
+    const token = await user.firebaseUser.getIdToken(true);
+    const resp = await fetch("https://cr-me.nafil-8895-s.workers.dev/api/spends/save-edit", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    let out = {};
+    try {
+      out = await resp.json();
+    } catch {
+      saveMsg.textContent = "Server error: Could not parse reply.";
+      saveMsg.style.color = "#b22222";
+      saveBtn.disabled = false;
+      return;
+    }
+
+    if (resp.ok && out.ok) {
+      // Jump to initial panel on success
+      showCreatedByMePanel(container, user);
+    } else {
+      saveMsg.textContent = "Save failed: " + (out.error || "Please try again.");
+      saveMsg.style.color = "#b22222";
+      saveBtn.disabled = false;
+    }
+  } catch (e) {
+    saveMsg.textContent = "Save failed: " + (e?.message || "Unknown error.");
+    saveMsg.style.color = "#b22222";
+    saveBtn.disabled = false;
+  }
+};
+
 }
 }
