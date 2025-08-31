@@ -709,7 +709,8 @@ document.getElementById('save-btn').onclick = async () => {
 
   try {
     const payload = {
-      spend_id: state.editedSpendId, // Or item.spend_id or the correct spend ID
+      spend_id: item.spend_id || item.id,
+, // Or item.spend_id or the correct spend ID
       updatedSpend: {
         date: state.spendDate,
         remarks: state.remarks,
