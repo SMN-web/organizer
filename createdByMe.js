@@ -639,6 +639,9 @@ async function showCreatedByMeEditPanel(container, user, item) {
         share: shares[username]
       }));
       state.splits = splits;
+      state.totalAmount = totalAmount;              // <-- new!
+state.spendDate = spendDate;                  // <-- new!
+state.remarks = remarks;  
 
       distributeMsg.textContent = "Processing preview (add preview and Save here)...";
       // Here you can insert settlement preview + save logic for update.
