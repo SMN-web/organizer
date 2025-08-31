@@ -700,4 +700,9 @@ async function showCreatedByMeEditPanel(container, user, item) {
       </div>
       </div>
     `;
+document.getElementById('save-btn').onclick = () => {
+    const saveMsg = document.getElementById('save-result');
+    saveMsg.textContent = "Saving is not available yet. Functionality will be added soon.";
+    saveMsg.style.color = "#1976d2";
+  };
 }
