@@ -1,14 +1,22 @@
 const CURRENCY = localStorage.getItem('currency') || "QAR";
 
-// Helpers
-function parseDBDatetimeAsUTC(dt) {
-  const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
-  if (!m) return new Date(dt);
-  return new Date(Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]));
+// Helper: for legacy string or {name,username} object
+function displayName(user) {
+  if (!user) return "";
+  if (typeof user === "string") return user;
+  if (typeof user.name === "string") return user.name;
+  return "";
 }
+
+// Helper for safe escape
+function escapeHtml(str) {
+  return String(str || "").replace(/[<>&"]/g, t =>
+    t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
+}
+
 function timeAgo(dateStr) {
   if (!dateStr) return "";
-  const then = parseDBDatetimeAsUTC(dateStr);
+  const then = new Date(dateStr);
   const now = new Date();
   const seconds = Math.floor((now - then) / 1000);
   if (isNaN(seconds)) return "";
@@ -26,21 +34,13 @@ function timeAgo(dateStr) {
   const years = Math.floor(days / 365);
   return `${years}y ago`;
 }
-function escapeHtml(str) {
-  return String(str || "").replace(/[<>&"]/g, t =>
-    t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
-}
+
 function formatDisplayDate(dateStr) {
   if (!dateStr) return '';
   const [full] = dateStr.split(' ');
   const [y, m, d] = full.split('-');
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return `${parseInt(d, 10)}-${months[parseInt(m, 10) - 1]}-${y.slice(2)}`;
-}
-function rup(val) { return Math.ceil(Number(val) || 0); }
-function todayDate() {
-  const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
 function approvalBranchHTML(creator, rows) {
@@ -51,7 +51,7 @@ function approvalBranchHTML(creator, rows) {
   return `
   <div>
     <div style="font-weight:700;color:#222;font-size:0.99em;letter-spacing:0.04em;margin-bottom:1.5px;">
-      ${escapeHtml(creator)}
+      ${escapeHtml(displayName(creator))}
     </div>
     <div style="display:flex;">
       <div style="display:flex;flex-direction:column;align-items:center;width:22px;position:relative;">
@@ -63,7 +63,7 @@ function approvalBranchHTML(creator, rows) {
         <div style="display:flex;align-items:center;height:${rowHeight}px;">
           <div style="width:24px;border-bottom:2.2px solid #b0b8be;"></div>
           <span style="color:${nameColor(r.status)};font-weight:600;font-size:0.98em;margin-left:8px;margin-right:8px;">
-            ${escapeHtml(r.name)}
+            ${escapeHtml(displayName(r))}
           </span>
           <span style="color:${statusColor(r.status)};font-weight:700;font-size:0.96em;margin-right:7px;">
             ${r.status.charAt(0).toUpperCase() + r.status.slice(1)}
@@ -121,8 +121,8 @@ function renderSpendsArea(container, user, spendsData) {
     return;
   }
   spendsData.forEach(item => {
-    const accepted = item.involvedStatus.filter(u => u.status === 'accepted').length;
-    const total = item.involvedStatus.length;
+    const accepted = (item.involvedStatus || []).filter(u => u.status === 'accepted').length;
+    const total = (item.involvedStatus || []).length;
     const statusHtml = item.status === 'disputed'
       ? `<span class="status-pill disputed">Disputed</span>`
       : `<span class="status-pill pending">${item.status === "accepted" ? "Accepted" : "Pending"} ${accepted}/${total}</span>`;
@@ -165,7 +165,7 @@ function showCreatedByMeDetails(container, user, item) {
   let disputeMsg = "";
   if (item.status === "disputed" && item.disputed_by) {
     disputeMsg = `<div style="color:#d12020;font-weight:700;font-size:0.98em;margin:15px 0 8px 0;">
-      ${escapeHtml(item.disputed_by)} has disputed this expense <span style="color:#656;font-weight:500;">${timeAgo(item.disputed_at)}</span>.
+      ${escapeHtml(displayName(item.disputed_by))} has disputed this expense <span style="color:#656;font-weight:500;">${timeAgo(item.disputed_at)}</span>.
     </div>`;
   }
   detailArea.innerHTML = `
@@ -178,9 +178,11 @@ function showCreatedByMeDetails(container, user, item) {
     </div>
     <div style="font-weight:700;margin:10px 0 5px 0;color:#164fa4;letter-spacing:.2px;">Paid/Shares</div>
     <table style="border-collapse:collapse;width:auto;margin-bottom:9px;">
-      ${item.splits.map(s => `
+      ${(item.splits||[]).map(s => `
         <tr>
-          <td style="padding:2px 8px 2px 0; color:#221;font-weight:600;min-width:5em;">${escapeHtml(s.name)}:</td>
+          <td style="padding:2px 8px 2px 0; color:#221;font-weight:600;min-width:5em;">
+            ${escapeHtml(displayName(s))}:
+          </td>
           <td style="padding:2px 8px; color:#222;">paid <span style="font-weight:700;color:#222">${s.paid} ${CURRENCY}</span></td>
           <td style="padding:2px 5px; color:#567;">share <span style="font-weight:700;color:#222">${s.share} ${CURRENCY}</span></td>
         </tr>
@@ -188,17 +190,17 @@ function showCreatedByMeDetails(container, user, item) {
     </table>
     <div style="font-weight:700;margin:10px 0 5px 0;color:#23875e;letter-spacing:.2px;">Settlements</div>
     <table style="border-collapse:collapse;margin-bottom:8px;">
-      ${item.settlements.length
+      ${(item.settlements||[]).length
         ? item.settlements.map(st => `
           <tr>
             <td style="padding:2px 8px 2px 0; color:#555;min-width:8em;text-align:right;">
-              ${escapeHtml(st.from)}
+              ${escapeHtml(displayName(st.from))}
             </td>
             <td style="padding:2px 2px; color:#888;width:24px;text-align:center;">
               <span style="font-size:1.12em;">&#8594;</span>
             </td>
             <td style="padding:2px 9px 2px 0; color:#333;">
-              ${escapeHtml(st.to)}: <span style="font-weight:700;color:#222">${st.amount} ${CURRENCY}</span>
+              ${escapeHtml(displayName(st.to))}: <span style="font-weight:700;color:#222">${st.amount} ${CURRENCY}</span>
             </td>
           </tr>
         `).join('')
@@ -206,7 +208,13 @@ function showCreatedByMeDetails(container, user, item) {
     </table>
     <div style="border-top:1px solid #e8eaed;margin-top:10px;padding-top:8px;margin-bottom:9px;">
       <div style="font-size:0.96em;color:#556;margin-bottom:6px;font-weight:700;">Participants approvals:</div>
-      ${approvalBranchHTML(item.created_by, item.involvedStatus)}
+      ${approvalBranchHTML(
+        item.created_by,
+        (item.involvedStatus || []).map(u => ({
+          ...u,
+          name: displayName(u)
+        }))
+      )}
       ${disputeMsg}
       ${(item.status === "disputed")
         ? `<button id="editBtn" style="margin-top:14px; padding:8px 24px; font-size:1em; border-radius:8px; background:#2268c5; color:#fff; border:none; font-weight:600;">Edit</button>`
@@ -217,6 +225,7 @@ function showCreatedByMeDetails(container, user, item) {
     detailArea.querySelector('#editBtn').onclick = () => showCreatedByMeEditPanel(container, user, item);
   }
 }
+
 
 // Paste the full 'showCreatedByMeEditPanel' implementation from the previous answer here!
 // In createdByMe.js - paste this after your helpers, and call this from your edit button
