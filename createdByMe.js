@@ -224,11 +224,6 @@ function showCreatedByMeDetails(container, user, item) {
   }
 }
 
-// Use your existing showCreatedByMeEditPanel function (no change needed).
-
-// Paste the full 'showCreatedByMeEditPanel' implementation from the previous answer here!
-// In createdByMe.js - paste this after your helpers, and call this from your edit button
-
 async function showCreatedByMeEditPanel(container, user, item) {
   let FRIENDS = [];
   let loggedInUsername = null;
