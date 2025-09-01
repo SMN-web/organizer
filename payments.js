@@ -115,7 +115,7 @@ export function showPaymentsPanel(container, user) {
         <div class="pay-ui-sheet-bottom-bar">
           ${
             friend.net < 0
-              ? `<button class="pay-ui-pay-btn" id="payUiOpenPay">Pay</button>`
+              ? `<button class="pay-ui-pay-btn-fixed" id="payUiOpenPay">Pay</button>`
               : ""
           }
         </div>
