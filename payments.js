@@ -1,5 +1,5 @@
 export function showPaymentsPanel(container, user) {
-  // Demo: 32 friends, 1 with 21 events
+  // Demo: 32 friends, 1 with 21 events for scroll effect
   const allFriends = Array.from({length:32},(_,i)=>({
     id: i+1,
     name: [
@@ -8,7 +8,7 @@ export function showPaymentsPanel(container, user) {
       "Manju","Kiran","Priya","Sneha","Geeta","Vinod","Sonia","Karthik","Kavya","Mohan","Prasad","Laila"][i%32],
     net: i%4===0?-70: i%4===1?120: i%4===2?0:-25,
     events: (i===0 ? Array.from({length:21}).map((_,j) =>
-      (j % 3 === 0)
+        (j % 3 === 0)
         ? { type: "pay", dir: "to", amount: 8, status: "pending", time: `${21-j}m ago` }
         : (j % 3 === 1)
         ? { type: "pay", dir: "to", amount: 5, status: "accepted", time: `${21-j}m ago` }
@@ -44,42 +44,44 @@ export function showPaymentsPanel(container, user) {
     const totalPages = Math.ceil(friends.length / PAGE_SIZE);
     const pgFriends = friends.slice(pg*PAGE_SIZE, (pg+1)*PAGE_SIZE);
     container.innerHTML = `
-      <div class="pay-ui-friends">
-        <div style="height:36px; width:100%;"></div>
-        <div class="pay-ui-row-main" style="margin-top:0.4em;">
+      <div class="pay-ui-mainframe">
+        <div class="pay-ui-header-row">
           <input type="text" id="payFriendSearch" class="pay-ui-searchinpt" placeholder="Search friend..." autocomplete="off" />
-          <div class="pay-ui-filter-dropdown-wrap">
-            <select id="payFriendFilter" class="pay-ui-filter-dropdown">
-              ${filters.map(f => `<option value="${f.value}"${f.value===filterVal?" selected":""}>${f.label}</option>`).join("")}
-            </select>
-          </div>
+          <select id="payFriendFilter" class="pay-ui-filter-dropdown">
+            ${filters.map(f => `<option value="${f.value}"${f.value===filterVal?" selected":""}>${f.label}</option>`).join("")}
+          </select>
         </div>
-        <div class="pay-ui-friend-list">
-          ${
-            pgFriends.length
-              ? pgFriends.map(f =>
-                `<div class="pay-ui-friend-row" data-id="${f.id}">
-                    <span class="pay-ui-friend-avatar">${initials(f.name)}</span>
-                    <span class="pay-ui-friend-name">${f.name}</span>
-                    <span class="pay-ui-friend-net ${f.net > 0 ? "receivable" : f.net < 0 ? "payable" : "settled"}">
-                      ${f.net > 0 ? '+'+f.net+' QAR' : f.net < 0 ? f.net+' QAR' : 'Settled'}
-                    </span>
-                </div>`
-              ).join('')
-            : '<div style="padding:16px;text-align:center;color:#888;">No friends found</div>'
-          }
+        <div class="pay-ui-friendlist-outer">
+          ${pgFriends.map(f =>
+            `<div class="pay-ui-friend-row" data-id="${f.id}">
+              <span class="pay-ui-friend-avatar">${initials(f.name)}</span>
+              <span class="pay-ui-friend-name">${f.name}</span>
+              <span class="pay-ui-friend-net ${f.net > 0 ? "receivable" : f.net < 0 ? "payable" : "settled"}">
+                ${f.net > 0 ? '+'+f.net+' QAR' : f.net < 0 ? f.net+' QAR' : 'Settled'}
+              </span>
+            </div>`
+          ).join('')}
         </div>
         <div class="pay-ui-pagination-bar">
           ${pg > 0 ? '<button class="pay-ui-pagebtn" id="payUiPrevPage">Prev</button>' : ''}
-          <span class="pay-ui-pgtext">${pg+1} of ${totalPages||1}</span>
+          <span class="pay-ui-pgtext">${friends.length ? (pg+1) : 0} of ${totalPages||1}</span>
           ${pg < totalPages-1 ? '<button class="pay-ui-pagebtn" id="payUiNextPage">Next</button>' : ''}
         </div>
         <div class="pay-ui-panel-bg" id="payUiPanelBg" style="display:none;"></div>
       </div>
     `;
-    container.querySelector("#payFriendSearch").value = searchTerm;
-    container.querySelector("#payFriendSearch").oninput = e =>
+
+    // Input does not lose focus while typing!
+    const searchInput = container.querySelector("#payFriendSearch");
+    searchInput.value = searchTerm;
+    searchInput.oninput = e => {
       renderListUI(0, e.target.value.trim().toLowerCase(), container.querySelector("#payFriendFilter").value);
+      setTimeout(() => {
+        // Re-focus and move caret to end
+        const s = container.querySelector("#payFriendSearch");
+        if(s){ s.focus(); s.selectionStart = s.selectionEnd = s.value.length; }
+      }, 0);
+    };
     container.querySelector("#payFriendFilter").value = filterVal;
     container.querySelector("#payFriendFilter").onchange = e =>
       renderListUI(0, container.querySelector("#payFriendSearch").value.trim().toLowerCase(), e.target.value);
@@ -94,28 +96,28 @@ export function showPaymentsPanel(container, user) {
     const friend = allFriends.find(f => f.id === fid);
     const bg = container.querySelector(".pay-ui-panel-bg");
     bg.innerHTML = `
-      <div class="pay-ui-sheet-panel pay-ui-sheet-panel-fixed">
-        <button class="pay-ui-panel-x" id="payUiClose">&times;</button>
-        <div class="pay-ui-sheet-headerrow">
-          <div class="pay-ui-sheet-header">
-            <span class="pay-ui-friend-avatar">${initials(friend.name)}</span>
-            <span class="pay-ui-sheet-name">${friend.name}</span>
-          </div>
-          <span class="pay-ui-sheet-badge ${friend.net > 0 ? "receivable" : friend.net < 0 ? "payable" : "settled"}">
+      <div class="pay-ui-userpanel-modal">
+        <div class="pay-ui-modal-userbar">
+          <span class="pay-ui-friend-avatar">${initials(friend.name)}</span>
+          <span class="pay-ui-modal-name">${friend.name}</span>
+          <span class="pay-ui-modal-badge ${friend.net > 0 ? "receivable" : friend.net < 0 ? "payable" : "settled"}">
             ${friend.net > 0 ? ("+" + friend.net + " QAR") : friend.net < 0 ? (friend.net + " QAR") : "Settled"}
           </span>
+          <button class="pay-ui-modal-xbtn" id="payUiClose">&times;</button>
         </div>
-        <div class="pay-ui-sheet-history pay-ui-sheet-history-scroll">
+        <div class="pay-ui-modal-historywrap">
+          <div class="pay-ui-modal-history-scroll">
           ${
             friend.events && friend.events.length
               ? friend.events.map(ev => chatBubble(ev, friend)).join('')
               : `<div class="pay-ui-history-none">No transactions yet.</div>`
           }
+          </div>
         </div>
-        <div class="pay-ui-sheet-bottom-bar">
+        <div class="pay-ui-modal-paybar">
           ${
             friend.net < 0
-              ? `<button class="pay-ui-pay-btn-fixed" id="payUiOpenPay">Pay</button>`
+              ? `<button class="pay-ui-pay-btn" id="payUiOpenPay">Pay</button>`
               : ""
           }
         </div>
