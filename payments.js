@@ -1,90 +1,120 @@
 export function showPaymentsPanel(container, user) {
-  // Sample event list: fill dynamically in real app
-  const events = [
+  // Demo friends data—you’ll likely fetch dynamically
+  const friends = [
     {
-      type: "pay",
-      main: "You paid Rafseed",
-      amount: "-8 QAR",
-      status: "Pending",
-      time: "7m ago",
-      actions: ["Cancel"]
+      initials: "RA", name: "Rafseed", net: -70,
+      events: [
+        { dir: "to", amount: 8, status: "pending", time: "7m ago" },
+        { dir: "to", amount: 5, status: "accepted", time: "6m ago" }
+      ]
     },
     {
-      type: "pay",
-      main: "You paid Rafseed",
-      amount: "-5 QAR",
-      status: "Accepted",
-      time: "6m ago",
-      actions: []
+      initials: "BA", name: "Bala", net: 120,
+      events: [ { dir: "to", amount: 15, status: "rejected", time: "6m ago" } ]
     },
     {
-      type: "pay",
-      main: "You paid Rafseed",
-      amount: "-10 QAR",
-      status: "Rejected",
-      time: "5m ago",
-      actions: []
-    },
-    {
-      type: "pay",
-      main: "You paid Bala",
-      amount: "-15 QAR",
-      status: "Rejected",
-      time: "2h ago",
-      actions: []
-    },
-    {
-      type: "split",
-      main: "Split with Bala & Shyam",
-      amount: "-34 QAR",
-      status: "Settled",
-      time: "1d ago",
-      actions: ["Remind"]
+      initials: "SH", name: "Shyam", net: 0,
+      events: [ { dir: "to", amount: 20, status: "pending", time: "just now" } ]
     }
   ];
+  const filters = [
+    { value: "all", label: "All" },
+    { value: "give", label: "You Owe" },
+    { value: "get", label: "You Get" },
+    { value: "done", label: "Settled" }
+  ];
+  let searchTerm = "", filterVal = "all";
+  let expanded = null;
 
-  container.innerHTML = `
-  <div class="tl-mainwrap">
-    <div class="tl-header">
-      <span class="tl-menu">&#9776;</span>
-      <span class="tl-title">Your Settlements</span>
-      <span class="tl-bell">&#128276;<span class="tl-bell-bdg">111</span></span>
-    </div>
-    <div class="tl-feed">
-      ${events.map(ev=>`
-        <div class="tl-ev-row tl-ev-${ev.status.toLowerCase()}">
-          <span class="tl-ev-ico">${ev.type==="pay"?"💸":ev.type==="split"?"🧮":"🔔"}</span>
-          <div class="tl-ev-main">
-            <div class="tl-ev-summary">
-              <span class="tl-ev-maintext">${ev.main}</span>
-              <span class="tl-ev-amt">${ev.amount}</span>
+  function render() {
+    // Filter
+    const filtered = friends.filter(f => {
+      const match = !searchTerm || f.name.toLowerCase().includes(searchTerm);
+      if(filterVal==="all") return match;
+      if(filterVal==="give") return f.net<0 && match;
+      if(filterVal==="get") return f.net>0 && match;
+      if(filterVal==="done") return f.net===0 && match;
+      return match;
+    });
+
+    container.innerHTML = `
+      <div class="bpay-sheet-pad"></div>
+      <div class="bpay-root">
+        <div class="bpay-searchrow">
+          <input class="bpay-search" id="bpaySearch" placeholder="Search..." />
+          <select class="bpay-filter" id="bpayFilter">
+            ${filters.map(f=>`<option value="${f.value}">${f.label}</option>`).join("")}
+          </select>
+        </div>
+        <div class="bpay-friend-list">
+          ${filtered.map((f,i)=>`
+            <div class="bpay-friendcard" data-idx="${i}">
+              <span class="bpay-avatar">${f.initials}</span>
+              <span class="bpay-nblock">
+                <span class="bpay-fname">${f.name}</span>
+                <span class="bpay-net${f.net>0?' plus':f.net<0?' minus':' settled'}">
+                  ${f.net>0?'+':'–'}${Math.abs(f.net)} QAR
+                </span>
+              </span>
+              <span class="bpay-arrow">&#8250;</span>
             </div>
-            <div class="tl-ev-meta">
-              <span class="tl-ev-status">${ev.status}</span>
-              <span class="tl-ev-time">${ev.time}</span>
-              ${ev.actions.map(a=>`
-                <button class="tl-ev-btn">${a}</button>
-              `).join('')}
+          `).join('')}
+        </div>
+        <div class="bpay-drawer-ctr">${expanded!==null?friendDrawer(filtered[expanded], expanded):''}</div>
+      </div>
+    `;
+
+    // Search & filter
+    const searchEl = container.querySelector("#bpaySearch");
+    searchEl.value = searchTerm;
+    searchEl.oninput = e => {searchTerm=e.target.value.toLowerCase(); render();setTimeout(()=>searchEl.focus(),0);};
+    container.querySelector("#bpayFilter").value = filterVal;
+    container.querySelector("#bpayFilter").onchange = e=>{filterVal = e.target.value; render();};
+
+    // Open drawer
+    container.querySelectorAll('.bpay-friendcard').forEach(fc=>{
+      fc.onclick=()=>{ expanded = Number(fc.dataset.idx); render();};
+    });
+    // Drawer close
+    if(expanded!==null) container.querySelector('.bpay-close').onclick=()=>{ expanded=null; render();};
+  }
+
+  function friendDrawer(friend, idx) {
+    const netState = friend.net > 0 ? 'get' : friend.net < 0 ? 'owe' : 'settled';
+    return `
+      <div class="bpay-drawer-sheet anim-in">
+        <button class="bpay-close" aria-label="Back"><span>&larr;</span></button>
+        <div class="bpay-drawer-info">
+          <span class="bpay-avatar big">${friend.initials}</span>
+          <div>
+            <div class="bpay-fname big">${friend.name}</div>
+            <div class="bpay-net big ${netState}">
+              ${friend.net>0?'+':'–'}${Math.abs(friend.net)} QAR
+            </div>
+            <div class="bpay-badge ${netState}">
+              ${netState==="get"?"You Get":netState==="owe"?"You Owe":"Settled"}
             </div>
           </div>
         </div>
-      `).join('')}
-    </div>
-    <button class="tl-fab">＋</button>
-  </div>
-  `;
-  // FAB animation
-  container.querySelector('.tl-fab').onclick = function(){
-    this.classList.add('fab-pop');
-    setTimeout(()=>this.classList.remove('fab-pop'),450);
-    alert('Add payment (demo)');
-  };
-  container.querySelectorAll('.tl-ev-btn').forEach(b=>{
-    b.onclick = function(e) {
-      b.classList.add('tl-btn-ripple');
-      setTimeout(()=>b.classList.remove('tl-btn-ripple'),350);
-      alert(`${b.textContent} (demo)`);
-      e.stopPropagation();
-    }
-  });
+        <div class="bpay-drawer-actions">
+          <button class="bpay-btn pay">Pay</button>
+          <button class="bpay-btn remind">Remind</button>
+          <button class="bpay-btn split">Split</button>
+        </div>
+        <div class="bpay-history">
+          ${(friend.events||[]).map(ev=>`
+            <div class="bpay-hist-row ${ev.status}">
+              <span class="bpay-hist-summary">
+                ${ev.dir==="to"?`You paid ${friend.name}`:`${friend.name} paid you`} <strong>${ev.amount} QAR</strong>
+              </span>
+              <span class="bpay-hist-stat">${ev.status.charAt(0).toUpperCase()+ev.status.slice(1)}</span>
+              <span class="bpay-hist-time">${ev.time}</span>
+              ${(ev.status==="pending"&&ev.dir==="to")?`<button class="bpay-mini-act cancel">Cancel</button>`:""}
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  }
+  render();
 }
