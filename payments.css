@@ -233,3 +233,27 @@ body { background: #f7fafb; }
   display: flex; align-items: center; justify-content: center;
   z-index: 3900;
   animation: fadeinModal .
+
+.pay-ui-pay-btn-fixed {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 24px; /* or 16-24px for mobile spacing */
+  margin: 0 auto;
+  width: 124px;
+  max-width: 92vw;
+  background: #194dac;
+  color: #fff;
+  border: none;
+  border-radius: 13px;
+  padding: .43em 0;
+  font-size: 1em;
+  font-weight: 700;
+  z-index: 4900;
+  box-shadow: 0 3px 13px #366ccb11;
+  cursor: pointer;
+  display: block;
+  text-align: center;
+  transition: background .12s;
+}
+.pay-ui-pay-btn-fixed:active { background: #153d88; }
