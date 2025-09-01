@@ -1,88 +1,90 @@
 export function showPaymentsPanel(container, user) {
-  // Demo data, swap for real
-  const friends = [
+  // Sample event list: fill dynamically in real app
+  const events = [
     {
-      initials: "RA", name: "Rafseed", net: -70,
-      events: [
-        { dir: "to", amount: 8, status: "pending", time: "7m ago" },
-        { dir: "to", amount: 5, status: "accepted", time: "6m ago" }
-      ]
+      type: "pay",
+      main: "You paid Rafseed",
+      amount: "-8 QAR",
+      status: "Pending",
+      time: "7m ago",
+      actions: ["Cancel"]
     },
     {
-      initials: "BA", name: "Bala", net: 120,
-      events: [ { dir: "to", amount: 15, status: "rejected", time: "6m ago" } ]
+      type: "pay",
+      main: "You paid Rafseed",
+      amount: "-5 QAR",
+      status: "Accepted",
+      time: "6m ago",
+      actions: []
     },
     {
-      initials: "SH", name: "Shyam", net: 0,
-      events: [ { dir: "to", amount: 20, status: "pending", time: "just now" } ]
+      type: "pay",
+      main: "You paid Rafseed",
+      amount: "-10 QAR",
+      status: "Rejected",
+      time: "5m ago",
+      actions: []
+    },
+    {
+      type: "pay",
+      main: "You paid Bala",
+      amount: "-15 QAR",
+      status: "Rejected",
+      time: "2h ago",
+      actions: []
+    },
+    {
+      type: "split",
+      main: "Split with Bala & Shyam",
+      amount: "-34 QAR",
+      status: "Settled",
+      time: "1d ago",
+      actions: ["Remind"]
     }
   ];
 
-  let expanded = 0;
-  function render() {
-    container.innerHTML = `
-      <div class="bento-barrier"></div>
-      <div class="bento-root">
-        <div class="bento-header">
-          <span class="bento-menu">&#9776;</span>
-          <span class="bento-title">Your Settlements</span>
-          <span class="bento-bell">&#128276;<span class="bento-bell-bdg">111</span></span>
-        </div>
-        <div class="bento-grid">
-          ${friends.map((f,i)=>`
-            <div class="bento-card${expanded===i?' expanded':''}" data-idx="${i}">
-              <span class="bento-avatar">${f.initials}</span>
-              <div>
-                <span class="bento-fname">${f.name}</span><br>
-                <span class="bento-net${f.net>0?' plus':f.net<0?' minus':' settled'}">
-                  ${f.net>0?`+${f.net}`:f.net<0?f.net:"0"} QAR
-                </span>
-              </div>
-              <span class="bento-expand">&#8250;</span>
-              ${expanded===i ? `
-                <div class="bento-sheet">
-                  <div class="bento-sheet-title">${f.name} —${f.net>0?'You Get':f.net<0?'You Owe':'Settled'}</div>
-                  <div class="bento-btn-row">
-                    <button class="bento-btn pay">Pay</button>
-                    <button class="bento-btn remind">Remind</button>
-                    <button class="bento-btn split">Split</button>
-                  </div>
-                  <div class="bento-history">
-                    ${(f.events||[]).map(ev=>`
-                      <div class="bento-ev-row bento-ev-${ev.status}">
-                        <span class="bento-ev-main">
-                          ${ev.dir==='to'?`You paid ${f.name}`:`${f.name} paid you`} 
-                          <span class="bento-ev-amt">${ev.amount} QAR</span>
-                        </span>
-                        <span class="bento-ev-stat">${ev.status.charAt(0).toUpperCase()+ev.status.slice(1)}</span>
-                        <span class="bento-ev-meta">${ev.time}</span>
-                        ${ev.status==="pending"&&ev.dir==="to"?`<button class="bento-mini-act bento-ev-cancel">Cancel</button>`:""}
-                      </div>
-                    `).join('')}
-                  </div>
-                </div>
-              ` : ``}
+  container.innerHTML = `
+  <div class="tl-mainwrap">
+    <div class="tl-header">
+      <span class="tl-menu">&#9776;</span>
+      <span class="tl-title">Your Settlements</span>
+      <span class="tl-bell">&#128276;<span class="tl-bell-bdg">111</span></span>
+    </div>
+    <div class="tl-feed">
+      ${events.map(ev=>`
+        <div class="tl-ev-row tl-ev-${ev.status.toLowerCase()}">
+          <span class="tl-ev-ico">${ev.type==="pay"?"💸":ev.type==="split"?"🧮":"🔔"}</span>
+          <div class="tl-ev-main">
+            <div class="tl-ev-summary">
+              <span class="tl-ev-maintext">${ev.main}</span>
+              <span class="tl-ev-amt">${ev.amount}</span>
             </div>
-          `).join('')}
+            <div class="tl-ev-meta">
+              <span class="tl-ev-status">${ev.status}</span>
+              <span class="tl-ev-time">${ev.time}</span>
+              ${ev.actions.map(a=>`
+                <button class="tl-ev-btn">${a}</button>
+              `).join('')}
+            </div>
+          </div>
         </div>
-      </div>
-    `;
-    container.querySelectorAll('.bento-card').forEach(card=>{
-      card.onclick = e=>{
-        // only expand if clicked not on a button inside
-        if(!e.target.classList.contains('bento-btn') && !e.target.classList.contains('bento-mini-act')) {
-          expanded = Number(card.dataset.idx);
-          render();
-        }
-      };
-    });
-    container.querySelectorAll('.bento-btn, .bento-mini-act').forEach(btn=>{
-      btn.onclick= e=>{
-        btn.classList.add('bento-ripple');
-        setTimeout(()=>btn.classList.remove('bento-ripple'),400);
-        e.stopPropagation();
-      };
-    });
-  }
-  render();
+      `).join('')}
+    </div>
+    <button class="tl-fab">＋</button>
+  </div>
+  `;
+  // FAB animation
+  container.querySelector('.tl-fab').onclick = function(){
+    this.classList.add('fab-pop');
+    setTimeout(()=>this.classList.remove('fab-pop'),450);
+    alert('Add payment (demo)');
+  };
+  container.querySelectorAll('.tl-ev-btn').forEach(b=>{
+    b.onclick = function(e) {
+      b.classList.add('tl-btn-ripple');
+      setTimeout(()=>b.classList.remove('tl-btn-ripple'),350);
+      alert(`${b.textContent} (demo)`);
+      e.stopPropagation();
+    }
+  });
 }
