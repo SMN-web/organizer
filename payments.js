@@ -1,7 +1,8 @@
 export function showPaymentsPanel(container, user) {
-  const allFriends = [
+  // DEMO DATA, SHORT
+  let allFriends = [
     {
-      id: 1, name: "Rafseed", net: -70, color: "#3766e3",
+      id: 1, name: "Rafseed", net: -70, color: "#3064e6",
       events: [
         {id:1, dir:"to", amount:8, how:"You paid", status:"Pending", time:"7m ago"},
         {id:2, dir:"to", amount:5, how:"You paid", status:"Accepted", time:"6m ago"},
@@ -10,112 +11,73 @@ export function showPaymentsPanel(container, user) {
     },
     {
       id: 2, name: "Bala", net: 120, color: "#23b134",
-      events: [ {id:4, dir:"from", amount:15, how:"They paid you", status:"Rejected", time:"6m ago"} ]
+      events: [{id:4, dir:"from", amount:15, how:"They paid you", status:"Rejected", time:"6m ago"}]
     },
     {
       id: 3, name: "Shyam", net: 0, color: "#8e61b5",
-      events: [ {id:5, dir:"to", amount:20, how:"You paid", status:"Pending", time:"just now"} ]
+      events: [{id:5, dir:"to", amount:20, how:"You paid", status:"Pending", time:"just now"}]
     }
   ];
 
-  let selIdx = 0;
-  let searchDrawerOpen = false;
+  let selected = allFriends[0].id;
 
   function initials(name) {
     return (name.match(/[A-Z]/gi) || []).slice(0,2).join('').toUpperCase();
   }
 
-  function nfmt(n) {
-    return n>0?`+${n} QAR` : n<0?`${n} QAR` : "Settled";
-  }
-
   function render() {
-    const f = allFriends[selIdx];
+    const friend = allFriends.find(f=>f.id===selected);
     container.innerHTML = `
-      <div class="carousel-shell">
-        <div class="carousel-top-pad"></div>
-        <div class="carousel-toolbar">
-          <button class="carousel-menubtn">&#9776;</button>
-          <span class="carousel-title">Your Settlements</span>
-          <button class="carousel-searchbtn" id="carouselSearchBtn">&#128269;</button>
+      <div class="cl-mainwrap">
+        <div class="cl-friendbar">
+          ${allFriends.map(f=>
+            `<div class="cl-friendhead${f.id===selected?' active':''}" data-id="${f.id}" style="--c:${f.color}">
+              <span class="cl-avatar" style="background:${f.color};">${initials(f.name)}</span>
+              <span class="cl-friendname">${f.name}</span>
+            </div>`
+          ).join('')}
         </div>
-        ${searchDrawerOpen ? `<div class="carousel-searchdrawer">
-          <input type="text" placeholder="Search..." class="carousel-searchinpt" id="carouselSearchInpt"/>
-          <div class="carousel-searchflist">
-            ${allFriends.map((f2,idx)=>`
-               <div class="carousel-searchfriend${idx===selIdx?' active':''}" data-idx="${idx}">
-                 <span class="carousel-searchavatar" style="background:${f2.color}">${initials(f2.name)}</span>
-                 <span class="carousel-searchname">${f2.name}</span>
-                 <span class="carousel-searchamt" style="color:${f2.net>0?'#1BB169':f2.net<0?'#D72F32':'#888'}">${nfmt(f2.net)}</span>
-               </div>
-            `).join("")}
-          </div>
-        </div>`:""}
-        <div class="carousel-cardview">
-          <button class="carousel-navbtn prev"${selIdx===0?' disabled':''}>&lt;</button>
-          <div class="carousel-friendcard" style="background:${f.color};animation:slide-in .45s cubic-bezier(.38,1.35,.7,1.01)">
-            <div class="carousel-avatar" style="background:${f.color}">${initials(f.name)}</div>
-            <div class="carousel-fname">${f.name}</div>
-            <div class="carousel-famt" id="carouselFamt" style="color:${f.net>0?'#baffdd':f.net<0?'#ffe7e2':'#f5f8fe'}">${nfmt(f.net)}</div>
-            <div class="carousel-fstatus carousel-fstatus-${nfmt(f.net)==="Settled"?"settled":f.net>0?"receive":"give"}">
-              ${nfmt(f.net) === "Settled"
-                ? "All Settled"
-                : f.net>0? "You Get" : "You Owe"}
-            </div>
-          </div>
-          <button class="carousel-navbtn next"${selIdx===allFriends.length-1?' disabled':''}>&gt;</button>
-        </div>
-        <div class="carousel-actbar">
-          <button class="carousel-btn remind">Remind</button>
-          <button class="carousel-btn split">Split</button>
-          <button class="carousel-btn pay">Pay</button>
-        </div>
-        <div class="carousel-history">
-          ${(f.events||[]).map(ev=>`
-            <div class="carousel-historyrow">
-              <span class="carousel-hwho" style="color:${ev.dir==="to"?"#2344d4":"#13a429"}">${ev.how}</span>
-              <span class="carousel-hamt">${ev.amount} QAR</span>
-              <span class="carousel-hstat carousel-hstat-${ev.status.toLowerCase()}">${ev.status}</span>
-              <span class="carousel-htime">${ev.time}</span>
-              <span class="carousel-historybtns">${
-                ev.status==="Pending"&&ev.dir==="from"?
-                `<button class="carousel-mini accept">Accept</button><button class="carousel-mini reject">Reject</button>`:""
-              }
-                ${ev.status==="Pending"&&ev.dir==="to"?`<button class="carousel-mini cancel">Cancel</button>`:""}
-              </span>
+        <div class="cl-bubblelist">
+          ${friend.events.map(ev=>`
+            <div class="cl-bubble-row${ev.dir==='to'?' right':' left'}">
+              <div class="cl-bubble-main${ev.dir==='to'?' my':' their'}">
+                <div>
+                  <strong>${ev.how} <span class="cl-bubble-amt">${ev.amount} QAR</span></strong>
+                  <span class="cl-bubble-status cl-status-${ev.status.toLowerCase()}">${ev.status}</span>
+                </div>
+                <div class="cl-bubble-tm">${ev.time || ''}</div>
+                <div>
+                  ${ev.status==="Pending"&&ev.dir==="to"?`
+                    <button class="cl-act cl-cancel">Cancel</button>
+                  `:""}
+                  ${ev.status==="Pending"&&ev.dir==="from"?`
+                    <button class="cl-act cl-accept">Accept</button>
+                    <button class="cl-act cl-reject">Reject</button>
+                  `:""}
+                </div>
+              </div>
             </div>
           `).join('')}
         </div>
+        <div class="cl-botbar">
+          <button class="cl-sendbtn pay">Pay</button>
+          <button class="cl-sendbtn remind">Remind</button>
+          <button class="cl-sendbtn split">Split</button>
+        </div>
       </div>
     `;
-    // Animation: quick count-up for net
-    setTimeout(()=>{
-      let el=container.querySelector("#carouselFamt");
-      if(!el)||nfmt(f.net)==="Settled"||Math.abs(f.net)<=1)return;
-      let v=0, target=Math.abs(f.net), sign=f.net<0?-1:1, i=0, steps=13;
-      function tick(){ if(i>=steps)return; v=Math.round(target*i/steps); el.textContent=(sign>0?"+":"")+(v)+" QAR"; i++; setTimeout(tick,22);}
-      tick();
-    },440);
 
-    // Navigation and search
-    container.querySelector(".carousel-navbtn.prev").onclick = ()=>{if(selIdx>0){selIdx--;render();}};
-    container.querySelector(".carousel-navbtn.next").onclick = ()=>{if(selIdx<allFriends.length-1){selIdx++;render();}};
-    container.querySelector("#carouselSearchBtn").onclick = ()=>{
-      searchDrawerOpen=!searchDrawerOpen; render();
-      if(searchDrawerOpen)setTimeout(()=>{const s=container.querySelector("#carouselSearchInpt");if(s)s.focus();},2);
-    };
-    if(searchDrawerOpen){
-      container.querySelectorAll(".carousel-searchfriend").forEach(btn=>{
-        btn.onclick=()=>{selIdx=Number(btn.dataset.idx);searchDrawerOpen=false;render();};
-      });
-    }
-    // Actions
-    container.querySelectorAll(".carousel-btn.remind").forEach(b=>b.onclick=()=>alert("Remind demo"));
-    container.querySelectorAll(".carousel-btn.split").forEach(b=>b.onclick=()=>alert("Split demo"));
-    container.querySelectorAll(".carousel-btn.pay").forEach(b=>b.onclick=()=>alert("Pay demo"));
-    container.querySelectorAll(".carousel-mini.accept").forEach(b=>b.onclick=()=>alert("Accept demo"));
-    container.querySelectorAll(".carousel-mini.reject").forEach(b=>b.onclick=()=>alert("Reject demo"));
-    container.querySelectorAll(".carousel-mini.cancel").forEach(b=>b.onclick=()=>alert("Cancel demo"));
+    // Friend switch
+    container.querySelectorAll(".cl-friendhead").forEach(btn => {
+      btn.onclick = ()=>{selected=Number(btn.dataset.id);render();};
+    });
+    // Add action handlers (demo mode)
+    container.querySelectorAll(".cl-act.cl-accept").forEach(b=>b.onclick=()=>alert("Accepted"));
+    container.querySelectorAll(".cl-act.cl-reject").forEach(b=>b.onclick=()=>alert("Rejected"));
+    container.querySelectorAll(".cl-act.cl-cancel").forEach(b=>b.onclick=()=>alert("Cancelled"));
+    container.querySelectorAll(".cl-sendbtn.pay").forEach(b=>b.onclick=()=>alert("Pay Demo"));
+    container.querySelectorAll(".cl-sendbtn.remind").forEach(b=>b.onclick=()=>alert("Remind Demo"));
+    container.querySelectorAll(".cl-sendbtn.split").forEach(b=>b.onclick=()=>alert("Split Demo"));
   }
   render();
 }
