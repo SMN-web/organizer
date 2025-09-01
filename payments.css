@@ -14,43 +14,6 @@ body {
   overflow-x: hidden;
 }
 
-.pay-ui-headerbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 0 9px 0;
-  min-height: 36px;
-}
-
-.pay-ui-menubtn {
-  font-size: 1.42em;
-  background: none;
-  border: none;
-  color: #35396e;
-  border-radius: 7px;
-  padding: 2px 8px 2px 3px;
-  cursor: pointer;
-  transition: background .13s;
-}
-
-.pay-ui-menubtn:active { background: #f1f2fb; }
-
-.pay-ui-bellwrap { position: relative; }
-.pay-ui-bell-icon { font-size: 1.14em; color: #33487a; position: relative;}
-.pay-ui-bell-badge {
-  position: absolute;
-  top: -7px; right: -12px;
-  background: #e22e2e;
-  color: #fff;
-  min-width: 14px; height: 14px;
-  display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 50%; font-size: 0.77em; padding: 0 3.3px; font-weight: 700;
-  box-shadow: 0 1.3px 4px #a3626242;
-}
-
-.pay-ui-topspacer { flex:1; }
-
-/* Search/filter row */
 .pay-ui-row-main {
   display: flex;
   align-items: center;
@@ -67,7 +30,6 @@ body {
   border: 1.1px solid #d6e2fe;
   background: #f8faff;
   font-size: 1em;
-  box-shadow: 0 1px 9px #c2e0fe13;
   transition: border .11s;
 }
 .pay-ui-searchinpt:focus { border-color: #316dd2; }
@@ -148,7 +110,6 @@ body {
   z-index: 2200;
 }
 
-/* --- App modal sheet --- */
 .pay-ui-sheet-panel.pay-ui-sheet-panel-fixed {
   background: #fafcfe;
   width: 100vw;
