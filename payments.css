@@ -1,122 +1,122 @@
-body { background: #f8fafd; }
+body { background: #f6f8fc; }
 
-.tl-mainwrap {
+.bpay-sheet-pad { height:34px; }
+
+.bpay-root {
   max-width: 500px;
-  margin: 56px auto 0;
+  margin: 0 auto;
   background: #fff;
-  border-radius: 21px;
-  box-shadow: 0 2.5px 29px #cbd5e735;
-  min-height: 92vh;
-  padding-bottom: 42px;
-  display: flex;
-  flex-direction: column;
-}
-.tl-header {
-  display: flex; align-items: center; justify-content: space-between;
-  min-height:45px; gap:16px;
-  padding: 28px 12px 3px 16px;
-}
-.tl-menu { font-size:1.44em;color:#24335e;cursor:pointer; }
-.tl-title { font-size:1.18em;font-weight:900;color:#20254a;flex:1;text-align:center; }
-.tl-bell { font-size:1.22em; color:#ffa433; position:relative;}
-.tl-bell-bdg {
-  font-size:.92em;min-width:16px;height:16px;
-  background:#e22c2d; color:#fff;
-  border-radius:50%; font-weight:600;
-  position:absolute;right:-8px;top:-11px; padding:0 3px;
+  border-radius: 19px;
+  box-shadow: 0 2px 32px #b3cff732;
+  min-height:84vh;
+  padding:0 2vw 4vw 2vw;
 }
 
-.tl-feed {
-  display: flex; flex-direction: column;
-  gap: 15px; margin:18px 0 0 0;
-  flex:1 1 auto; overflow-y: auto;
-  padding-bottom: 3vw;
+.bpay-searchrow {
+  margin-top:25px;
+  width:100%;
+  display:flex; align-items:center; gap:10px;
+  margin-bottom:14px;
 }
-.tl-ev-row {
-  display: flex; align-items: flex-start;
-  gap: 15px;
-  background:#fafdff;
-  border-radius: 15px;
-  box-shadow: 0 1.5px 11px #dbddf415;
-  padding: 13px 16px 11px 12px;
-  font-size:1em;
-  min-width:0;
-  animation:tl-ev-in .21s cubic-bezier(.44,2.1,.53,1.1);
+.bpay-search {
+  flex:1 1 68%;
+  min-width:0; width:70%;
+  font-size:1.06em; padding:11px 17px;
+  border-radius: 10px; border: 1.1px solid #d6e6fa;
+  background: #f8fafd;
 }
-@keyframes tl-ev-in{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:none;}}
-.tl-ev-ico {
-  font-size:1.7em;
-  margin-top:2px;
-  color:#ececec;
-  flex-shrink:0;
+.bpay-filter {
+  flex: 1 1 27%; min-width:70px; max-width:124px;
+  font-size: 1.01em; border-radius:10px;
+  border:1.1px solid #c5d6ed; background:#f4f6fb; color:#293d6d;
+  padding: 11px 9px;
 }
-.tl-ev-main {
-  flex: 1 1 auto;
-  display:flex;flex-direction:column;
-}
-.tl-ev-summary {
-  display: flex; align-items: center; gap: 18px;
-  font-weight:800;font-size:1.14em; color:#223473;
-  margin-bottom:5px;
-}
-.tl-ev-amt {
-  font-weight:700;
-  font-size:1em;
-  color:#2A7841;
-}
-.tl-ev-row.tl-ev-pending .tl-ev-amt   { color:#b38429;}
-.tl-ev-row.tl-ev-accepted .tl-ev-amt  { color:#21b869;}
-.tl-ev-row.tl-ev-rejected .tl-ev-amt  { color:#bd3131;}
-.tl-ev-row.tl-ev-settled  .tl-ev-amt  { color:#9296a7;}
-.tl-ev-maintext {margin-right:12px;}
 
-.tl-ev-meta {
-  display: flex; align-items: center; gap: 13px;
-  color:#8796b8;
-  font-size:.97em;font-weight:500;
+.bpay-friend-list {
+  display: flex; flex-direction: column; gap: 12px; width: 100%;
 }
-.tl-ev-status {
-  font-size:.97em; font-weight:700; border-radius:7px; padding:2px 12px;
-  background:#f0f2fa; color:#92968b;
+.bpay-friendcard {
+  display: flex;align-items:center; gap:14px;
+  border-radius:13px; padding:15px 12px 15px 11px;
+  background: #f7fafd;
+  box-shadow:0 2px 13px #e2eeff0f;
+  font-size:1.07em; font-weight:600; color:#2e3b5c;
+  min-width: 0; cursor: pointer; transition:.16s background;
 }
-.tl-ev-row.tl-ev-pending .tl-ev-status { background:#fcf8e2; color:#bfa523;}
-.tl-ev-row.tl-ev-accepted .tl-ev-status{ background:#e3fbea; color:#31be7d;}
-.tl-ev-row.tl-ev-rejected .tl-ev-status{ background:#fbe7ea;color:#e83922;}
-.tl-ev-row.tl-ev-settled .tl-ev-status{ background:#e6f1ee; color:#649185;}
-.tl-ev-time { color:#adb4c9;}
+.bpay-friendcard:hover { background:#e6f0fd;}
+.bpay-avatar {
+  background:#e6ecfd;color:#2244aa; font-weight:900;
+  border-radius:50%; width:38px; height:38px;
+  display:flex;align-items:center;justify-content:center; font-size:1.08em;
+}
+.bpay-nblock { flex:1; display:flex;flex-direction:column; }
+.bpay-fname { font-weight:700; color:#193a6e; font-size:1.06em; }
+.bpay-net { font-weight:700; font-size:.98em; }
+.bpay-net.plus { color:#159c3a;}
+.bpay-net.minus{ color:#c13b23;}
+.bpay-net.settled{color:#8897a7;}
+.bpay-arrow {font-size:2.14em;color:#b7c8e7;margin-left:auto;}
 
-.tl-ev-btn {
-  border-radius:7px; padding:7px 18px;
-  border:none; background:#dde0ea; color:#214184;
-  font-weight:700; margin-left:9px; font-size:.99em; cursor:pointer;
-  transition: background .13s; position:relative;overflow:hidden;
+.bpay-drawer-ctr { position:relative; }
+.bpay-drawer-sheet {
+  position: absolute; right:0; top:0; left:0;
+  background: #ffffff;
+  border-radius: 19px;
+  box-shadow: 0 6px 44px #6dbffd14;
+  padding:34px 4vw 19px 4vw;
+  z-index:19;
+  animation: bpay-slide-in .37s cubic-bezier(.48,1.6,.5,1.1);
 }
-.tl-ev-btn:active {background:#bedeff;}
-.tl-btn-ripple{animation:tl-btn-ripple .37s;}
-@keyframes tl-btn-ripple{0%{box-shadow:0 0 0 0 #c0d9ff55;}90%{box-shadow:0 0 15px 11px #c0d9ff22;}100%{box-shadow:none;}}
-
-.tl-fab {
-  position: fixed;
-  right: min(4vw,36px); bottom: min(5vw,40px);
-  z-index:99;
-  border:none;
-  background: #184df9;
-  color: #fff;
-  font-size: 2.1em;
-  border-radius: 50%;
-  width:57px; height: 57px;
-  box-shadow: 0 5px 18px #214df922, 0 2px 6px #92a8ea32;
-  cursor:pointer;
-  transition:.13s background, .13s box-shadow;
-  animation:fab-inn .68s cubic-bezier(.54,2,.34,.86);
+@keyframes bpay-slide-in {from{opacity:.0;transform:translateX(48px);}to{opacity:1;transform:none;}}
+@media (max-width:650px){
+  .bpay-root {max-width:99vw;}
+  .bpay-drawer-sheet {left:0;right:0;}
 }
-@keyframes fab-inn{from{opacity:0;transform:scale(.4);}to{opacity:1;transform:none;}}
-.fab-pop{animation:fab-pop .46s;}
-@keyframes fab-pop{0%{transform:scale(1);}35%{transform:scale(1.23);}65%{transform:scale(.95);}100%{transform:scale(1);}}
-.tl-fab:active{background:#1741b2;}
 
-@media (max-width:600px){
-  .tl-mainwrap, .tl-feed {max-width:99vw;}
-  .tl-header {padding:18px 7px 0 7px;}
-  .tl-feed { gap: 11px; }
+.bpay-close {
+  background:none; border:none; font-size:1.32em;
+  color: #274cab; cursor:pointer; border-radius:8px;
+  padding:5px 20px 5px 7px; position:absolute; left:6px; top:10px;
+  z-index:25;
+}
+.bpay-drawer-info { display:flex;align-items:center;gap:17px;margin-bottom:9px;margin-top:7px;}
+.bpay-avatar.big {width:55px;height:55px;font-size:1.18em;}
+.bpay-fname.big {font-size:1.2em;}
+.bpay-net.big {font-size:1.09em;}
+.bpay-net.big.get { color:#188e3c;}
+.bpay-net.big.owe { color:#d83c2c;}
+.bpay-net.big.settled { color: #7ea09c;}
+.bpay-badge {margin-top:7px;display:inline-block;font-size:.98em;border-radius:7px;padding:3px 14px;font-weight:700;}
+.bpay-badge.get { background:#d6fde6;color:#119e33;}
+.bpay-badge.owe { background: #fee3e3;color:#e23c2d;}
+.bpay-badge.settled { background: #e0f5ef;color:#377877;}
+.bpay-drawer-actions {display:flex;gap:15px;justify-content:left;margin:18px 0 13px 0;}
+.bpay-btn {
+  border-radius:8px;font-size:1em;font-weight:700;
+  padding:10px 22px;border:none;background:#e5eafd;color:#215bd8;cursor:pointer;
+  box-shadow:0 1.5px 11px #bcd5ee14;transition:background .13s;
+}
+.bpay-btn.pay {background:#194dca;color:#fff;}
+.bpay-btn.pay:active{background:#133e98;}
+.bpay-btn:active {filter:brightness(.96);}
+.bpay-history {max-width:99vw;margin-top:8px;}
+.bpay-hist-row {
+  display:flex;align-items:center;gap:10px;
+  background:#f7fafd;border-radius:8px;margin-bottom:11px;
+  padding:11px 9px 7px 10px;box-shadow:0 2px 7px #dae6fe12;font-size:1em;animation:bpay-ev-in .23s;
+}
+@keyframes bpay-ev-in {from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+.bpay-hist-summary {flex:1;font-weight:600;}
+.bpay-hist-stat {margin-left:11px;font-size:.97em;padding:2.1px 11px;border-radius:7px;font-weight:700;background:#f4f7fd;color:#23296a;}
+.bpay-hist-row.accepted .bpay-hist-stat{background:#e2fbeb;color:#20974d;}
+.bpay-hist-row.rejected .bpay-hist-stat{background:#f6e8e8;color:#cb3f42;}
+.bpay-hist-row.pending .bpay-hist-stat{background:#fcf8e2;color:#bfa523;}
+.bpay-hist-time {color:#8891a1;font-size:.96em;}
+.bpay-mini-act.cancel{padding:6px 13px;font-size:.96em;border:none;border-radius:7px;background:#b3b6bc;color:#fff;margin-left:10px;cursor:pointer;}
+.bpay-mini-act.cancel:active{background:#63667a;}
+
+@media (max-width:480px){
+  .bpay-root{padding:0 1vw 10vw 1vw;}
+  .bpay-friendcard,.bpay-drawer-sheet{padding-left:2vw;padding-right:2vw;border-radius:10px;}
+  .bpay-drawer-sheet{padding-top:28px;}
 }
