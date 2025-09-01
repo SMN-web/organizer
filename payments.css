@@ -1,110 +1,128 @@
-body {
-  background: #f7fafb;
-}
+body { background: #f7fafb; }
 
-/* Main card container */
 .pay-ui-friends {
-  position: relative;
-  max-width: 435px;
-  margin: 40px auto 0 auto;
+  max-width: 440px;
+  margin: 58px auto 0 auto;
   background: #fff;
   border-radius: 18px;
   box-shadow: 0 2px 16px #b3cff733;
-  padding: 1.21em .5em .6em .5em;
+  padding: 0.7em .45em .6em .45em;
   overflow-x: hidden;
 }
 
-.pay-ui-row-main {
+.pay-ui-row-main {  /* Added margin-top for menu/bell separation */
   display: flex;
   align-items: center;
   gap: 0.55em;
-  margin-bottom: 9px;
+  margin-bottom: 8px;
   width: 100%;
+  margin-top: 1.3em;
 }
 
 .pay-ui-searchinpt {
-  width: 70%;
-  min-width: 88px;
-  padding: 8px 10px;
-  border-radius: 9px;
+  width: 71%;
+  min-width: 80px;
+  padding: 9px 9px;
+  border-radius: 8px;
   border: 1.1px solid #d6e2fe;
   background: #f8faff;
-  font-size: 1em;
-  transition: border .11s;
+  font-size: .99em;
 }
-.pay-ui-searchinpt:focus { border-color: #316dd2; }
 
 .pay-ui-filter-dropdown-wrap {
-  width: 30%;
-  min-width: 80px;
-  max-width: 154px;
+  width: 29%;
+  min-width: 65px;
+  max-width: 134px;
   text-align: right;
 }
+
 .pay-ui-filter-dropdown {
-  width: 97%;
+  width: 98%;
   font-size: .97em;
   padding: 8px 9px 8px 9px;
-  border-radius: 8px;
+  border-radius: 7px;
   border: 1.1px solid #bad5ee;
   background: #f2f5fa;
-  color: #244;
-  box-shadow: 0 1.5px 8px #e5f0fa13;
+  color: #2d3e6b;
   outline: none;
 }
 
-/* Friend list */
 .pay-ui-friend-list {
-  margin-top: 0.8em;
-  border-radius: 14px;
+  margin-top: 0.6em;
+  border-radius: 10px;
   background: #fff;
-  box-shadow: 0 0.7px 9px #c3e8e825;
-  max-height: 62vh;
+  box-shadow: 0 0.5px 8px #c3e8e825;
+  max-height: 57vh;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: 13px;
+  padding-bottom: 8px;
 }
+
 .pay-ui-friend-row {
   display: flex;
   align-items: center;
-  padding: .58em 0.72em .58em 0.46em;
-  border-radius: 8px;
-  margin-bottom: 0.05em;
+  padding: .42em 0.62em .42em 0.34em;
+  border-radius: 7px;
+  margin-bottom: 0.03em;
   background: #fff;
   cursor: pointer;
   transition: background .13s;
-  border-bottom: 1px solid #f3f4fa;
+  border-bottom: 1px solid #f4f6fa;
+  font-size: .97em;
 }
 .pay-ui-friend-row:last-child { border-bottom: none; }
-.pay-ui-friend-row:hover { background: #eff6fd; }
+.pay-ui-friend-row:hover { background: #f4f8fd; }
 .pay-ui-friend-avatar {
   background: #e3e5f8;
-  color: #42397a;
-  font-weight: 700;
+  color: #414169;
+  font-weight: 600;
   border-radius: 50%;
-  height: 32.5px; width: 32.5px;
-  font-size: 1em;
+  height: 27.5px; width: 27.5px;
+  font-size: .93em;
   display: flex; align-items: center; justify-content: center;
-  margin-right: 13px;
+  margin-right: 10px;
 }
 .pay-ui-friend-name {
-  font-weight: 600;
-  color: #23324a;
+  font-weight: 500;
+  color: #1f234a;
   font-size: 1em;
   margin-right: auto;
   letter-spacing: 0.01em;
 }
 .pay-ui-friend-net {
-  font-size: .99em;
+  font-size: .97em;
   font-weight: 600;
-  min-width: 65px;
+  min-width: 62px;
   text-align: right;
 }
-.pay-ui-friend-net.receivable { color: #11af42; }
-.pay-ui-friend-net.payable   { color: #da344d; }
+
+.pay-ui-friend-net.receivable { color: #11963d; }
+.pay-ui-friend-net.payable   { color: #d1282d; }
 .pay-ui-friend-net.settled   { color: #b2b8c8; font-weight: 400; }
 
+.pay-ui-pagination-bar {
+  display: flex; justify-content:center; align-items:center;
+  margin-top: 8px; gap: 13px; font-size:.98em;
+  color: #446;
+  height: 36px;
+}
+.pay-ui-pagebtn {
+  border: none;
+  background: #e8f0fd;
+  color: #2563eb;
+  border-radius: 6px;
+  font-weight: 600;
+  padding: 4px 17px;
+  cursor: pointer;
+  font-size:.99em;
+  transition: background .13s;
+}
+.pay-ui-pagebtn:active { background: #dee5fc; }
+.pay-ui-pgtext { color: #6b789a; font-size: .97em; margin: 0 4px; }
+
+/* --- Sheet panel --- */
 .pay-ui-panel-bg {
-  background: #1b365355;
+  background: #1a2e3c2c;
   position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
   display: flex; align-items: flex-end; justify-content: center;
   z-index: 2200;
@@ -113,96 +131,100 @@ body {
 .pay-ui-sheet-panel.pay-ui-sheet-panel-fixed {
   background: #fafcfe;
   width: 100vw;
-  max-width: 440px;
-  min-height: 98svh; height: 98vh;
+  max-width: 430px;
+  min-height: 99svh; height: 99vh;
   display: flex; flex-direction: column;
-  border-radius: 18px 18px 0 0;
+  border-radius: 17px 17px 0 0;
   box-shadow: 0 -7px 28px #2a33d511;
   position: relative;
   padding-bottom: 0;
   animation: paySheetSlide .32s cubic-bezier(.23,1.1,.59,1) both;
   overflow-x: hidden;
 }
-@keyframes paySheetSlide { from{transform: translateY(110px) scale(1.04); opacity:0;} to{transform:none;opacity:1;} }
+@keyframes paySheetSlide { from{transform: translateY(110px) scale(1.03); opacity:0;} to{transform:none;opacity:1;} }
 .pay-ui-panel-x {
   position: absolute; right: 19px; top: 10px;
   border: none; background: none; color: #647798; font-size: 1.6em; cursor: pointer; z-index: 100;
-  transition: color .15s;
 }
-.pay-ui-panel-x:hover { color: #2271d2;}
+.pay-ui-panel-x:hover { color: #226be3;}
 .pay-ui-sheet-headerrow {
   display: flex; justify-content: space-between; align-items: center;
-  border-bottom: 1.3px solid #eaf0fb;
-  margin-bottom: .10em; padding-bottom: .18em;
+  border-bottom: 1.2px solid #eaf0fb;
+  margin-bottom: .09em; padding-bottom: .13em;
   background: #fafcfb;
-  padding-top: .68em;
+  padding-top: .64em;
 }
 .pay-ui-sheet-header {
-  display: flex; align-items: center; gap:13px;
+  display: flex; align-items: center; gap:11px;
 }
 .pay-ui-sheet-name {
-  font-weight: 700; font-size: 1.08em; color: #24216a; letter-spacing: .01em;
+  font-weight: 700; font-size: 1em; color: #25216a; letter-spacing: .01em;
 }
 .pay-ui-sheet-badge {
-  font-size: .97em; font-weight: 700;
-  border-radius: 8.6px; padding: 4px 14px;
-  min-width: 80px; text-align: right;
-  background: #f5f6fa;
+  font-size: .96em; font-weight: 700;
+  border-radius: 8px; padding: 3px 13px;
+  min-width: 60px; text-align: right;
+  background: #fafafc;
   letter-spacing: 0.02em;
 }
 .pay-ui-sheet-badge.payable { background:#fee3e3;color:#e23c2d; }
-.pay-ui-sheet-badge.receivable { background:#e9faed;color:#4ab76a;}
-.pay-ui-sheet-badge.settled { color:#2e9448; background:#daf8e9;}
+.pay-ui-sheet-badge.receivable { background:#e4faee;color:#229328;}
+.pay-ui-sheet-badge.settled { color:#2e9448; background:#ecfaea;}
 .pay-ui-sheet-history-scroll {
   flex: 1 1 auto;
   overflow-y: auto;
-  margin: .61em 0 .44em 0;
-  min-height: 13vh; max-height: 59vh;
+  margin: .41em 0 .36em 0;
+  min-height: 13vh; max-height: 56vh;
 }
 
 /* --- Chat bubbles --- */
 .pay-ui-bubble {
-  max-width: 93%; width: fit-content;
+  max-width: 90%; width: fit-content;
   margin: 0.7em auto 0 auto;
-  padding: 0.73em 1.01em .81em 1.01em;
+  padding: 0.71em 1em .78em 1em;
   border-radius: 13px;
-  font-size: 1.01em;
+  font-size: 1em;
   color: #23223f;
   background: #f9fafb;
   position: relative;
   box-shadow: 0 1.5px 9px #8fc4d719;
-  border: 1.1px solid #edeef6;
+  border: 1.1px solid #e3e4ec;
 }
-.pay-ui-bubble.accepted { background: #e7fbe5; color: #199533; border-color: #cdf0ce; }
-.pay-ui-bubble.rejected { background: #fff4f2; color: #c15523; border-color: #f7cbc1;}
+.pay-ui-bubble.accepted { background: #e7fbe5; color: #179930; border-color: #cdf0ce; }
+.pay-ui-bubble.rejected { background: #fff4f2; color: #ba5525; border-color: #f7cbc1;}
 .pay-ui-bubble.pending { background: #fefcdd; color:#ad961a; border-color: #f9e4b2; }
-.pay-ui-bubble-settled { background:#e3f9ef; color:#1b7d5a; border-color: #c8e8dd;}
+.pay-ui-bubble-settled { background:#d7f4ef; color:#1b7d5a; border-color: #c8e8dd;}
 .pay-ui-bubble-status { font-size: .98em; font-weight: 600; margin-left: .62em;}
 .pay-ui-bubble-meta {
-  color: #97a9ab; font-size: .969em; margin-top: 0.19em; font-weight: 400;
+  color: #9da7b6; font-size: .966em; margin-top: 0.20em; font-weight: 400;
 }
 
-.pay-ui-sheet-bottom {
-  position: sticky;
-  bottom: 0; left: 0;
-  padding: .8em .1em .77em .1em;
-  background: #fafcfb;
-  z-index: 4100;
-  display: flex;justify-content:center;
+/* --- Pay button pinned to bottom --- */
+.pay-ui-sheet-bottom-bar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  background: none;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 3000;
 }
 .pay-ui-pay-btn {
-  background: #2465ed;
+  pointer-events: auto;
+  background: #1b48b1;
   color: #fff;
-  border:none; border-radius:14px;
-  padding: .57em 0;
-  width: 97.5%;
-  font-size: 1.16em;
+  border:none; border-radius:12px;
+  padding: .46em 0;
+  width: 154px;
+  font-size: 1.09em;
   font-weight: 700;
-  margin: 0.1em auto 0 auto;
+  margin-bottom: 12px;
   cursor: pointer;
-  transition: background .12s, box-shadow .13s;
-  box-shadow:0 3px 14px #348efd11;
+  transition: background .12s;
+  box-shadow:0 3px 14px #366ccb18;
 }
+
+.pay-ui-pay-btn:active { background: #163a88; }
 
 .pay-ui-modal {
   background: #1a2c535e;
@@ -214,46 +236,42 @@ body {
 @keyframes fadeinModal {from{opacity:0;}to{opacity:1;}}
 .pay-ui-modal-content {
   background: #fff;
-  min-width: 270px; max-width:97vw;
-  border-radius: 15px;
-  box-shadow: 0 12px 33px #336eb799;
-  padding: 1.28em 1.08em 1.6em 1.08em;
+  min-width: 237px; max-width:96vw;
+  border-radius: 13px;
+  box-shadow: 0 12px 27px #336eb792;
+  padding: 1.13em 1.08em 1.16em 1.08em;
   text-align: center;
   display: flex; flex-direction: column; align-items: center;
   animation: popmodal .20s cubic-bezier(.41,1.2,.61,1);
 }
 @keyframes popmodal {from{transform:scale(.96);opacity:0;}to{transform:none;opacity:1;}}
 .pay-ui-modal-owed {
-  font-size: 1.10em;
+  font-size: .98em;
   color: #285b8f;
   font-weight: 700;
-  margin-bottom: .7em;
+  margin-bottom: .6em;
 }
 .pay-ui-modal-inpt {
   border: 1px solid #b0cdf2;
   border-radius: 8px;
-  padding: 8px 17px;
-  font-size: 1.11em;
-  margin-bottom: .8em;
+  padding: 7px 13px;
+  font-size: 1.06em;
+  margin-bottom: .7em;
   width: 92%;
   outline: none;
   text-align: center;
 }
 .pay-ui-modal-ok {
-  background: #2465ed; color: #fff;
+  background: #1b48b1; color: #fff;
   border: none;
-  padding: .43em 2.3em;
+  padding: .41em 2.1em;
   font-weight: 700;
   border-radius: 10px;
-  font-size: 1.05em;
+  font-size: .97em;
   cursor: pointer;
-  margin-top: 0.4em;
-  transition: background .12s;
+  margin-top: 0.3em;
+  transition: background .13s;
 }
 .pay-ui-modal-ok:hover {
-  background: #1441a6;
-}
-@media (max-width: 530px) {
-  .pay-ui-friends, .pay-ui-sheet-panel { max-width: 99vw; }
-  .pay-ui-sheet-badge { min-width: 54px; }
+  background: #153168;
 }
