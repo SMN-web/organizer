@@ -6,14 +6,14 @@ let heartbeatTimer = null;
 export function showAdminPanel(container, auth) {
   const user = auth.currentUser;
   if (!user) {
-    container.innerHTML = '<div style="color:#b71c1c;margin:2em 0;font-weight:bold;">Not logged in. Please log in first.</div>';
+    container.innerHTML = '<div class="admin-error-msg">Not logged in. Please log in first.</div>';
     return;
   }
 
   // ---- Panel UI Rendering ----
   container.innerHTML = `
-    <h2 style="margin-bottom:0.7em;letter-spacing:0.01em;">User Admin Panel
-      <button id="logoutBtn" style="padding:0.4em 1em;font-weight:bold;float:right;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;box-shadow:0 1px 4px #e74c3c13;">Logout</button>
+    <h2>User Admin Panel
+      <button id="logoutBtn">Logout</button>
     </h2>
     <div class="admin-filters">
       <label>Role
@@ -31,11 +31,11 @@ export function showAdminPanel(container, auth) {
         <input type="text" id="filterName" placeholder="Name filter">
       </label>
       <div>
-        <span style="font-weight:bold;">Pending approvals:</span>
+        <span class="admin-pending-label">Pending approvals:</span>
         <span id="pendingBadge" class="admin-badge">0</span>
       </div>
     </div>
-    <h3 style="margin-top:1.5em;">All Users</h3>
+    <h3>All Users</h3>
     <div class="admin-table-scroll">
       <table id="usersTable">
         <thead>
@@ -46,9 +46,9 @@ export function showAdminPanel(container, auth) {
         <tbody id="usersRows"></tbody>
       </table>
     </div>
-    <h3 style="margin-top:1.7em;">Pending User Approvals</h3>
+    <h3>Pending User Approvals</h3>
     <div id="pendingApprovalSection"></div>
-    <div id="adminPanelMsg" style="color:#e74c3c;margin-top:1em;"></div>
+    <div id="adminPanelMsg"></div>
   `;
 
   document.getElementById('logoutBtn').onclick = async () => {
@@ -186,7 +186,7 @@ export function showAdminPanel(container, auth) {
             <div class="pendingUserCard">
               <b>${u.name}</b> (${u.email}, Username: ${u.username}), Created: ${new Date(u.createdAt).toLocaleString()}<br>
               Role: ${u.role}
-              <div style="margin-top:0.7em;">
+              <div class="pendingUserActions">
                 <button class="approveBtn" data-username="${u.username}">Approve</button>
                 <button class="rejectBtn" data-username="${u.username}">Reject</button>
               </div>
@@ -226,15 +226,15 @@ export function showAdminPanel(container, auth) {
       });
     } catch(e) {
       hideSpinner(container);
-      container.innerHTML = `<div style="color:#b71c1c">UI/frontend error: ${e && e.message ? e.message : e}</div>`;
+      container.innerHTML = `<div class="admin-error-msg">UI/frontend error: ${e && e.message ? e.message : e}</div>`;
     }
   }
 
   function showErrorPage(msg) {
     container.innerHTML = `
-      <div style="margin:4em auto;max-width:450px;text-align:center;">
+      <div class="admin-access-error">
         <h2>Access Error</h2>
-        <div style="color:#b71c1c">${msg}</div>
+        <div class="admin-error-msg">${msg}</div>
         <button onclick="window.firebaseAuth.signOut()">Logout</button>
       </div>
     `;
