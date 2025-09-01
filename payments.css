@@ -10,7 +10,7 @@ body { background: #f7fafb; }
   overflow-x: hidden;
 }
 
-.pay-ui-row-main {  /* Added margin-top for menu/bell separation */
+.pay-ui-row-main {
   display: flex;
   align-items: center;
   gap: 0.55em;
@@ -52,7 +52,7 @@ body { background: #f7fafb; }
   border-radius: 10px;
   background: #fff;
   box-shadow: 0 0.5px 8px #c3e8e825;
-  max-height: 57vh;
+  max-height: 42vh;
   overflow-y: auto;
   overflow-x: hidden;
   padding-bottom: 8px;
@@ -87,7 +87,6 @@ body { background: #f7fafb; }
   color: #1f234a;
   font-size: 1em;
   margin-right: auto;
-  letter-spacing: 0.01em;
 }
 .pay-ui-friend-net {
   font-size: .97em;
@@ -102,25 +101,25 @@ body { background: #f7fafb; }
 
 .pay-ui-pagination-bar {
   display: flex; justify-content:center; align-items:center;
-  margin-top: 8px; gap: 13px; font-size:.98em;
+  margin-top: 6px; gap: 10px; font-size:.98em;
   color: #446;
-  height: 36px;
+  height: 32px;
 }
 .pay-ui-pagebtn {
   border: none;
   background: #e8f0fd;
   color: #2563eb;
-  border-radius: 6px;
+  border-radius: 7px;
   font-weight: 600;
-  padding: 4px 17px;
+  padding: 4px 15px;
   cursor: pointer;
-  font-size:.99em;
+  font-size:.95em;
   transition: background .13s;
 }
 .pay-ui-pagebtn:active { background: #dee5fc; }
-.pay-ui-pgtext { color: #6b789a; font-size: .97em; margin: 0 4px; }
+.pay-ui-pgtext { color: #6b789a; font-size: .96em; margin: 0 4px; }
 
-/* --- Sheet panel --- */
+/* --- Sheet/Modal: flexible scroll + pinned small button */
 .pay-ui-panel-bg {
   background: #1a2e3c2c;
   position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
@@ -132,15 +131,17 @@ body { background: #f7fafb; }
   background: #fafcfe;
   width: 100vw;
   max-width: 430px;
-  min-height: 99svh; height: 99vh;
+  height: 99vh;
+  min-height: 99svh;
   display: flex; flex-direction: column;
   border-radius: 17px 17px 0 0;
   box-shadow: 0 -7px 28px #2a33d511;
   position: relative;
   padding-bottom: 0;
   animation: paySheetSlide .32s cubic-bezier(.23,1.1,.59,1) both;
-  overflow-x: hidden;
+  overflow: hidden;
 }
+
 @keyframes paySheetSlide { from{transform: translateY(110px) scale(1.03); opacity:0;} to{transform:none;opacity:1;} }
 .pay-ui-panel-x {
   position: absolute; right: 19px; top: 10px;
@@ -148,11 +149,12 @@ body { background: #f7fafb; }
 }
 .pay-ui-panel-x:hover { color: #226be3;}
 .pay-ui-sheet-headerrow {
+  flex-shrink: 0;
   display: flex; justify-content: space-between; align-items: center;
   border-bottom: 1.2px solid #eaf0fb;
-  margin-bottom: .09em; padding-bottom: .13em;
+  margin-bottom: .07em; padding-bottom: .12em;
   background: #fafcfb;
-  padding-top: .64em;
+  padding-top: .55em;
 }
 .pay-ui-sheet-header {
   display: flex; align-items: center; gap:11px;
@@ -161,9 +163,9 @@ body { background: #f7fafb; }
   font-weight: 700; font-size: 1em; color: #25216a; letter-spacing: .01em;
 }
 .pay-ui-sheet-badge {
-  font-size: .96em; font-weight: 700;
+  font-size: .95em; font-weight: 700;
   border-radius: 8px; padding: 3px 13px;
-  min-width: 60px; text-align: right;
+  min-width: 45px; text-align: right;
   background: #fafafc;
   letter-spacing: 0.02em;
 }
@@ -173,16 +175,17 @@ body { background: #f7fafb; }
 .pay-ui-sheet-history-scroll {
   flex: 1 1 auto;
   overflow-y: auto;
-  margin: .41em 0 .36em 0;
-  min-height: 13vh; max-height: 56vh;
+  margin: .38em 0 .01em 0;
+  min-height: 13vh;
+  /* will flex to stop just above .pay-ui-sheet-bottom-bar */
 }
 
 /* --- Chat bubbles --- */
 .pay-ui-bubble {
-  max-width: 90%; width: fit-content;
+  max-width: 92%; width: fit-content;
   margin: 0.7em auto 0 auto;
-  padding: 0.71em 1em .78em 1em;
-  border-radius: 13px;
+  padding: 0.70em 1em .76em 1em;
+  border-radius: 12px;
   font-size: 1em;
   color: #23223f;
   background: #f9fafb;
@@ -199,79 +202,34 @@ body { background: #f7fafb; }
   color: #9da7b6; font-size: .966em; margin-top: 0.20em; font-weight: 400;
 }
 
-/* --- Pay button pinned to bottom --- */
 .pay-ui-sheet-bottom-bar {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
+  position: absolute;
+  left: 0; right: 0; bottom: 20px;
   background: none;
   display: flex;
   justify-content: center;
   pointer-events: none;
-  z-index: 3000;
+  z-index: 4000;
 }
 .pay-ui-pay-btn {
   pointer-events: auto;
-  background: #1b48b1;
+  background: #194dac;
   color: #fff;
-  border:none; border-radius:12px;
-  padding: .46em 0;
-  width: 154px;
-  font-size: 1.09em;
+  border:none; border-radius:13px;
+  padding: .42em 0;
+  width: 122px;
+  font-size: 1em;
   font-weight: 700;
-  margin-bottom: 12px;
+  margin: 0 auto;
   cursor: pointer;
   transition: background .12s;
-  box-shadow:0 3px 14px #366ccb18;
+  box-shadow: 0 3px 13px #366ccb11;
 }
-
-.pay-ui-pay-btn:active { background: #163a88; }
+.pay-ui-pay-btn:active { background: #153d88; }
 
 .pay-ui-modal {
   background: #1a2c535e;
   position: fixed; left:0; top:0; width:100vw; height:100vh;
   display: flex; align-items: center; justify-content: center;
   z-index: 3900;
-  animation: fadeinModal .23s ease;
-}
-@keyframes fadeinModal {from{opacity:0;}to{opacity:1;}}
-.pay-ui-modal-content {
-  background: #fff;
-  min-width: 237px; max-width:96vw;
-  border-radius: 13px;
-  box-shadow: 0 12px 27px #336eb792;
-  padding: 1.13em 1.08em 1.16em 1.08em;
-  text-align: center;
-  display: flex; flex-direction: column; align-items: center;
-  animation: popmodal .20s cubic-bezier(.41,1.2,.61,1);
-}
-@keyframes popmodal {from{transform:scale(.96);opacity:0;}to{transform:none;opacity:1;}}
-.pay-ui-modal-owed {
-  font-size: .98em;
-  color: #285b8f;
-  font-weight: 700;
-  margin-bottom: .6em;
-}
-.pay-ui-modal-inpt {
-  border: 1px solid #b0cdf2;
-  border-radius: 8px;
-  padding: 7px 13px;
-  font-size: 1.06em;
-  margin-bottom: .7em;
-  width: 92%;
-  outline: none;
-  text-align: center;
-}
-.pay-ui-modal-ok {
-  background: #1b48b1; color: #fff;
-  border: none;
-  padding: .41em 2.1em;
-  font-weight: 700;
-  border-radius: 10px;
-  font-size: .97em;
-  cursor: pointer;
-  margin-top: 0.3em;
-  transition: background .13s;
-}
-.pay-ui-modal-ok:hover {
-  background: #153168;
-}
+  animation: fadeinModal .
