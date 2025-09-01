@@ -1,273 +1,161 @@
-body { background: #f8fafc; }
-
-.payx-app-shell {
-  max-width: 440px; margin: 30px auto 0 auto;
-  padding-bottom: 10px;
-  border-radius: 24px;
-  background: #fff;
-  min-height: 530px;
-  box-shadow: 0 3px 22px #aec6ec25;
-  overflow: hidden;
-  position:relative;
+body { background: #f5f7fa; }
+.paycard-appshell {
+  max-width: 440px;
+  margin: 38px auto 0; background: #fff;
+  border-radius: 22px;
+  min-height: 570px;
+  box-shadow: 0 5px 36px #b4c2ea33;
+  padding-bottom:30px;
 }
-
-.payx-appbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 48px;
-  padding: 0 14px;
-  background: #f6f9fd;
-  border-bottom: 1px solid #e7eef8;
+.paycard-bar {
+  display: flex; flex-direction: column; align-items: flex-start;
+  padding: 23px 19px 8px 19px;
+  gap: 13px;
+  border-radius: 22px 22px 0 0;
+  background: #f6fafd;
 }
-
-.payx-title {
-  font-size: 1.21em;
-  font-weight: 700;
-  color: #15306b;
-}
-.payx-filterbtn {
-  background: #f2f7fc;
-  border-radius: 16px;
-  padding: 4px 15px 4px 10px;
-  border: none;
-  cursor: pointer;
-  color: #293962;
-  font-weight: 600;
-  font-size: 1em;
-  display: flex; align-items: center;
-  gap: 7px;
-  transition: background .17s;
-}
-.payx-filterbtn:hover { background: #daeaff; }
-.payx-filterlabel { font-size: 1.03em; }
-.payx-dc { vertical-align: text-bottom; color: #8395c1; }
-/* Floating filter menu */
-.payx-fmenu {
-  display: none;
-  position: absolute;
-  right: 24px; top: 54px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 5px 32px #789be81f;
-  z-index: 50;
-  min-width: 122px;
-  padding: 0.22em 0;
-  overflow: hidden;
-}
-.payx-fmenu-item {
-  padding: 9px 22px 8px 18px;
-  cursor: pointer;
-  font-size: 1.01em;
-  transition: background .13s;
-}
-.payx-fmenu-item:hover, .payx-fmenu-item.active { background: #f1f7fe; color:#1551c8; font-weight:600;}
-/* Search */
-.payx-search-wrap {
-  display: flex; align-items: center; gap: 9px;
-  background: none; padding: 1em 14px 0.62em 14px;
-}
-.payx-searchinpt {
-  flex: 1 1 75%;
-  padding: 10px 13px;
-  border-radius: 12px;
-  border: 1px solid #d8e2fe;
-  background: #f7fafc;
-  font-size: 1.04em;
-  box-shadow: 0 1px 8px #d0ecfd16;
-}
-.payx-addbtn {
-  border: none; background: #ddedfd;
-  color: #2866bd;
-  font-size: 1.41em;
-  border-radius:50%; width: 36px; height: 36px;
-  display: flex; align-items: center; justify-content:center;
-  cursor: pointer; box-shadow:0 1.8px 8px #d7ddff18;
-  font-weight: 700;
-  margin-left: 0.2em;
-  transition: background .13s;
-}
-.payx-addbtn:hover { background: #bfdfff; }
-
-.payx-friendlist-outer {
-  width: 100%; padding: 0 2px;
-  max-height: 62vh;
-  overflow-y: auto;
-}
-.payx-friend-row {
-  display: flex; align-items: center;
-  padding: 13px 13px;
-  border-bottom: 1px solid #f0f2fa;
-  gap: 11px;
-  cursor: pointer;
-  background: #fff;
-  transition: background .13s;
-  position:relative;
-  user-select: none;
-}
-.payx-friend-row:hover { background: #ebf3fa; }
-.payx-friend-avatar {
-  background: #e8eafa;
-  color: #284072;
-  font-weight: bold;
-  border-radius: 50%;
-  width: 36px; height: 36px;
-  font-size: 1em;
-  display: flex; align-items: center; justify-content: center;
-}
-.payx-friend-name {
-  display: block;
-  font-weight: 700;
-  font-size: 1.08em;
+.paycard-title {
+  font-size: 1.24em;
+  font-weight: 800;
   color: #1a335a;
-  margin-bottom: .11em;
+  margin-bottom: 2px;
 }
-.payx-friend-status { display:block; font-size:.98em; color: #8f97a9; }
-.payx-badge {
-  border-radius: 7px;
-  font-weight: 600;
-  padding: 1.5px 10px;
-  font-size: .97em;
-  margin-left: 0.18em;
-}
-.badge-give { background: #ffefef; color: #e05959; }
-.badge-recv { background: #eafdec; color: #299f42; }
-.badge-neut { background: #eef1f5; color: #8396b1; }
-
-.payx-arrow {
-  margin-left: auto;
-  display: block;
-}
-
-.payx-empty {
-  color: #9aa5c3; 
-  text-align: center;
-  padding: 38px 3px 30px 3px;
-  font-size:1.09em;
-}
-
-/* Pagination bar */
-.payx-pagination-bar {
-  display: flex; justify-content:center; align-items:center;
-  margin-top: 10px; gap: 9px; font-size:.98em;
-  color: #486;
-  height: 33px;
-}
-.payx-pagebtn {
-  border: none;
-  background: #e8f0fd;
-  color: #2563eb;
-  border-radius: 7px;
-  font-weight: 600;
-  padding: 5px 15px;
-  cursor: pointer;
-  font-size:.98em;
-  transition: background .13s;
-}
-.payx-pagebtn:active { background: #dee5fc; }
-
-/* ---------- Detail modal (slide-in) ---------- */
-.payx-detail-modal {
-  position:fixed;
-  z-index:1100;
-  left:0; top:0; width:100vw; height:100vh;
-  max-width:428px;
-  margin:0 auto;
-  background: #fafcfe;
-  border-radius:22px 22px 0 0;
-  box-shadow: 0 -9px 28px #476eb71a;
-  display: flex; flex-direction: column;
-  animation: paySlideIn .34s cubic-bezier(.23,1.1,.59,1) both;
-}
-@keyframes paySlideIn {
-  from{transform: translateY(100px) scale(1.03); opacity:.0;}
-  to{transform:none;opacity:1;}
-}
-.payx-detail-topbar {
-  position:sticky; top:0; left:0; right:0;
-  background:#f6f8fc;
-  display:flex; align-items:center; gap:12px;
-  border-radius:22px 22px 0 0;
-  z-index:3;
-  height:61px;
-  padding:12px 11px 6px 11px;
-}
-.payx-backbtn {
-  border:none; background: none; padding:2px 2px 2px 0; border-radius:6px;
-  cursor:pointer;
-  transition: background .13s;
-  display:flex; align-items:center; justify-content:center;
-}
-.payx-backbtn:hover { background: #e6eaf6;}
-.payx-modal-name {
-  font-weight:700; font-size:1.09em; color:#183769;
-  margin-left:.12em;
-}
-.payx-modal-badge {
-  display:inline-block;
-  border-radius:6px;
-  margin-left:.7em;
-  padding:1.2px 9px;
-  font-size:.93em;
-}
-.badge-give { background:#feeaea;color:#cb3838;}
-.badge-recv { background:#e5ffe6;color:#227c3f;}
-.badge-neut { background:#eef1f2;color:#647691;}
-/* History scroll: fixed top, fixed bottom, fills center */
-.payx-detail-history-outer {
-  flex:1 1 auto;
-  margin-top:0;
-  margin-bottom:0;
-  display:flex;flex-direction:column;height:100%;
-  min-height:120px;
-}
-.payx-detail-history-scroll {
-  flex:1 1 auto;
-  overflow-y:auto;
-  padding-bottom:3px;
-}
-
-/* Bubble messages */
-.payx-bubble {
-  max-width: 92%; width: fit-content;
-  margin: 0.7em auto 0 auto;
-  padding: 0.74em 1.01em .8em 1.01em;
-  border-radius: 14px;
-  font-size: 1.03em;
-  color: #23223f;
-  background: #f9fafb;
-  position: relative;
-  box-shadow: 0 1.5px 9px #8fc4d719;
-  border: 1.05px solid #e2e4ec;
-}
-.payx-bubble.accepted { background: #e7fbe5; color: #179930; border-color: #cdf0ce; }
-.payx-bubble.rejected { background: #fff4f2; color: #ba5525; border-color: #f7cbc1;}
-.payx-bubble.pending { background: #fefcdd; color:#ad961a; border-color: #f9e4b2; }
-.payx-bubble-settled { background:#d7f4ef; color:#1b7d5a; border-color: #c8e8dd;}
-.payx-bubble-status { font-size: .98em; font-weight: 600; margin-left: .62em;}
-.payx-bubble-meta {
-  color: #969daa; font-size: .96em; margin-top: 0.17em; font-weight: 400;
-}
-
-.payx-detail-footer {
-  position: fixed;
-  left:0; right:0;
-  bottom: 22px;
-  display: flex; justify-content: center;
-  z-index: 43;
-  background: none;
-}
-.payx-detail-paybtn {
-  background: #154adf;
-  color: #fff;
-  border: none;
+.paycard-search {
   border-radius: 13px;
-  padding: .53em 0;
-  width: 134px;
-  font-size: 1.08em;
-  font-weight: 700;
-  box-shadow: 0 3px 14px #366ccb17;
-  cursor: pointer;
-  transition: background .12s;
+  border: 1.05px solid #d7e3fa;
+  background: #f7fafc;
+  padding: 11px 15px;
+  font-size: 1.1em; width: 99%;
+  box-shadow: 0 1px 11px #c4e2fa13;
+  outline: none;
 }
-.payx-detail-paybtn:active { background: #113391; }
+
+/* Card stack list */
+.paycard-list {
+  padding: 12px 0 0 0;
+  min-height: 19vh;
+  width: 100%;
+}
+.paycard-card {
+  box-shadow: 0 2.5px 13px #96b8e317;
+  border-radius: 17px;
+  background: #fff;
+  margin: 0 18px 19px 18px;
+  position: relative;
+  cursor: pointer;
+  transition: box-shadow .26s, transform .21s;
+  will-change: transform;
+  min-height: 68px;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.paycard-card:active { box-shadow: 0 4px 19px #579aef17; transform: scale(0.98);}
+.paycard-card.expanded {
+  box-shadow: 0 6px 38px #7ac7f845;
+  transform: scale(1.04);
+  z-index:1010;
+}
+.paycard-card-head {
+  display:flex; align-items:center; gap:14px;
+  padding: 13px 10px 10px 15px;
+  min-height:58px;
+  position:relative;
+}
+.paycard-avatar {
+  background: #e9eafd;
+  color: #161e83;
+  font-weight: bold;
+  border-radius: 50%; width: 40px; height: 40px;
+  font-size: 1.07em; display: flex; align-items:center; justify-content:center;
+}
+.paycard-nblock { flex:1; display:flex; flex-direction:column;}
+.paycard-name { font-weight: 700; color: #0e224c; font-size:1.01em;}
+.paycard-amt.recv { color: #218d4a; font-weight: 600;}
+.paycard-amt.give { color: #d44337; font-weight: 600;}
+.paycard-amt.settled { color: #8d95b3;}
+.paycard-status {
+  border-radius: 7px;
+  padding: 1.2px 9px;
+  font-size: .93em;
+  margin-left: .6em;
+  font-weight:600;
+  background: #e8eaf8; color: #2a3b83; 
+  min-width: 73px; text-align:center;
+}
+.paycard-status.accepted { background: #d9f7e3; color:#18743b;}
+.paycard-status.rejected { background: #fae0df; color: #e26a30;}
+.paycard-status.pending { background: #f9f4d5; color: #b29a25;}
+.paycard-menu {
+  background: none; border: none;
+  color: #8ca4b1; font-size: 1.6em;
+  cursor:pointer; padding:2px 6px;
+}
+.paycard-card-actions {
+  padding: 0 13px 12px 63px;
+  display:flex;
+  gap:10px;
+  opacity:.9;
+}
+.paycard-action-btn {
+  border:none; border-radius:12px;
+  padding:6px 19px;
+  font-size:.96em;
+  font-weight:600;
+  background: #e3e7fa;
+  color: #184984;
+  cursor: pointer;
+  box-shadow: 0 2px 8px #a9ccfa19;
+  transition: background .16s;
+}
+.paycard-action-btn.pay {background: #154adf; color:#fff;}
+.paycard-action-btn.pay:active {background: #1040b5;}
+.paycard-action-btn.remind:active {background: #e6cbe0;}
+.paycard-action-btn.split:active {background: #e8f8d2;}
+.paycard-card-detailwrap {
+  width:100%;
+  transition: max-height .33s;
+  background:#f8fafd;
+}
+.paycard-card.expanded .paycard-card-detailwrap {
+  display:block;
+  animation: paycardSlideDown .4s cubic-bezier(.5,1.3,.52,1) both;
+}
+@keyframes paycardSlideDown {from{opacity:0;transform:scaleY(0.9);}to{opacity:1;transform:none;}}
+
+.paycard-card-detail-scroll {
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 0 14px 11px 20px;
+}
+
+/* Bubbles in expanded card */
+.paycard-bubble {
+  margin: 15px 0 0 0;
+  background: #fff;
+  padding: 13px 11px 7px 11px;
+  border-radius: 11px;
+  box-shadow: 0 1.5px 6px #b6dbf412;
+  border: 1px solid #eef1fc;
+  font-size: .98em;
+  color: #253343;
+}
+.paycard-bubble-accepted { background: #f0faed; color: #127526;}
+.paycard-bubble-rejected { background: #fcebeb; color: #ad4343;}
+.paycard-bubble-pending { background: #fffbe6; color: #b2b05b;}
+.paycard-bubble-settled { background:#ddf6f0; color:#237450;}
+.paycard-bubble-main { margin-bottom:3px; display:block;}
+.paycard-bubble-stat { font-size: .92em; font-weight: 600; margin-right: 18px;}
+.paycard-bubble-time { color: #8c99b1; font-size:.92em;margin-left:2px;}
+.paycard-empty {
+  color: #9d9fc1; font-size:1.04em;
+  text-align:center; margin:37px 0 31px 0;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .paycard-appshell, .paycard-detail-modal { max-width: 99vw; }
+  .paycard-card { margin-left:5px; margin-right:5px;}
+}
+
+::-webkit-scrollbar { width: 5px; background: #eaf1f6;}
+::-webkit-scrollbar-thumb { background: #c9def6; border-radius: 4px; }
