@@ -1,4 +1,4 @@
-export function showProPaymentsPanel(container, data) {
+export function showPaymentsPanel(container, user) {
   const ACCENT = "#2455ea"; // your professional blue
 
   // --- Sidebar / Navigation ---
