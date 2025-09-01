@@ -29,13 +29,6 @@ export function showPaymentsPanel(container, user) {
   function renderListUI(filterText = "", filterVal = "all") {
     container.innerHTML = `
       <div class="pay-ui-friends" style="position:relative;">
-        <div class="pay-ui-headerbar">
-          <button class="pay-ui-menubtn" id="payUiMenuBtn">&#9776;</button>
-          <span class="pay-ui-topspacer"></span>
-          <span class="pay-ui-bellwrap">
-            <span class="pay-ui-bell-icon" id="payUiBell">&#128276;<span class="pay-ui-bell-badge">10</span></span>
-          </span>
-        </div>
         <div class="pay-ui-row-main">
           <input type="text" id="payFriendSearch" class="pay-ui-searchinpt" placeholder="Search friend..." autocomplete="off" />
           <div class="pay-ui-filter-dropdown-wrap">
