@@ -1,5 +1,4 @@
 export function showPaymentsPanel(container, user) {
-  // Demo friends data—you’ll likely fetch dynamically
   const friends = [
     {
       initials: "RA", name: "Rafseed", net: -70,
@@ -24,92 +23,80 @@ export function showPaymentsPanel(container, user) {
     { value: "done", label: "Settled" }
   ];
   let searchTerm = "", filterVal = "all";
-  let expanded = null;
+  let modalIdx = null;
 
   function render() {
-    // Filter
     const filtered = friends.filter(f => {
-      const match = !searchTerm || f.name.toLowerCase().includes(searchTerm);
-      if(filterVal==="all") return match;
-      if(filterVal==="give") return f.net<0 && match;
-      if(filterVal==="get") return f.net>0 && match;
-      if(filterVal==="done") return f.net===0 && match;
-      return match;
+      const m = !searchTerm || f.name.toLowerCase().includes(searchTerm);
+      if (filterVal==="all") return m;
+      if (filterVal==="give") return f.net < 0 && m;
+      if (filterVal==="get") return f.net > 0 && m;
+      if (filterVal==="done") return f.net === 0 && m;
+      return m;
     });
-
     container.innerHTML = `
-      <div class="bpay-sheet-pad"></div>
-      <div class="bpay-root">
-        <div class="bpay-searchrow">
-          <input class="bpay-search" id="bpaySearch" placeholder="Search..." />
-          <select class="bpay-filter" id="bpayFilter">
+      <div class="pm-root small">
+        <div class="pm-srchrow">
+          <input class="pm-search" id="pmSearch" placeholder="Search..." />
+          <select class="pm-filter" id="pmFilter">
             ${filters.map(f=>`<option value="${f.value}">${f.label}</option>`).join("")}
           </select>
         </div>
-        <div class="bpay-friend-list">
+        <div class="pm-flist">
           ${filtered.map((f,i)=>`
-            <div class="bpay-friendcard" data-idx="${i}">
-              <span class="bpay-avatar">${f.initials}</span>
-              <span class="bpay-nblock">
-                <span class="bpay-fname">${f.name}</span>
-                <span class="bpay-net${f.net>0?' plus':f.net<0?' minus':' settled'}">
+            <div class="pm-fcard" data-idx="${i}">
+              <span class="pm-avatar">${f.initials}</span>
+              <span class="pm-fmeta">
+                <span class="pm-fname">${f.name}</span>
+                <span class="pm-fnet${f.net>0?' plus':f.net<0?' minus':' settled'}">
                   ${f.net>0?'+':'–'}${Math.abs(f.net)} QAR
                 </span>
               </span>
-              <span class="bpay-arrow">&#8250;</span>
+              <span class="pm-arrow">&#8250;</span>
             </div>
           `).join('')}
         </div>
-        <div class="bpay-drawer-ctr">${expanded!==null?friendDrawer(filtered[expanded], expanded):''}</div>
+        ${modalIdx!==null ? modalView(filtered[modalIdx]) : ""}
       </div>
     `;
-
-    // Search & filter
-    const searchEl = container.querySelector("#bpaySearch");
+    // Search/filter
+    const searchEl = container.querySelector("#pmSearch");
     searchEl.value = searchTerm;
-    searchEl.oninput = e => {searchTerm=e.target.value.toLowerCase(); render();setTimeout(()=>searchEl.focus(),0);};
-    container.querySelector("#bpayFilter").value = filterVal;
-    container.querySelector("#bpayFilter").onchange = e=>{filterVal = e.target.value; render();};
-
-    // Open drawer
-    container.querySelectorAll('.bpay-friendcard').forEach(fc=>{
-      fc.onclick=()=>{ expanded = Number(fc.dataset.idx); render();};
+    searchEl.oninput = e => { searchTerm = e.target.value.toLowerCase(); render(); setTimeout(()=>searchEl.focus(),0); };
+    container.querySelector("#pmFilter").value = filterVal;
+    container.querySelector("#pmFilter").onchange = e => { filterVal = e.target.value; render(); };
+    // Modal
+    container.querySelectorAll('.pm-fcard').forEach(fc => {
+      fc.onclick = () => { modalIdx = Number(fc.dataset.idx); render(); };
     });
-    // Drawer close
-    if(expanded!==null) container.querySelector('.bpay-close').onclick=()=>{ expanded=null; render();};
+    if (modalIdx!==null) container.querySelector('.pm-modal-back').onclick = ()=>{modalIdx=null;render();};
   }
-
-  function friendDrawer(friend, idx) {
-    const netState = friend.net > 0 ? 'get' : friend.net < 0 ? 'owe' : 'settled';
+  function modalView(friend) {
+    const netState = friend.net > 0 ? 'plus' : friend.net < 0 ? 'minus' : 'settled';
     return `
-      <div class="bpay-drawer-sheet anim-in">
-        <button class="bpay-close" aria-label="Back"><span>&larr;</span></button>
-        <div class="bpay-drawer-info">
-          <span class="bpay-avatar big">${friend.initials}</span>
-          <div>
-            <div class="bpay-fname big">${friend.name}</div>
-            <div class="bpay-net big ${netState}">
-              ${friend.net>0?'+':'–'}${Math.abs(friend.net)} QAR
-            </div>
-            <div class="bpay-badge ${netState}">
-              ${netState==="get"?"You Get":netState==="owe"?"You Owe":"Settled"}
-            </div>
-          </div>
+      <div class="pm-modal-bg"></div>
+      <div class="pm-modal">
+        <button class="pm-modal-back" aria-label="Back">&larr;</button>
+        <div class="pm-modal-pinfo">
+          <span class="pm-avatar big">${friend.initials}</span>
+          <span><span class="pm-fname big">${friend.name}</span>
+          <span class="pm-fnet big ${netState}">
+            ${friend.net>0?'+':'–'}${Math.abs(friend.net)} QAR
+          </span></span>
         </div>
-        <div class="bpay-drawer-actions">
-          <button class="bpay-btn pay">Pay</button>
-          <button class="bpay-btn remind">Remind</button>
-          <button class="bpay-btn split">Split</button>
+        <div class="pm-modal-actions">
+          <button class="pm-btn pay">Pay</button>
+          <button class="pm-btn remind">Remind</button>
+          <button class="pm-btn split">Split</button>
         </div>
-        <div class="bpay-history">
+        <div class="pm-modal-hist">
           ${(friend.events||[]).map(ev=>`
-            <div class="bpay-hist-row ${ev.status}">
-              <span class="bpay-hist-summary">
-                ${ev.dir==="to"?`You paid ${friend.name}`:`${friend.name} paid you`} <strong>${ev.amount} QAR</strong>
-              </span>
-              <span class="bpay-hist-stat">${ev.status.charAt(0).toUpperCase()+ev.status.slice(1)}</span>
-              <span class="bpay-hist-time">${ev.time}</span>
-              ${(ev.status==="pending"&&ev.dir==="to")?`<button class="bpay-mini-act cancel">Cancel</button>`:""}
+            <div class="pm-modal-hrow ${ev.status}">
+              <span>${ev.dir==="to"?`You paid ${friend.name}`:`${friend.name} paid you`}</span>
+              <span class="pm-hamt">${ev.amount} QAR</span>
+              <span class="pm-hstat">${ev.status.charAt(0).toUpperCase()+ev.status.slice(1)}</span>
+              <span class="pm-htime">${ev.time}</span>
+              ${(ev.status==="pending"&&ev.dir==="to")?`<button class="pm-mini-act">Cancel</button>`:""}
             </div>
           `).join("")}
         </div>
