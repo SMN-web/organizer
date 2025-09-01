@@ -1,83 +1,101 @@
-export function showPaymentsPanel(container, user) {
-  // DEMO DATA, SHORT
-  let allFriends = [
-    {
-      id: 1, name: "Rafseed", net: -70, color: "#3064e6",
-      events: [
-        {id:1, dir:"to", amount:8, how:"You paid", status:"Pending", time:"7m ago"},
-        {id:2, dir:"to", amount:5, how:"You paid", status:"Accepted", time:"6m ago"},
-        {id:3, dir:"to", amount:10, how:"You paid", status:"Rejected", time:"5m ago"}
-      ]
-    },
-    {
-      id: 2, name: "Bala", net: 120, color: "#23b134",
-      events: [{id:4, dir:"from", amount:15, how:"They paid you", status:"Rejected", time:"6m ago"}]
-    },
-    {
-      id: 3, name: "Shyam", net: 0, color: "#8e61b5",
-      events: [{id:5, dir:"to", amount:20, how:"You paid", status:"Pending", time:"just now"}]
-    }
-  ];
+export function showProPaymentsPanel(container, data) {
+  const ACCENT = "#2455ea"; // your professional blue
 
-  let selected = allFriends[0].id;
-
-  function initials(name) {
-    return (name.match(/[A-Z]/gi) || []).slice(0,2).join('').toUpperCase();
+  // --- Sidebar / Navigation ---
+  function nav() {
+    return `
+      <nav class="ledger-nav">
+        <div class="nav-header">My Accounts</div>
+        <input class="nav-search" placeholder="Search…" />
+        <ul class="nav-list">
+          <li class="nav-list-item active">All</li>
+          <li class="nav-list-item">Owe</li>
+          <li class="nav-list-item">Get</li>
+          <li class="nav-list-item">Settled</li>
+        </ul>
+      </nav>
+    `;
   }
 
-  function render() {
-    const friend = allFriends.find(f=>f.id===selected);
-    container.innerHTML = `
-      <div class="cl-mainwrap">
-        <div class="cl-friendbar">
-          ${allFriends.map(f=>
-            `<div class="cl-friendhead${f.id===selected?' active':''}" data-id="${f.id}" style="--c:${f.color}">
-              <span class="cl-avatar" style="background:${f.color};">${initials(f.name)}</span>
-              <span class="cl-friendname">${f.name}</span>
-            </div>`
-          ).join('')}
+  // --- Main Table / Sheet ---
+  function mainTable(friends) {
+    return `
+      <div class="ledger-table">
+        <div class="ledger-table-head">
+          <span class="head-avatar"></span>
+          <span class="head-friend">Friend</span>
+          <span class="head-balance">Net</span>
+          <span class="head-last">Last</span>
         </div>
-        <div class="cl-bubblelist">
-          ${friend.events.map(ev=>`
-            <div class="cl-bubble-row${ev.dir==='to'?' right':' left'}">
-              <div class="cl-bubble-main${ev.dir==='to'?' my':' their'}">
-                <div>
-                  <strong>${ev.how} <span class="cl-bubble-amt">${ev.amount} QAR</span></strong>
-                  <span class="cl-bubble-status cl-status-${ev.status.toLowerCase()}">${ev.status}</span>
-                </div>
-                <div class="cl-bubble-tm">${ev.time || ''}</div>
-                <div>
-                  ${ev.status==="Pending"&&ev.dir==="to"?`
-                    <button class="cl-act cl-cancel">Cancel</button>
-                  `:""}
-                  ${ev.status==="Pending"&&ev.dir==="from"?`
-                    <button class="cl-act cl-accept">Accept</button>
-                    <button class="cl-act cl-reject">Reject</button>
-                  `:""}
-                </div>
-              </div>
+        <div class="ledger-table-body">
+          ${friends.map(f => `
+            <div class="ledger-row" data-id="${f.id}">
+              <span class="ledger-avatar">${f.initials}</span>
+              <span class="ledger-friend">${f.name}</span>
+              <span class="ledger-balance${f.net>0?' plus':f.net<0?' minus':' settled'}">
+                ${f.net>0?'+':'–'}${Math.abs(f.net)} QAR
+              </span>
+              <span class="ledger-last">${f.lastEvent}</span>
             </div>
-          `).join('')}
-        </div>
-        <div class="cl-botbar">
-          <button class="cl-sendbtn pay">Pay</button>
-          <button class="cl-sendbtn remind">Remind</button>
-          <button class="cl-sendbtn split">Split</button>
+          `).join("")}
         </div>
       </div>
     `;
-
-    // Friend switch
-    container.querySelectorAll(".cl-friendhead").forEach(btn => {
-      btn.onclick = ()=>{selected=Number(btn.dataset.id);render();};
-    });
-    // Add action handlers (demo mode)
-    container.querySelectorAll(".cl-act.cl-accept").forEach(b=>b.onclick=()=>alert("Accepted"));
-    container.querySelectorAll(".cl-act.cl-reject").forEach(b=>b.onclick=()=>alert("Rejected"));
-    container.querySelectorAll(".cl-act.cl-cancel").forEach(b=>b.onclick=()=>alert("Cancelled"));
-    container.querySelectorAll(".cl-sendbtn.pay").forEach(b=>b.onclick=()=>alert("Pay Demo"));
-    container.querySelectorAll(".cl-sendbtn.remind").forEach(b=>b.onclick=()=>alert("Remind Demo"));
-    container.querySelectorAll(".cl-sendbtn.split").forEach(b=>b.onclick=()=>alert("Split Demo"));
   }
-  render();
+
+  // --- (Drawer) Side Panel ---
+  function detailPanel(friend) {
+    return friend ? `
+      <aside class="ledger-panel active">
+        <section>
+          <span class="ledger-panel-avatar">${friend.initials}</span>
+          <span class="ledger-panel-name">${friend.name}</span>
+        </section>
+        <div class="ledger-panel-balance${friend.net>0?' plus':friend.net<0?' minus':' settled'}">
+          ${friend.net>0?'+':'–'}${Math.abs(friend.net)} QAR
+        </div>
+        <hr />
+        <div class="ledger-panel-events">
+          ${friend.events.map(ev => `
+            <div class="ledger-event-row">
+              <span class="ledger-event-amt${ev.dir==='to' ? ' minus':' plus'}">
+                ${ev.dir==='to'?'-':'+'}${ev.amount} QAR
+              </span>
+              <span class="ledger-event-summary">${ev.summary}</span>
+              <span class="ledger-event-time">${ev.time}</span>
+            </div>
+          `).join("")}
+        </div>
+        <div class="ledger-panel-actions">
+          <button class="ledger-btn ledger-action-pay">Pay</button>
+          <button class="ledger-btn ledger-action-remind">Remind</button>
+          <button class="ledger-btn ledger-action-split">Split</button>
+        </div>
+      </aside>
+    ` : "";
+  }
+
+  // --- Root render (keep only essential style switches) ---
+  container.innerHTML = `
+    <div class="ledger-root">
+      ${nav()}
+      <div class="ledger-main">
+        ${mainTable(data.friends)}
+        <div class="ledger-panel-container"></div>
+      </div>
+    </div>
+  `;
+
+  // Interactivity: expand/collapse detail panel
+  const panelC = container.querySelector('.ledger-panel-container');
+  container.querySelectorAll('.ledger-row').forEach(row => {
+    row.onclick = () => {
+      const fid = Number(row.dataset.id);
+      const friend = data.friends.find(f => f.id === fid);
+      panelC.innerHTML = detailPanel(friend);
+      panelC.classList.add('active');
+    };
+  });
+  // Close drawer (desktop: click body; mobile: swipe; implement as needed)
 }
+
