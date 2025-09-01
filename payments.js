@@ -1,16 +1,18 @@
 export function showPaymentsPanel(container, user) {
-  // Demo: 32 friend rows for pagination
+  // Demo: 32 friends, 1 with 21 events
   const allFriends = Array.from({length:32},(_,i)=>({
     id: i+1,
-    name: ["Rafseed","Bala","Shyam","Anju","Jose","Deepa","Girish","Narayan","Amit","Ravi","Sunil","Dinesh","Zara","Lini","Sara",
-           "Vikram","Ashok","Rupa","Meera","Hari","Manju","Kiran","Priya","Sneha","Geeta","Vinod","Sonia","Karthik","Kavya","Mohan","Prasad","Laila"][i%32],
+    name: [
+      "Rafseed","Bala","Shyam","Anju","Jose","Deepa","Girish","Narayan","Amit","Ravi",
+      "Sunil","Dinesh","Zara","Lini","Sara","Vikram","Ashok","Rupa","Meera","Hari",
+      "Manju","Kiran","Priya","Sneha","Geeta","Vinod","Sonia","Karthik","Kavya","Mohan","Prasad","Laila"][i%32],
     net: i%4===0?-70: i%4===1?120: i%4===2?0:-25,
     events: (i===0 ? Array.from({length:21}).map((_,j) =>
-        (j % 3 === 0)
-        ? { type: "pay", dir: "to", amount: 5, status: "accepted", time: `${21-j}m ago` }
+      (j % 3 === 0)
+        ? { type: "pay", dir: "to", amount: 8, status: "pending", time: `${21-j}m ago` }
         : (j % 3 === 1)
-        ? { type: "pay", dir: "to", amount: 10, status: "rejected", time: `${21-j}m ago` }
-        : { type: "pay", dir: "to", amount: 8, status: "pending", time: `${21-j}m ago` }
+        ? { type: "pay", dir: "to", amount: 5, status: "accepted", time: `${21-j}m ago` }
+        : { type: "pay", dir: "to", amount: 10, status: "rejected", time: `${21-j}m ago` }
       ) : [])
   }));
 
@@ -44,7 +46,7 @@ export function showPaymentsPanel(container, user) {
     container.innerHTML = `
       <div class="pay-ui-friends">
         <div style="height:36px; width:100%;"></div>
-        <div class="pay-ui-row-main" style="margin-top:0.6em;">
+        <div class="pay-ui-row-main" style="margin-top:0.4em;">
           <input type="text" id="payFriendSearch" class="pay-ui-searchinpt" placeholder="Search friend..." autocomplete="off" />
           <div class="pay-ui-filter-dropdown-wrap">
             <select id="payFriendFilter" class="pay-ui-filter-dropdown">
@@ -84,9 +86,7 @@ export function showPaymentsPanel(container, user) {
     if(container.querySelector("#payUiPrevPage")) container.querySelector("#payUiPrevPage").onclick = ()=>renderListUI(pg-1, searchTerm, filterVal);
     if(container.querySelector("#payUiNextPage")) container.querySelector("#payUiNextPage").onclick = ()=>renderListUI(pg+1, searchTerm, filterVal);
     container.querySelectorAll(".pay-ui-friend-row").forEach(row => {
-      row.onclick = () => {
-        showFriendPanel(Number(row.dataset.id));
-      };
+      row.onclick = () => showFriendPanel(Number(row.dataset.id));
     });
   }
 
