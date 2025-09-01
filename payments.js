@@ -1,35 +1,50 @@
 export function showPaymentsPanel(container, user) {
-  const friends = [
-    {
-      id: 1, name: "Rafseed", net: -70,
-      events: Array.from({length: 24}).map((_,i) =>
-        (i % 3 === 0)
-        ? { type: "pay", dir: "to", amount: 5, status: "accepted", time: `${24-i}m ago` }
-        : (i % 3 === 1)
-        ? { type: "pay", dir: "to", amount: 10, status: "rejected", time: `${24-i}m ago` }
-        : { type: "pay", dir: "to", amount: 8, status: "pending", time: `${24-i}m ago` })
-    },
-    { id: 2, name: "Bala", net: 120, events: [
-      { type: "pay", dir: "from", amount: 88, status: "accepted", time: "1d ago" },
-      { type: "pay", dir: "to", amount: 120, status: "pending", time: "just now" }] },
-    { id: 3, name: "Shyam", net: 0, events: [{ type: "settled", time: "6d ago" }] },
-    { id: 4, name: "Anju", net: -25, events: [
-      { type: "pay", dir: "to", amount: 10, status: "accepted", time: "8d ago" },
-      { type: "pay", dir: "to", amount: 15, status: "pending", time: "now" }] }
-  ];
+  // Demo: 32 friend rows for pagination
+  const allFriends = Array.from({length:32},(_,i)=>({
+    id: i+1,
+    name: ["Rafseed","Bala","Shyam","Anju","Jose","Deepa","Girish","Narayan","Amit","Ravi","Sunil","Dinesh","Zara","Lini","Sara",
+           "Vikram","Ashok","Rupa","Meera","Hari","Manju","Kiran","Priya","Sneha","Geeta","Vinod","Sonia","Karthik","Kavya","Mohan","Prasad","Laila"][i%32],
+    net: i%4===0?-70: i%4===1?120: i%4===2?0:-25,
+    events: (i===0 ? Array.from({length:21}).map((_,j) =>
+        (j % 3 === 0)
+        ? { type: "pay", dir: "to", amount: 5, status: "accepted", time: `${21-j}m ago` }
+        : (j % 3 === 1)
+        ? { type: "pay", dir: "to", amount: 10, status: "rejected", time: `${21-j}m ago` }
+        : { type: "pay", dir: "to", amount: 8, status: "pending", time: `${21-j}m ago` }
+      ) : [])
+  }));
+
   const filters = [
     { value: "all", label: "All" },
     { value: "give", label: "You Owe" },
     { value: "get", label: "You Get" },
     { value: "done", label: "Settled" }
   ];
+
+  const PAGE_SIZE = 15;
+  let currentPage = 0;
+  let searchTerm = "", filterVal = "all";
+
   function initials(name) {
     return (name.match(/[A-Z]/gi) || []).slice(0,2).join('').toUpperCase() || name.slice(0,2).toUpperCase();
   }
-  function renderListUI(filterText = "", filterVal = "all") {
+
+  function renderListUI(pg = 0, filterText = "", filtVal = "all") {
+    searchTerm = filterText; filterVal = filtVal; currentPage = pg;
+    const friends = allFriends.filter(f => {
+      const match = !filterText || f.name.toLowerCase().includes(filterText);
+      if (filtVal === "all") return match;
+      if (filtVal === "give") return f.net < 0 && match;
+      if (filtVal === "get") return f.net > 0 && match;
+      if (filtVal === "done") return f.net === 0 && match;
+      return match;
+    });
+    const totalPages = Math.ceil(friends.length / PAGE_SIZE);
+    const pgFriends = friends.slice(pg*PAGE_SIZE, (pg+1)*PAGE_SIZE);
     container.innerHTML = `
-      <div class="pay-ui-friends" style="position:relative;">
-        <div class="pay-ui-row-main">
+      <div class="pay-ui-friends">
+        <div style="height:36px; width:100%;"></div>
+        <div class="pay-ui-row-main" style="margin-top:0.6em;">
           <input type="text" id="payFriendSearch" class="pay-ui-searchinpt" placeholder="Search friend..." autocomplete="off" />
           <div class="pay-ui-filter-dropdown-wrap">
             <select id="payFriendFilter" class="pay-ui-filter-dropdown">
@@ -39,39 +54,44 @@ export function showPaymentsPanel(container, user) {
         </div>
         <div class="pay-ui-friend-list">
           ${
-            friends
-              .filter(f => {
-                const match = !filterText || f.name.toLowerCase().includes(filterText);
-                if (filterVal === "all") return match;
-                if (filterVal === "give") return f.net < 0 && match;
-                if (filterVal === "get") return f.net > 0 && match;
-                if (filterVal === "done") return f.net === 0 && match;
-                return match;
-              })
-              .map(f =>
+            pgFriends.length
+              ? pgFriends.map(f =>
                 `<div class="pay-ui-friend-row" data-id="${f.id}">
                     <span class="pay-ui-friend-avatar">${initials(f.name)}</span>
                     <span class="pay-ui-friend-name">${f.name}</span>
                     <span class="pay-ui-friend-net ${f.net > 0 ? "receivable" : f.net < 0 ? "payable" : "settled"}">
                       ${f.net > 0 ? '+'+f.net+' QAR' : f.net < 0 ? f.net+' QAR' : 'Settled'}
                     </span>
-                  </div>`
+                </div>`
               ).join('')
+            : '<div style="padding:16px;text-align:center;color:#888;">No friends found</div>'
           }
+        </div>
+        <div class="pay-ui-pagination-bar">
+          ${pg > 0 ? '<button class="pay-ui-pagebtn" id="payUiPrevPage">Prev</button>' : ''}
+          <span class="pay-ui-pgtext">${pg+1} of ${totalPages||1}</span>
+          ${pg < totalPages-1 ? '<button class="pay-ui-pagebtn" id="payUiNextPage">Next</button>' : ''}
         </div>
         <div class="pay-ui-panel-bg" id="payUiPanelBg" style="display:none;"></div>
       </div>
     `;
+    container.querySelector("#payFriendSearch").value = searchTerm;
     container.querySelector("#payFriendSearch").oninput = e =>
-      renderListUI(e.target.value.trim().toLowerCase(), container.querySelector("#payFriendFilter").value);
+      renderListUI(0, e.target.value.trim().toLowerCase(), container.querySelector("#payFriendFilter").value);
+    container.querySelector("#payFriendFilter").value = filterVal;
     container.querySelector("#payFriendFilter").onchange = e =>
-      renderListUI(container.querySelector("#payFriendSearch").value.trim().toLowerCase(), e.target.value);
+      renderListUI(0, container.querySelector("#payFriendSearch").value.trim().toLowerCase(), e.target.value);
+    if(container.querySelector("#payUiPrevPage")) container.querySelector("#payUiPrevPage").onclick = ()=>renderListUI(pg-1, searchTerm, filterVal);
+    if(container.querySelector("#payUiNextPage")) container.querySelector("#payUiNextPage").onclick = ()=>renderListUI(pg+1, searchTerm, filterVal);
     container.querySelectorAll(".pay-ui-friend-row").forEach(row => {
-      row.onclick = () => showFriendPanel(Number(row.dataset.id));
+      row.onclick = () => {
+        showFriendPanel(Number(row.dataset.id));
+      };
     });
   }
+
   function showFriendPanel(fid) {
-    const friend = friends.find(f => f.id === fid);
+    const friend = allFriends.find(f => f.id === fid);
     const bg = container.querySelector(".pay-ui-panel-bg");
     bg.innerHTML = `
       <div class="pay-ui-sheet-panel pay-ui-sheet-panel-fixed">
@@ -87,12 +107,12 @@ export function showPaymentsPanel(container, user) {
         </div>
         <div class="pay-ui-sheet-history pay-ui-sheet-history-scroll">
           ${
-            friend.events.length
+            friend.events && friend.events.length
               ? friend.events.map(ev => chatBubble(ev, friend)).join('')
               : `<div class="pay-ui-history-none">No transactions yet.</div>`
           }
         </div>
-        <div class="pay-ui-sheet-bottom">
+        <div class="pay-ui-sheet-bottom-bar">
           ${
             friend.net < 0
               ? `<button class="pay-ui-pay-btn" id="payUiOpenPay">Pay</button>`
@@ -104,8 +124,9 @@ export function showPaymentsPanel(container, user) {
     `;
     bg.style.display = "flex";
     bg.querySelector("#payUiClose").onclick = () => bg.style.display = "none";
-    if (bg.querySelector("#payUiOpenPay")) bg.querySelector("#payUiOpenPay").onclick = () => showPayModal(friend);
+    if(bg.querySelector("#payUiOpenPay")) bg.querySelector("#payUiOpenPay").onclick = () => showPayModal(friend);
   }
+
   function chatBubble(ev, friend) {
     if (ev.type === "settled")
       return `<div class="pay-ui-bubble pay-ui-bubble-settled">Settled up (${ev.time})</div>`;
@@ -130,6 +151,7 @@ export function showPaymentsPanel(container, user) {
       <div class="pay-ui-bubble-meta">${ev.time}</div>
     </div>`;
   }
+
   function showPayModal(friend) {
     const modal = container.querySelector("#payUiModal");
     modal.innerHTML = `
@@ -150,5 +172,6 @@ export function showPaymentsPanel(container, user) {
       setTimeout(() => { modal.style.display = "none"; }, 1200);
     };
   }
+
   renderListUI();
 }
