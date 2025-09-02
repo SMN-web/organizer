@@ -1,5 +1,5 @@
 export function showPaymentsPanel(container, user) {
-  // Utilities for date grouping
+  // Date grouping utility
   const DAY_LABELS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   function smartDateLabel(rawDate) {
     const now = new Date();
@@ -20,12 +20,16 @@ export function showPaymentsPanel(container, user) {
   const friends = [
     {
       initials: "RA", name: "Rafseed", net: -70, timeline: [
-        { dir: "to", status: "pending", amount: 8, date: "9 Jul", time: "12:01 pm" }
+        { dir: "to", status: "pending", amount: 8, date: "9 Jul", time: "12:01 pm" },
+        { dir: "to", status: "pending", amount: 6, date: "7 Aug", time: "7:14 am" },
+        { dir: "to", status: "accepted", amount: 5, date: "7 Aug", time: "10:05 am" },
+        { dir: "from", status: "pending", amount: 14, date: "5 Aug", time: "12:10 pm" }
       ]
     },
     {
       initials: "BA", name: "Bala", net: 120, timeline: [
-        { dir: "from", status: "accepted", amount: 120, date: "7 Aug", time: "8:48 am" }
+        { dir: "from", status: "accepted", amount: 120, date: "7 Aug", time: "8:48 am" },
+        { dir: "to", status: "pending", amount: 33, date: "2 Jul", time: "02:17 pm" }
       ]
     }
   ];
@@ -66,8 +70,6 @@ export function showPaymentsPanel(container, user) {
   }
 
   renderMain();
-
-  // -----------
 
   function renderMain() {
     if (view === "friends") {
@@ -132,7 +134,7 @@ export function showPaymentsPanel(container, user) {
     const timeline = userTimeline[current];
     let lastDate = "";
     container.innerHTML = `
-      <div class="paypage-wrap">
+      <div class="paypage-wrap" style="position:relative">
         <div class="paypage-padding-top"></div>
         <div class="paypage-header-row paypad-extra">
           <button class="paypage-back">&larr;</button>
@@ -140,6 +142,7 @@ export function showPaymentsPanel(container, user) {
           <span class="paypage-username user">${friend.name}</span>
           ${netPill(friend.net)}
           <button class="paypage-more-btn" aria-label="Options">&#8942;</button>
+          <div class="paypage-menu" tabindex="-1" style="display:none"></div>
         </div>
         <div class="user-header-divider"></div>
         <div class="paypage-chat">
@@ -182,7 +185,6 @@ export function showPaymentsPanel(container, user) {
       </div>
     `;
     container.querySelector('.paypage-back').onclick = () => { view = "friends"; renderMain(); };
-    container.querySelectorAll('.paypage-more-btn').forEach(btn => btn.onclick = () => alert("More options (demo)"));
     container.querySelectorAll('.bubble-accept').forEach(btn => {
       btn.onclick = () => {
         const idx = Number(btn.dataset.idx);
@@ -206,5 +208,28 @@ export function showPaymentsPanel(container, user) {
     );
     container.querySelector('.paypage-btn.pay').onclick = () => alert("Pay (demo)");
     container.querySelector('.paypage-btn.remind').onclick = () => alert("Remind (demo)");
+    // Native three-dot menu logic
+    const btn = container.querySelector('.paypage-more-btn');
+    const menu = container.querySelector('.paypage-menu');
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      // Position menu
+      const rect = btn.getBoundingClientRect();
+      menu.innerHTML = `
+        <div class="paypage-menu-item">Edit</div>
+        <div class="paypage-menu-item">Delete</div>
+        <div class="paypage-menu-item">Share</div>
+      `;
+      menu.style.display = "block";
+      menu.style.top = (btn.offsetTop + btn.offsetHeight + 2) + "px";
+      menu.style.right = "11px";
+      setTimeout(()=>menu.focus(),18);
+      menu.onclick = e => e.stopPropagation();
+      menu.querySelectorAll('.paypage-menu-item').forEach(item =>
+        item.onclick = () => { alert(item.textContent+" (demo)"); menu.style.display="none"; }
+      );
+      window.addEventListener('click', closeMenuOnce, {capture:true});
+      function closeMenuOnce() { menu.style.display="none"; window.removeEventListener('click', closeMenuOnce, {capture:true}); }
+    };
   }
 }
