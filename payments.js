@@ -44,7 +44,7 @@ export async function showPaymentsPanel(container, user) {
     timeline = [];
     try {
       const token = await user.firebaseUser.getIdToken(true);
-      const url = `/api/transactions?friend=${encodeURIComponent(friendName)}`;
+      const url = `https://pa-ca.nafil-8895-s.workers.dev/api/transactions?friend=${encodeURIComponent(friendName)}`;
       const resp = await fetch(url, { headers: { Authorization: "Bearer " + token } });
       const data = await resp.json();
       if (!Array.isArray(data)) throw new Error((data && data.error) ? data.error : "Invalid timeline");
