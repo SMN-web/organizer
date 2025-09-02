@@ -12,7 +12,7 @@ export async function showPaymentsPanel(container, user) {
   let filter = "all";
   let friends = [];
   let current = 0;
-  let currentFriend = null;
+  let currentFriend = null; // always has .username
   let timeline = [];
   let errMsg = "";
   const CURRENCY = localStorage.getItem('currency') || "QAR";
@@ -28,6 +28,7 @@ export async function showPaymentsPanel(container, user) {
       const token = await user.firebaseUser.getIdToken(true);
       const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/settlements/friends', { headers: { Authorization: "Bearer " + token } });
       const data = await resp.json();
+      // Ensure each friend has: username, initials, name, net
       friends = Array.isArray(data) ? data : [];
       if (!Array.isArray(data) && data.error) errMsg = data.error;
     } catch (e) {
@@ -40,12 +41,12 @@ export async function showPaymentsPanel(container, user) {
     }
   }
 
-  async function loadTimeline(friendName) {
+  async function loadTimeline(friendUsername) {
     showSpinner(container);
     timeline = [];
     try {
       const token = await user.firebaseUser.getIdToken(true);
-      const url = `https://pa-ca.nafil-8895-s.workers.dev/api/transactions?friend=${encodeURIComponent(friendName)}`;
+      const url = `https://pa-ca.nafil-8895-s.workers.dev/api/transactions?friend=${encodeURIComponent(friendUsername)}`;
       const resp = await fetch(url, { headers: { Authorization: "Bearer " + token } });
       const data = await resp.json();
       if (!Array.isArray(data)) throw new Error((data && data.error) ? data.error : "Invalid timeline");
@@ -58,7 +59,7 @@ export async function showPaymentsPanel(container, user) {
     hideSpinner(container);
   }
 
-  async function sendPayment(toUser, maxOwed) {
+  async function sendPayment(toUsername, maxOwed) {
     let amtStr = prompt(`Enter amount to pay (max ${maxOwed}):`, maxOwed);
     if (!amtStr) return;
     let amount = Math.round(Number(amtStr));
@@ -66,18 +67,17 @@ export async function showPaymentsPanel(container, user) {
       alert(`Amount must be a positive integer not exceeding ${maxOwed}`);
       return;
     }
-
     showSpinner(container);
     try {
       const token = await user.firebaseUser.getIdToken(true);
       const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment', {
         method: "POST",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ to_user: toUser, amount })
+        body: JSON.stringify({ to_user: toUsername, amount })
       });
       const result = await resp.json();
       if (!result.ok && result.error) throw new Error(result.error);
-      await loadTimeline(toUser);
+      await loadTimeline(toUsername);
       await loadFriends();
       renderUserView();
     } catch (e) {
@@ -175,7 +175,7 @@ export async function showPaymentsPanel(container, user) {
         current = Number(row.dataset.idx);
         currentFriend = flist[current];
         view = "user";
-        await loadTimeline(currentFriend.name);
+        await loadTimeline(currentFriend.username);
         renderUserView();
       }
     );
@@ -222,15 +222,14 @@ export async function showPaymentsPanel(container, user) {
       </div>
     `;
     container.querySelector('.paypage-back').onclick = async () => {
-      // Refresh friend list after possible payment
       await loadFriends();
-      view = "friends"; 
+      view = "friends";
       renderMain(); 
     };
-    // Enable Pay only if net < 0 (owe money!)
-    container.querySelector('.paypage-btn.pay').onclick = async () => {
-      if (currentFriend.net >= 0) return;
-      await sendPayment(currentFriend.name, Math.abs(currentFriend.net));
-    };
+    if (currentFriend.net < 0) {
+      container.querySelector('.paypage-btn.pay').onclick = async () => {
+        await sendPayment(currentFriend.username, Math.abs(currentFriend.net));
+      };
+    }
   }
 }
