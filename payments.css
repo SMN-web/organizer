@@ -33,10 +33,6 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
 .paypage-right-arrow { font-size: 2.0em; color: #c9d2e5; margin-left: auto; }
 .paypage-empty { color: #ababab; text-align: center; margin:32px 0 17px 0; }
 
-.paypage-header-row {
-  display: flex; align-items: center; gap: 11px; margin-bottom: 6px; padding: 0 11px 8px 17px;
-  background: #f7f9fc;
-  font-size: 1.01em;
 }
 .user-header-divider {
   width: 100%;
