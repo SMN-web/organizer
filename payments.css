@@ -3,50 +3,59 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
   max-width: 430px; margin: 0 auto; position: relative; background: #fff;
   border-radius: 15px; min-height: 95vh; box-shadow: 0 2px 29px #dde0f929;
 }
-.paypage-padding-top { height: 74px; } 
+.paypage-padding-top { height: 74px; }
 .paypage-searchbar-row {
   display: flex; align-items: center; gap: 7px; margin: 0 15px 17px 12px;
 }
 .paypage-search {
-  flex: 1 1 70%; font-size: .97em; border-radius: 8px; padding: 10px 14px; border: 1.1px solid #cad8ef;
+  flex: 1 1 70%; font-size: 1.04em; border-radius: 9px; padding: 13px 16px; border: 1.1px solid #cad8ef;
   background: #fafcff; min-width: 0;
 }
 .paypage-filter {
-  flex: 1 1 33%; min-width: 85px; max-width: 124px; font-size: 1em; border-radius: 8px;
-  border: 1.2px solid #c5d4ec; background: #f0f5fa; color: #2753a9; padding: 9px 10px;
+  flex: 1 1 33%; min-width: 85px; max-width: 124px; font-size: 1.05em; border-radius: 8px;
+  border: 1.2px solid #c5d4ec; background: #f0f5fa; color: #2753a9; padding: 11px 10px;
 }
 .paypage-friend-list { display: flex; flex-direction: column; gap: 11px; margin-bottom:26px;}
 .paypage-friend-row {
   display: flex; align-items: center; gap: 10px; background: #f7fafd;
-  border-radius: 12px; padding: 11px 12px 11px 14px; font-size:.99em; cursor: pointer;
+  border-radius: 12px; padding: 11px 12px 11px 14px; font-size:1.05em; cursor: pointer;
   box-shadow: 0 1.2px 7px #e0eef611; margin-top:1px;
   transition: background .13s;
 }
 .paypage-friend-row:hover { background: #e2eefb;}
 .paypage-avatar { background: #e1eafb; color: #2541c8; font-weight: 900;
-  border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
-.paypage-friend-name { font-weight: 700; color: #26325a; font-size: .99em; margin-right:5px;}
-.net-pill { font-weight: 700; font-size: .95em; border-radius: 8px; padding: 3px 15px 3px 9px; margin-left: 6px;}
+  border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; }
+.paypage-friend-name { font-weight: 700; color: #26325a; font-size: 1.09em; margin-right:7px;}
+.net-pill { font-weight: 700; font-size: 1.04em; border-radius: 9px; padding: 4px 15px 4px 10px; margin-left: 8px;}
 .net-pill.plus { color: #16933e; background: #e8faef;}
 .net-pill.minus { color: #b63621; background: #fbe7e4;}
 .net-pill.settled{ color: #639e82; background: #e2f5ef;}
-.paypage-right-arrow { font-size: 2.0em; color: #c9d2e5; margin-left: auto; }
+.paypage-right-arrow { font-size: 2.1em; color: #c9d2e5; margin-left: auto; }
 .paypage-empty { color: #ababab; text-align: center; margin:32px 0 17px 0; }
 
 .paypage-header-row {
-  display: flex; align-items: center; gap: 11px; margin-bottom: 6px; padding: 0 11px 8px 17px;
-  background: #f7f9fc;
-  font-size: 1.01em;
+  display: flex; align-items: center; gap: 13px; 
+  margin-bottom: 0; 
+  padding: 22px 13px 17px 10px;
+  font-size: 1.16em;
+  font-weight: 800;
 }
+.paypage-avatar.user { width: 44px; height: 44px; font-size: 1.18em;}
+.paypage-username.user { font-weight: 900; font-size: 1.16em; color: #23275a; margin-right: 9px;}
+.paypage-more-btn {
+  margin-left: auto; background: none; border: none; font-size: 1.85em; color: #919ab5;
+  cursor: pointer; border-radius: 8px; padding: 2px 13px;
+  transition: background .13s;
+}
+.paypage-more-btn:active { background: #e9effa;}
+
 .user-header-divider {
   width: 100%;
-  height: 1.5px;
+  height: 1.6px;
   background: linear-gradient(to right, rgba(210,214,230,0) 5%, #e2e6f4 30%, #e2e6f4 70%, rgba(210,214,230,0) 95%);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   margin-top: -3.7px;
 }
-.paypage-back { background: none; border: none; color: #274bb0; font-size: 1.19em; cursor: pointer; border-radius: 7px;}
-.paypage-username { font-weight: 900; font-size: 1.09em; color: #23275a; margin-right: 10px;}
 
 .paypage-chat {
   display: flex; flex-direction: column; gap: 15px; margin-bottom: 100px;
@@ -54,9 +63,9 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
 .pay-date-header {
   text-align: center;
   color: #707990;
-  font-size: .96em;
-  font-weight: 600;
-  margin: 20px 0 9px 0;
+  font-size: 1.1em;
+  font-weight: 700;
+  margin: 22px 0 13px 0;
   letter-spacing: .01em;
   display: flex;
   align-items: center;
@@ -66,7 +75,7 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
 .pay-date-header:before, .pay-date-header:after {
   content:"";
   flex: 1;
-  border-bottom: 1px solid #e2e8ee;
+  border-bottom: 1.4px solid #e2e8ee;
   border-radius: 8px;
   height:1.5px;
   margin-bottom:2.5px;
@@ -79,47 +88,48 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
 .bubble-right   { justify-content: flex-end; }
 .paypage-bubble {
   display: flex; flex-direction: column; gap: 5px;
-  padding: 9px 15px 8px 15px;
+  padding: 12px 18px 12px 18px;
   background: #f8fafe;
   border-radius: 13px 13px 13px 7px;
   max-width: 92vw; min-width: 130px; box-shadow: 0 1.6px 10px #e7f2fe13;
-  font-size: .99em; border: 1.3px solid #e9edf4; position: relative;
+  font-size: 1.12em; border: 1.3px solid #e9edf4; position: relative;
 }
 .bubble-right .paypage-bubble {
   background: #f0f5fd; border-radius: 16px 16px 10px 16px; border: 1.3px solid #e2e7fb;
 }
-.bubble-amt { font-weight: 800; font-size: 1.07em; margin-right: 10px; letter-spacing:.01em; min-width: 56px; display: inline-block;}
+.bubble-amt { font-weight: 800; font-size: 1.11em; margin-right: 12px; letter-spacing:.01em; min-width: 65px; display: inline-block;}
 .amt-send { color: #c12c2e; }
 .amt-recv { color: #17963e; }
-.bubble-label { font-weight: 600; color: #7e6143; font-size: .99em; margin-right:7px;}
+.bubble-label { font-weight: 600; color: #7e6143; font-size: 1.01em; margin-right:9px;}
 .status-pill {
-  font-weight: 700; font-size: .93em; border-radius: 7px; padding: 2.8px 13px;
-  background: #ececec; display:inline-block; min-width:60px; text-align:center; margin-right:7px; margin-left:7px;
+  font-weight: 700; font-size: 1em; border-radius: 8px; padding: 4px 16px;
+  background: #ececec; display:inline-block; min-width:62px; text-align:center; margin-right:10px; margin-left:9px;
 }
 .status-pill.pending { background: #fff9d7; color: #ab9412;}
 .status-pill.accepted { background: #d8f8e4; color: #1e8745;}
 .status-pill.rejected { background: #fff0ef; color: #c52d2a;}
-.bubble-meta { color: #929bab; font-size: .91em; margin-top:1px; display:flex; align-items:center; gap:10px;}
+.bubble-meta { color: #929bab; font-size: .98em; font-weight: 500; margin-top:8px; display:flex; align-items:center; gap:13px;}
 .bubble-cancel, .bubble-accept, .bubble-reject {
-  font-size: .93em; margin-left: 13px; padding: 3px 14px;
-  border-radius: 7px; font-weight: 700; cursor: pointer;
+  font-size: 1.05em; margin-left: 15px; padding: 3.5px 17px;
+  border-radius: 8px; font-weight: 800; cursor: pointer; font-family: inherit;
   transition: filter .14s, background .10s;
-  border: 1.4px solid;
+  border: 1.6px solid;
+  letter-spacing: .01em; background: #fff;
 }
-.bubble-cancel { color: #bc212d; border-color: #f5adb6; background: #fff0f2;}
-.bubble-cancel:active { filter: brightness(.92);}
+.bubble-cancel { color: #bc212d; border-color: #e299a5; background: #fff0f2;}
+.bubble-cancel:active { filter: brightness(.96);}
 .bubble-accept { color: #17892a; border-color: #7cefbb; background: #e8f7ef;}
-.bubble-reject { color: #c74e33; border-color: #f2b6b0; background: #fcf0ee;}
+.bubble-reject { color: #af2525; border-color: #f2b6b0; background: #fcf0ee;}
 
 .paypage-actionsbar {
-  display: flex; background: #fff; gap: 13px; justify-content: center; padding: 11px 0 13px 0;
+  display: flex; background: #fff; gap: 13px; justify-content: center; padding: 14px 0 16px 0;
   border-top: 1.1px solid #f1f4f7;
   position: fixed; left:0; right:0; bottom:0; z-index:10; max-width: 430px; margin: 0 auto;
 }
 .paypage-btn {
-  padding: 10px 34px;
-  font-size: .99em;
-  border-radius: 20px;
+  padding: 13px 44px;
+  font-size: 1.07em;
+  border-radius: 22px;
   font-weight: 700; border: none; cursor: pointer;
   background: #214be7; color: #fff; transition: background .13s;
 }
@@ -130,6 +140,6 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
   .paypage-wrap { max-width: 99vw;}
   .paypage-header-row, .paypage-searchbar-row { padding: 0 2vw;}
   .paypage-actionsbar { max-width: 99vw;}
-  .paypage-bubble { font-size: .98em; }
-  .paypage-btn { padding: 10px 12vw; }
+  .paypage-bubble { font-size: 1em; }
+  .paypage-btn { padding: 10px 8vw; }
 }
