@@ -2,7 +2,6 @@ export function showPaymentsPanel(container, user) {
   // Utilities for date grouping
   const DAY_LABELS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   function smartDateLabel(rawDate) {
-    // Assumes rawDate like "7 Aug" / "2 Sep", without year
     const now = new Date();
     const todayStr = now.getDate()+" "+now.toLocaleString('en',{month:"short"});
     const yesterday = new Date(Date.now()-86400000);
@@ -17,7 +16,7 @@ export function showPaymentsPanel(container, user) {
     return rawDate;
   }
 
-  // Demo data with spread dates
+  // Demo data
   const friends = [
     {
       initials: "RA", name: "Rafseed", net: -70, timeline: [
@@ -26,17 +25,12 @@ export function showPaymentsPanel(container, user) {
         { dir: "to", status: "accepted", amount: 5, date: "7 Aug", time: "10:05 am" },
         { dir: "from", status: "pending", amount: 14, date: "5 Aug", time: "12:10 pm" },
         { dir: "to", status: "rejected", amount: 10, date: "3 Aug", time: "04:21 pm" },
-        { dir: "from", status: "accepted", amount: 30, date: "2 Aug", time: "09:02 am" },
-        { dir: "to", status: "accepted", amount: 7, date: "1 Aug", time: "06:21 pm" },
-        { dir: "to", status: "accepted", amount: 15, date: "31 Jul", time: "01:39 pm" }
+        { dir: "from", status: "accepted", amount: 30, date: "2 Aug", time: "09:02 am" }
       ]
     },
     {
       initials: "BA", name: "Bala", net: 120, timeline: [
-        { dir: "from", status: "accepted", amount: 120, date: "7 Aug", time: "8:48 am" },
-        { dir: "to", status: "pending", amount: 33, date: "2 Jul", time: "02:17 pm" },
-        { dir: "from", status: "accepted", amount: 65, date: "15 Jun", time: "10:17 am" },
-        { dir: "to", status: "accepted", amount: 16, date: "6 Jun", time: "10:15 am" }
+        { dir: "from", status: "accepted", amount: 120, date: "7 Aug", time: "8:48 am" }
       ]
     },
     {
@@ -44,24 +38,6 @@ export function showPaymentsPanel(container, user) {
         { dir: "from", status: "accepted", amount: 31, date: "2 Sep", time: "09:01 am" },
         { dir: "to", status: "accepted", amount: 31, date: "29 Aug", time: "11:30 am" },
         { dir: "from", status: "pending", amount: 24, date: "23 Aug", time: "01:31 am" }
-      ]
-    },
-    {
-      initials: "AN", name: "Anjali", net: 48, timeline: [
-        { dir: "from", status: "pending", amount: 20, date: "31 Jul", time: "07:55 am" },
-        { dir: "from", status: "accepted", amount: 28, date: "30 Jul", time: "08:13 am" },
-        { dir: "to", status: "pending", amount: 9, date: "23 Jul", time: "05:21 pm" }
-      ]
-    },
-    {
-      initials: "LS", name: "Lisa", net: -98, timeline: [
-        { dir: "to", status: "pending", amount: 54, date: "12 Jul", time: "10:22 am" },
-        { dir: "to", status: "accepted", amount: 44, date: "10 Jul", time: "02:50 pm" }
-      ]
-    },
-    {
-      initials: "SH", name: "Shyam", net: 7, timeline: [
-        { dir: "from", status: "pending", amount: 7, date: "2 Sep", time: "05:17 pm" }
       ]
     }
   ];
@@ -77,6 +53,7 @@ export function showPaymentsPanel(container, user) {
   let current = 0;
   let searchTerm = "";
   let filter = "all";
+  // Persistent search focus/cursor
   let searchHadFocus = false;
   let searchSelection = 0;
   let userTimeline = friends.map(f => f.timeline.map(row => ({ ...row })));
@@ -128,6 +105,7 @@ export function showPaymentsPanel(container, user) {
           </div>
         </div>
       `;
+      // Search stays focused and in-place
       const searchEl = container.querySelector('.paypage-search');
       searchEl.value = searchTerm;
       if (searchHadFocus) {
@@ -161,9 +139,10 @@ export function showPaymentsPanel(container, user) {
           <div class="paypage-padding-top"></div>
           <div class="paypage-header-row">
             <button class="paypage-back">&larr;</button>
-            <span class="paypage-avatar">${friend.initials}</span>
-            <span class="paypage-username">${friend.name}</span>
+            <span class="paypage-avatar user">${friend.initials}</span>
+            <span class="paypage-username user">${friend.name}</span>
             ${netPill(friend.net)}
+            <button class="paypage-more-btn" aria-label="Options">&#8942;</button>
           </div>
           <div class="user-header-divider"></div>
           <div class="paypage-chat">
@@ -206,6 +185,7 @@ export function showPaymentsPanel(container, user) {
         </div>
       `;
       container.querySelector('.paypage-back').onclick = () => { view = "friends"; render(); };
+      container.querySelectorAll('.paypage-more-btn').forEach(btn => btn.onclick = () => alert("More options (demo)"));
       container.querySelectorAll('.bubble-accept').forEach(btn => {
         btn.onclick = () => {
           const idx = Number(btn.dataset.idx);
