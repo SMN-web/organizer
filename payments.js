@@ -8,19 +8,20 @@ export async function showPaymentsPanel(container, user) {
     { value: "settled", label: "Settled" }
   ];
   let view = "friends";
-  let current = 0;
   let searchTerm = "";
   let filter = "all";
-  let friends = []; // will be filled with API
+  let friends = [];
+  let current = 0;
+  let currentFriend = null;
+  let timeline = [];
+  let errMsg = "";
 
-  // Load friends from API
   await loadFriends();
-
   renderMain();
 
   async function loadFriends() {
     showSpinner(container);
-    let errMsg = '';
+    errMsg = '';
     try {
       if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function') throw new Error("Not logged in");
       const token = await user.firebaseUser.getIdToken(true);
@@ -38,10 +39,46 @@ export async function showPaymentsPanel(container, user) {
     }
   }
 
+  async function loadTimeline(friendName) {
+    showSpinner(container);
+    timeline = [];
+    try {
+      const token = await user.firebaseUser.getIdToken(true);
+      const url = `/api/transactions?friend=${encodeURIComponent(friendName)}`;
+      const resp = await fetch(url, { headers: { Authorization: "Bearer " + token } });
+      const data = await resp.json();
+      if (!Array.isArray(data)) throw new Error((data && data.error) ? data.error : "Invalid timeline");
+      timeline = data;
+    } catch (e) {
+      timeline = [];
+      container.innerHTML = `<div style="color:#d12020;padding:2em;">${e.message||e}</div>`;
+      return;
+    }
+    hideSpinner(container);
+  }
+
   function netPill(net) {
     if (net === 0) return `<span class="net-pill settled">Settled</span>`;
     return `<span class="net-pill ${net > 0 ? "plus" : "minus"}">${Math.abs(net)} QAR</span>`;
   }
+  function statusPill(status) {
+    if (status === "pending") return `<span class="status-pill pending">Pending</span>`;
+    if (status === "accepted") return `<span class="status-pill accepted">Accepted</span>`;
+    if (status === "rejected") return `<span class="status-pill rejected">Rejected</span>`;
+    if (status === "canceled") return `<span class="status-pill canceled">Canceled</span>`;
+    return "";
+  }
+  function timeAgo(ts) {
+    if (!ts) return "";
+    const then = new Date(ts), now = new Date();
+    const diff = Math.floor((now - then) / 1000);
+    if (isNaN(diff)) return "";
+    if (diff < 60) return "just now";
+    const min = Math.floor(diff / 60); if (min < 60) return min + "m ago";
+    const h = Math.floor(min / 60); if (h < 24) return h + "h ago";
+    const d = Math.floor(h / 24); return d + "d ago";
+  }
+
   function filteredFriends() {
     return friends
       .filter(f => searchTerm === "" || (f.name || "").toLowerCase().includes(searchTerm.toLowerCase()))
@@ -86,7 +123,7 @@ export async function showPaymentsPanel(container, user) {
       });
       updateFriendList();
     } else {
-      renderUserView(); // Still uses demo data for now
+      renderUserView();
     }
   }
 
@@ -104,19 +141,56 @@ export async function showPaymentsPanel(container, user) {
           </div>
         `).join('');
     el.querySelectorAll('.paypage-friend-row').forEach(row =>
-      row.onclick = () => {
+      row.onclick = async () => {
         current = Number(row.dataset.idx);
+        currentFriend = flist[current];
         view = "user";
+        await loadTimeline(currentFriend.name);
         renderUserView();
       }
     );
   }
 
   function renderUserView() {
-    // This section is unchanged, still uses your demo/test timeline code.
-    // Replace with your real per-friend/timeline API later!  
-    // ... your previous renderUserView code ...
-    container.innerHTML = `<div style="padding:2em;color:#777;text-align:center;">User timeline/details view coming soon.</div>
-      <button style="margin:1.2em auto;display:block;" onclick="history.back()">Back</button>`;
+    container.innerHTML = `
+      <div class="paypage-wrap" style="position:relative">
+        <div class="paypage-padding-top"></div>
+        <div class="paypage-header-row paypad-extra">
+          <button class="paypage-back">&larr;</button>
+          <span class="paypage-avatar user">${currentFriend.initials || currentFriend.name[0]}</span>
+          <span class="paypage-username user">${currentFriend.name}</span>
+          ${netPill(currentFriend.net)}
+        </div>
+        <div class="user-header-divider"></div>
+        <div class="paypage-chat">
+          ${timeline.length === 0 ? 
+            `<div style="color:#888;text-align:center;padding:40px 0;">No transactions yet with ${currentFriend.name}.</div>` :
+            timeline.map((ev, idx) => `
+              <div class="paypage-bubble-row ${ev.dir === "from" ? "bubble-left" : "bubble-right"}">
+                <div class="paypage-bubble ${ev.dir === "from" ? "bubble-recv" : "bubble-send"}">
+                  <div>
+                    <span class="bubble-amt ${ev.dir==="from"?"amt-recv":"amt-send"}">${ev.amount} QAR</span>
+                    <span class="bubble-label">${ev.dir==="from"?"Received":"Paid"}</span>
+                    ${statusPill(ev.status)}
+                  </div>
+                  <div class="bubble-meta">
+                    <span>${timeAgo(ev.last_updated)}</span>
+                    ${
+                      ev.status==="pending" && ev.dir==="to"
+                      ? `<button class="bubble-cancel" disabled>Cancel</button>`
+                      : ""
+                    }
+                  </div>
+                </div>
+              </div>
+          `).join('')}
+        </div>
+        <div class="paypage-actionsbar">
+          <button class="paypage-btn pay" disabled>Pay</button>
+          <button class="paypage-btn remind" disabled>Remind</button>
+        </div>
+      </div>
+    `;
+    container.querySelector('.paypage-back').onclick = () => { view = "friends"; renderMain(); };
   }
 }
