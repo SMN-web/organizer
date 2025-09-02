@@ -1,5 +1,26 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 
+function parseDBDatetimeAsUTC(dt) {
+  const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
+  if (!m) return new Date(dt);
+  return new Date(Date.UTC(+m[1], m[2]-1, +m[3], +m[4], +m[5], +m[6]));
+}
+function getDateLabel(date) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const then = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diff = Math.round((today - then) / (1000*60*60*24));
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  if (diff >= 2 && diff < 7) return date.toLocaleDateString(undefined, { weekday: 'long' });
+  const day = String(date.getDate()).padStart(2, '0');
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${day}-${months[date.getMonth()]}-${String(date.getFullYear()).slice(2)}`;
+}
+function getTimeLocalStr(date) {
+  return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+
 export async function showPaymentsPanel(container, user) {
   const FILTERS = [
     { value: "all", label: "All" },
@@ -58,6 +79,7 @@ export async function showPaymentsPanel(container, user) {
   }
 
   async function sendPayment(toUsername, maxOwed) {
+    const currency = localStorage.getItem('currency') || "QAR";
     let amtStr = prompt(`Enter amount to pay (max ${maxOwed}):`, maxOwed);
     if (!amtStr) return;
     let amount = Math.round(Number(amtStr));
@@ -71,7 +93,7 @@ export async function showPaymentsPanel(container, user) {
       const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment', {
         method: "POST",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ to_user: toUsername, amount })
+        body: JSON.stringify({ to_user: toUsername, amount, currency })
       });
       const result = await resp.json();
       if (!result.ok && result.error) throw new Error(result.error);
@@ -108,25 +130,6 @@ export async function showPaymentsPanel(container, user) {
   function netPill(net) {
     if (net === 0) return `<span class="net-pill settled">Settled</span>`;
     return `<span class="net-pill ${net > 0 ? "plus" : "minus"}">${Math.abs(net)} ${CURRENCY}</span>`;
-  }
-  function statusPill(status, evDir) {
-    if (status === "accepted" && evDir === "to")
-      return `<span class="status-pill accepted">Accepted</span>`;
-    if (status === "rejected")
-      return `<span class="status-pill rejected">Rejected</span>`;
-    if (status === "canceled")
-      return `<span class="status-pill canceled">Canceled</span>`;
-    return "";
-  }
-  function timeAgo(ts) {
-    if (!ts) return "";
-    const then = new Date(ts), now = new Date();
-    const diff = Math.floor((now - then) / 1000);
-    if (isNaN(diff)) return "";
-    if (diff < 60) return "just now";
-    const min = Math.floor(diff / 60); if (min < 60) return min + "m ago";
-    const h = Math.floor(min / 60); if (h < 24) return h + "h ago";
-    const d = Math.floor(h / 24); return d + "d ago";
   }
 
   function filteredFriends() {
@@ -201,6 +204,73 @@ export async function showPaymentsPanel(container, user) {
   }
 
   function renderUserView() {
+    // Timeline bubbles with date grouping and three-dot button
+    let timelineRows = [];
+    let lastDate = null;
+    timeline.forEach((ev, idx) => {
+      const dtObj = parseDBDatetimeAsUTC(ev.last_updated);
+      const groupLabel = getDateLabel(dtObj);
+      if (groupLabel !== lastDate) {
+        timelineRows.push(`<div class="paypage-date-divider">${groupLabel}</div>`);
+        lastDate = groupLabel;
+      }
+      let timeStr = getTimeLocalStr(dtObj);
+
+      // Hide canceled (dir === from) for receiver
+      if (ev.status === 'canceled' && ev.dir === 'from') return;
+
+      let label = "";
+      if (ev.dir === "to") {
+        if (ev.status === "pending")
+          label = `Waiting for ${currentFriend.name} to respond to your payment of ${ev.amount} ${CURRENCY}.`;
+        else if (ev.status === "accepted")
+          label = `${currentFriend.name} accepted your payment of ${ev.amount} ${CURRENCY}.`;
+        else if (ev.status === "rejected")
+          label = `${currentFriend.name} declined your payment of ${ev.amount} ${CURRENCY}.`;
+        else if (ev.status === "canceled")
+          label = `You cancelled this payment to ${currentFriend.name}.`;
+      } else {
+        if (ev.status === "pending")
+          label = `${currentFriend.name} sent you ${ev.amount} ${CURRENCY}. Accept or reject?`;
+        else if (ev.status === "accepted")
+          label = `You received ${ev.amount} ${CURRENCY} from ${currentFriend.name}.`;
+        else if (ev.status === "rejected")
+          label = `You declined ${ev.amount} ${CURRENCY} from ${currentFriend.name}.`;
+        else if (ev.status === "canceled")
+          label = `${currentFriend.name} cancelled the payment of ${ev.amount} ${CURRENCY}.`;
+      }
+      let actions = "";
+      if (ev.status === "pending") {
+        if (ev.dir === "to") {
+          actions = `<button class="bubble-cancel" data-idx="${idx}">Cancel</button>`;
+        } else {
+          actions = `
+            <button class="bubble-accept" data-idx="${idx}">Accept</button>
+            <button class="bubble-reject" data-idx="${idx}">Reject</button>
+          `;
+        }
+      }
+      let statusPillHtml = "";
+      if (ev.status === "accepted" && ev.dir === "to")
+        statusPillHtml = `<span class="status-pill accepted">Accepted</span>`;
+      if (ev.status === "rejected")
+        statusPillHtml = `<span class="status-pill rejected">Rejected</span>`;
+      timelineRows.push(`
+        <div class="paypage-bubble-row ${ev.dir === "from" ? "bubble-left" : "bubble-right"}">
+          <div class="paypage-bubble ${ev.dir === "from" ? "bubble-recv" : "bubble-send"}">
+            <div>
+              <span class="bubble-label">${label}</span>
+              ${statusPillHtml}
+            </div>
+            <div class="bubble-meta">
+              <span>${timeStr}</span>
+              ${actions}
+            </div>
+          </div>
+        </div>
+      `);
+    });
+
     container.innerHTML = `
       <div class="paypage-wrap" style="position:relative">
         <div class="paypage-padding-top"></div>
@@ -209,62 +279,33 @@ export async function showPaymentsPanel(container, user) {
           <span class="paypage-avatar user">${currentFriend.initials || currentFriend.name[0]}</span>
           <span class="paypage-username user">${currentFriend.name}</span>
           ${netPill(currentFriend.net)}
+          <button class="paypage-menu-3dots" style="float:right;padding:0 12px 0 0;font-size:2em;background:none;border:none;cursor:pointer;">&#x22ee;</button>
+        </div>
+        <div class="paypage-menu-dropdown" style="display:none;position:absolute;right:18px;top:46px;z-index:5;background:#fff;border:1px solid #bbb;border-radius:5px;min-width:110px;box-shadow:0 2px 8px rgba(0,0,0,0.11)">
+          <div style="padding:10px 18px;cursor:pointer;">Profile</div>
+          <div style="padding:10px 18px;cursor:pointer;">Block</div>
+          <div style="padding:10px 18px;cursor:pointer;">More...</div>
         </div>
         <div class="user-header-divider"></div>
-        <div class="paypage-chat">
-          ${
-            timeline.length === 0
-              ? `<div style="color:#888;text-align:center;padding:40px 0;">No transactions yet with ${currentFriend.name}.</div>`
-              : timeline.map((ev, idx) => {
-                  let label = "";
-                  if (ev.status === "pending" && ev.dir === "from") {
-                    label = `${currentFriend.name} has sent you ${ev.amount} ${CURRENCY}`;
-                  } else if (ev.status === "accepted" && ev.dir === "from") {
-                    label = `${ev.amount} ${CURRENCY} received`;
-                  } else if (ev.dir === "from") {
-                    label = `Received ${ev.amount} ${CURRENCY}`;
-                  } else if (ev.status === "pending" && ev.dir === "to") {
-                    label = `You paid ${currentFriend.name} ${ev.amount} ${CURRENCY}`;
-                  } else if (ev.status === "accepted" && ev.dir === "to") {
-                    label = `You paid ${currentFriend.name} ${ev.amount} ${CURRENCY}`;
-                  } else {
-                    label = `You paid ${currentFriend.name} ${ev.amount} ${CURRENCY}`;
-                  }
-                  let actions = "";
-                  if (ev.status === "pending") {
-                    if (ev.dir === "to") {
-                      actions = `<button class="bubble-cancel" data-idx="${idx}">Cancel</button>`;
-                    } else {
-                      actions = `
-                        <button class="bubble-accept" data-idx="${idx}">Accept</button>
-                        <button class="bubble-reject" data-idx="${idx}">Reject</button>
-                      `;
-                    }
-                  }
-                  let statusPillHtml = statusPill(ev.status, ev.dir);
-                  return `
-                  <div class="paypage-bubble-row ${ev.dir === "from" ? "bubble-left" : "bubble-right"}">
-                    <div class="paypage-bubble ${ev.dir === "from" ? "bubble-recv" : "bubble-send"}">
-                      <div>
-                        <span class="bubble-label">${label}</span>
-                        ${statusPillHtml}
-                      </div>
-                      <div class="bubble-meta">
-                        <span>${timeAgo(ev.last_updated)}</span>
-                        ${actions}
-                      </div>
-                    </div>
-                  </div>
-                  `;
-                }).join('')
-          }
-        </div>
+        <div class="paypage-chat">${timelineRows.join('')}</div>
         <div class="paypage-actionsbar">
           <button class="paypage-btn pay"${currentFriend.net < 0 ? "" : " disabled"}>Pay</button>
           <button class="paypage-btn remind" disabled>Remind</button>
         </div>
       </div>
     `;
+    // Three dot menu show/hide (demo)
+    container.querySelector('.paypage-menu-3dots').onclick = e => {
+      e.stopPropagation();
+      const dd = container.querySelector('.paypage-menu-dropdown');
+      dd.style.display = dd.style.display === "block" ? "none" : "block";
+      document.addEventListener("click", function closeMenu(ev) {
+        if (!dd.contains(ev.target)) { dd.style.display = "none"; document.removeEventListener("click", closeMenu);}
+      });
+    };
+    container.querySelectorAll('.paypage-menu-dropdown div').forEach(item =>
+      item.onclick = () => alert(item.textContent)
+    );
     container.querySelector('.paypage-back').onclick = async () => {
       await loadFriends();
       view = "friends";
