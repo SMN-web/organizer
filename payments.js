@@ -85,13 +85,37 @@ export async function showPaymentsPanel(container, user) {
     hideSpinner(container);
   }
 
+  async function paymentAction(payment_id, action) {
+    showSpinner(container);
+    let ok = false, err = "";
+    try {
+      const token = await user.firebaseUser.getIdToken(true);
+      const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment_action', {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ payment_id, action })
+      });
+      const result = await resp.json();
+      if (!result.ok) err = result.error;
+      else ok = true;
+    } catch (e) {
+      err = e && e.message ? e.message : e;
+    }
+    hideSpinner(container);
+    if (!ok) alert(err);
+  }
+
   function netPill(net) {
     if (net === 0) return `<span class="net-pill settled">Settled</span>`;
     return `<span class="net-pill ${net > 0 ? "plus" : "minus"}">${Math.abs(net)} ${CURRENCY}</span>`;
   }
-  function statusPill(status) {
-    if (status === "rejected") return `<span class="status-pill rejected">Rejected</span>`;
-    if (status === "canceled") return `<span class="status-pill canceled">Canceled</span>`;
+  function statusPill(status, evDir) {
+    if (status === "accepted" && evDir === "to")
+      return `<span class="status-pill accepted">Accepted</span>`;
+    if (status === "rejected")
+      return `<span class="status-pill rejected">Rejected</span>`;
+    if (status === "canceled")
+      return `<span class="status-pill canceled">Canceled</span>`;
     return "";
   }
   function timeAgo(ts) {
@@ -192,7 +216,6 @@ export async function showPaymentsPanel(container, user) {
             timeline.length === 0
               ? `<div style="color:#888;text-align:center;padding:40px 0;">No transactions yet with ${currentFriend.name}.</div>`
               : timeline.map((ev, idx) => {
-                  // Custom bubble label and actions logic
                   let label = "";
                   if (ev.status === "pending" && ev.dir === "from") {
                     label = `${currentFriend.name} has sent you ${ev.amount} ${CURRENCY}`;
@@ -207,7 +230,6 @@ export async function showPaymentsPanel(container, user) {
                   } else {
                     label = `You paid ${currentFriend.name} ${ev.amount} ${CURRENCY}`;
                   }
-
                   let actions = "";
                   if (ev.status === "pending") {
                     if (ev.dir === "to") {
@@ -219,16 +241,7 @@ export async function showPaymentsPanel(container, user) {
                       `;
                     }
                   }
-
-                  let statusPillHtml = "";
-                  if (ev.status === "accepted" && ev.dir === "to") {
-                    statusPillHtml = `<span class="status-pill accepted">Accepted</span>`;
-                  } else if (ev.status === "rejected") {
-                    statusPillHtml = `<span class="status-pill rejected">Rejected</span>`;
-                  } else if (ev.status === "canceled") {
-                    statusPillHtml = `<span class="status-pill canceled">Canceled</span>`;
-                  }
-
+                  let statusPillHtml = statusPill(ev.status, ev.dir);
                   return `
                   <div class="paypage-bubble-row ${ev.dir === "from" ? "bubble-left" : "bubble-right"}">
                     <div class="paypage-bubble ${ev.dir === "from" ? "bubble-recv" : "bubble-send"}">
@@ -262,15 +275,39 @@ export async function showPaymentsPanel(container, user) {
         await sendPayment(currentFriend.username, Math.abs(currentFriend.net));
       };
     }
-    // Demo handlers for action buttons (replace with real API POST to accept/reject/cancel)
+    // Payment actions
     container.querySelectorAll('.bubble-cancel').forEach(btn =>
-      btn.onclick = () => alert("Cancel payment (to be implemented)")
+      btn.onclick = async () => {
+        const idx = Number(btn.dataset.idx);
+        const paymentId = timeline[idx].payment_id;
+        if (confirm("Cancel this payment?")) {
+          await paymentAction(paymentId, "cancel");
+          await loadTimeline(currentFriend.username);
+          renderUserView();
+        }
+      }
     );
     container.querySelectorAll('.bubble-accept').forEach(btn =>
-      btn.onclick = () => alert("Accept payment (to be implemented)")
+      btn.onclick = async () => {
+        const idx = Number(btn.dataset.idx);
+        const paymentId = timeline[idx].payment_id;
+        if (confirm("Accept this payment?")) {
+          await paymentAction(paymentId, "accept");
+          await loadTimeline(currentFriend.username);
+          renderUserView();
+        }
+      }
     );
     container.querySelectorAll('.bubble-reject').forEach(btn =>
-      btn.onclick = () => alert("Reject payment (to be implemented)")
+      btn.onclick = async () => {
+        const idx = Number(btn.dataset.idx);
+        const paymentId = timeline[idx].payment_id;
+        if (confirm("Reject this payment?")) {
+          await paymentAction(paymentId, "reject");
+          await loadTimeline(currentFriend.username);
+          renderUserView();
+        }
+      }
     );
   }
 }
