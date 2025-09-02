@@ -1,29 +1,27 @@
 body { background: #f5f7fa; }
-.pm-root.small { font-size: 0.96em;padding-top:18px; }
+.pm-root.small { font-size: 0.95em; padding-top:16px;}
 .pm-srchrow { 
-  display:flex;align-items:center;gap:7px; 
-  width:100%;margin-bottom:7px; 
+  display:flex;align-items:center;gap:6px; 
+  width:100%;margin-bottom:8px; 
 }
 .pm-search {
-  flex:1 1 69%;font-size:.95em; border-radius:7px; padding:6px 9px; border:1px solid #d1e3f5;
+  flex:1 1 69%; font-size:.94em; border-radius:7px; padding:8px 9px; border:1px solid #d1e3f5;
   background:#fafcff;
   min-width:0;
 }
 .pm-filter {
-  flex:1 1 27%;font-size:.94em;border-radius:7px;padding:7px 6px;border:1px solid #bfd7ee;background:#f5f8fb; min-width:70px;max-width:99px;
+  flex:1 1 27%; font-size:.92em; border-radius:7px; padding:8px 6px; border:1px solid #bfd7ee; background:#f5f8fb; min-width:70px; max-width:99px;
 }
-.pm-flist{ display:flex;flex-direction:column;gap:8px;width:100%; }
+.pm-flist{ display:flex;flex-direction:column;gap:7px;width:100%; }
 .pm-fcard {
-  display:flex;align-items:center;gap:9px;
-  border-radius:8px; padding:9px 8px 7px 8px;background:#fafdff;
+  display:flex;align-items:center;gap:8px;
+  border-radius:8px; padding:9px 8px 7px 8px; background:#fafdff;
   box-shadow:0 1px 6px #e2eeff09;font-size:1em;font-weight:500;color:#2e3b5c;
-  cursor:pointer;transition:background .12s;
-  min-width:0;
+  cursor:pointer;transition:background .12s; min-width:0;
 }
 .pm-fcard:hover{background:#eceffd;}
 .pm-avatar { background:#e2e6fb;color:#25449d;font-weight:900;
-  border-radius:50%;width:28px;height:28px;display:flex;
-  align-items:center;justify-content:center;font-size:.97em;}
+  border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:.97em;}
 .pm-fmeta { display:flex;flex-direction:column;flex:1;}
 .pm-fname {font-weight:700;color:#233059;font-size:.96em;}
 .pm-fnet {font-weight:700;font-size:.94em;}
