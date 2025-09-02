@@ -15,6 +15,7 @@ export async function showPaymentsPanel(container, user) {
   let currentFriend = null;
   let timeline = [];
   let errMsg = "";
+  const CURRENCY = localStorage.getItem('currency') || "QAR";
 
   await loadFriends();
   renderMain();
@@ -57,9 +58,38 @@ export async function showPaymentsPanel(container, user) {
     hideSpinner(container);
   }
 
+  async function sendPayment(toUser, maxOwed) {
+    let amtStr = prompt(`Enter amount to pay (max ${maxOwed}):`, maxOwed);
+    if (!amtStr) return;
+    let amount = Math.round(Number(amtStr));
+    if (isNaN(amount) || amount <= 0 || amount > maxOwed) {
+      alert(`Amount must be a positive integer not exceeding ${maxOwed}`);
+      return;
+    }
+
+    showSpinner(container);
+    try {
+      const token = await user.firebaseUser.getIdToken(true);
+      const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment', {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ to_user: toUser, amount })
+      });
+      const result = await resp.json();
+      if (!result.ok && result.error) throw new Error(result.error);
+      await loadTimeline(toUser);
+      await loadFriends();
+      renderUserView();
+    } catch (e) {
+      hideSpinner(container);
+      alert(e && e.message ? e.message : e);
+    }
+    hideSpinner(container);
+  }
+
   function netPill(net) {
     if (net === 0) return `<span class="net-pill settled">Settled</span>`;
-    return `<span class="net-pill ${net > 0 ? "plus" : "minus"}">${Math.abs(net)} QAR</span>`;
+    return `<span class="net-pill ${net > 0 ? "plus" : "minus"}">${Math.abs(net)} ${CURRENCY}</span>`;
   }
   function statusPill(status) {
     if (status === "pending") return `<span class="status-pill pending">Pending</span>`;
@@ -169,7 +199,7 @@ export async function showPaymentsPanel(container, user) {
               <div class="paypage-bubble-row ${ev.dir === "from" ? "bubble-left" : "bubble-right"}">
                 <div class="paypage-bubble ${ev.dir === "from" ? "bubble-recv" : "bubble-send"}">
                   <div>
-                    <span class="bubble-amt ${ev.dir==="from"?"amt-recv":"amt-send"}">${ev.amount} QAR</span>
+                    <span class="bubble-amt ${ev.dir==="from"?"amt-recv":"amt-send"}">${ev.amount} ${CURRENCY}</span>
                     <span class="bubble-label">${ev.dir==="from"?"Received":"Paid"}</span>
                     ${statusPill(ev.status)}
                   </div>
@@ -186,11 +216,21 @@ export async function showPaymentsPanel(container, user) {
           `).join('')}
         </div>
         <div class="paypage-actionsbar">
-          <button class="paypage-btn pay" disabled>Pay</button>
+          <button class="paypage-btn pay"${currentFriend.net < 0 ? "" : " disabled"}>Pay</button>
           <button class="paypage-btn remind" disabled>Remind</button>
         </div>
       </div>
     `;
-    container.querySelector('.paypage-back').onclick = () => { view = "friends"; renderMain(); };
+    container.querySelector('.paypage-back').onclick = async () => {
+      // Refresh friend list after possible payment
+      await loadFriends();
+      view = "friends"; 
+      renderMain(); 
+    };
+    // Enable Pay only if net < 0 (owe money!)
+    container.querySelector('.paypage-btn.pay').onclick = async () => {
+      if (currentFriend.net >= 0) return;
+      await sendPayment(currentFriend.name, Math.abs(currentFriend.net));
+    };
   }
 }
