@@ -9,6 +9,14 @@ export function showPaymentsPanel(container, user) {
         { dir: "to", status: "rejected", amount: 10, date: "1 Aug", time: "04:21 pm" },
         { dir: "from", status: "accepted", amount: 30, date: "28 Jul", time: "09:02 am" },
         { dir: "to", status: "accepted", amount: 7, date: "23 Jul", time: "06:21 pm" },
+        { dir: "to", status: "accepted", amount: 15, date: "21 Jul", time: "01:39 pm" },
+        { dir: "to", status: "pending", amount: 8, date: "9 Jul", time: "12:01 pm" },
+        { dir: "to", status: "pending", amount: 6, date: "7 Aug", time: "7:14 am" },
+        { dir: "to", status: "accepted", amount: 5, date: "5 Aug", time: "10:05 am" },
+        { dir: "from", status: "pending", amount: 14, date: "2 Aug", time: "12:10 pm" },
+        { dir: "to", status: "rejected", amount: 10, date: "1 Aug", time: "04:21 pm" },
+        { dir: "from", status: "accepted", amount: 30, date: "28 Jul", time: "09:02 am" },
+        { dir: "to", status: "accepted", amount: 7, date: "23 Jul", time: "06:21 pm" },
         { dir: "to", status: "accepted", amount: 15, date: "21 Jul", time: "01:39 pm" }
       ]
     },
