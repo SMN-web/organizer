@@ -1,4 +1,5 @@
 import { showSpinner, hideSpinner } from './spinner.js';
+import { showTransferPopup } from './transfer.js'; // **Clean, separate transfer logic**
 
 function parseDBDatetimeAsUTC(dt) {
   const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
@@ -17,8 +18,8 @@ function getDateLabel(date) {
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   return `${day}-${months[date.getMonth()]}-${String(date.getFullYear()).slice(2)}`;
 }
-function getTimeLocalStr(date) {
-  return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+function getTimeLocalAMPM(date) {
+  return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 export async function showPaymentsPanel(container, user) {
@@ -44,7 +45,8 @@ export async function showPaymentsPanel(container, user) {
     showSpinner(container);
     errMsg = '';
     try {
-      if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function') throw new Error("Not logged in");
+      if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function')
+        throw new Error("Not logged in");
       const token = await user.firebaseUser.getIdToken(true);
       const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/settlements/friends', { headers: { Authorization: "Bearer " + token } });
       const data = await resp.json();
@@ -102,6 +104,24 @@ export async function showPaymentsPanel(container, user) {
       renderUserView();
     } catch (e) {
       hideSpinner(container);
+      alert(e && e.message ? e.message : e);
+    }
+    hideSpinner(container);
+  }
+
+  async function remindPayment(toUsername, name, owed, currency) {
+    showSpinner(container);
+    try {
+      const token = await user.firebaseUser.getIdToken(true);
+      const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/remind_payment', {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ to_user: toUsername, name, owed, currency })
+      });
+      const result = await resp.json();
+      if (!result.ok && result.error) throw new Error(result.error);
+      alert("Reminder sent!");
+    } catch (e) {
       alert(e && e.message ? e.message : e);
     }
     hideSpinner(container);
@@ -204,21 +224,17 @@ export async function showPaymentsPanel(container, user) {
   }
 
   function renderUserView() {
-    // Timeline bubbles with date grouping and three-dot button
     let timelineRows = [];
     let lastDate = null;
     timeline.forEach((ev, idx) => {
       const dtObj = parseDBDatetimeAsUTC(ev.last_updated);
       const groupLabel = getDateLabel(dtObj);
       if (groupLabel !== lastDate) {
-        timelineRows.push(`<div class="paypage-date-divider">${groupLabel}</div>`);
+        timelineRows.push(`<div class="paypage-date-divider" style="text-align:center;color:#888;">${groupLabel}</div>`);
         lastDate = groupLabel;
       }
-      let timeStr = getTimeLocalStr(dtObj);
-
-      // Hide canceled (dir === from) for receiver
+      let timeStr = getTimeLocalAMPM(dtObj);
       if (ev.status === 'canceled' && ev.dir === 'from') return;
-
       let label = "";
       if (ev.dir === "to") {
         if (ev.status === "pending")
@@ -274,12 +290,12 @@ export async function showPaymentsPanel(container, user) {
     container.innerHTML = `
       <div class="paypage-wrap" style="position:relative">
         <div class="paypage-padding-top"></div>
-        <div class="paypage-header-row paypad-extra">
+        <div class="paypage-header-row paypad-extra" style="display:flex;align-items:center;">
           <button class="paypage-back">&larr;</button>
           <span class="paypage-avatar user">${currentFriend.initials || currentFriend.name[0]}</span>
           <span class="paypage-username user">${currentFriend.name}</span>
           ${netPill(currentFriend.net)}
-          <button class="paypage-menu-3dots" style="float:right;padding:0 12px 0 0;font-size:2em;background:none;border:none;cursor:pointer;">&#x22ee;</button>
+          <button class="paypage-menu-3dots" style="margin-left:auto;padding:0 12px 0 0;font-size:2em;background:none;border:none;cursor:pointer;">&#x22ee;</button>
         </div>
         <div class="paypage-menu-dropdown" style="display:none;position:absolute;right:18px;top:46px;z-index:5;background:#fff;border:1px solid #bbb;border-radius:5px;min-width:110px;box-shadow:0 2px 8px rgba(0,0,0,0.11)">
           <div style="padding:10px 18px;cursor:pointer;">Profile</div>
@@ -288,13 +304,13 @@ export async function showPaymentsPanel(container, user) {
         </div>
         <div class="user-header-divider"></div>
         <div class="paypage-chat">${timelineRows.join('')}</div>
-        <div class="paypage-actionsbar">
+        <div class="paypage-actionsbar" style="display:flex;gap:9px;">
           <button class="paypage-btn pay"${currentFriend.net < 0 ? "" : " disabled"}>Pay</button>
-          <button class="paypage-btn remind" disabled>Remind</button>
+          <button class="paypage-btn remind" ${currentFriend.net >= 0 ? "disabled" : ""}>Remind</button>
+          <button class="paypage-btn transfer"${currentFriend.net < 0 ? "" : " disabled"}>Transfer</button>
         </div>
       </div>
     `;
-    // Three dot menu show/hide (demo)
     container.querySelector('.paypage-menu-3dots').onclick = e => {
       e.stopPropagation();
       const dd = container.querySelector('.paypage-menu-dropdown');
@@ -314,6 +330,12 @@ export async function showPaymentsPanel(container, user) {
     if (currentFriend.net < 0) {
       container.querySelector('.paypage-btn.pay').onclick = async () => {
         await sendPayment(currentFriend.username, Math.abs(currentFriend.net));
+      };
+      container.querySelector('.paypage-btn.remind').onclick = async () => {
+        await remindPayment(currentFriend.username, currentFriend.name, Math.abs(currentFriend.net), CURRENCY);
+      };
+      container.querySelector('.paypage-btn.transfer').onclick = async () => {
+        await showTransferPopup(currentFriend.username, currentFriend.name, Math.abs(currentFriend.net), CURRENCY);
       };
     }
     // Payment actions
