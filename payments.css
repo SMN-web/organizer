@@ -1,115 +1,117 @@
-body { background: #f6f8fb; margin:0; font-family: "Inter", Arial, sans-serif; }
-.chatpay-main { max-width: 430px; margin: 0 auto;}
-.chatpay-friends-list { padding: 0 0 7px 0; }
-.chatpay-friend-card {
-  display: flex; align-items: center; gap: 11px;
-  background: #f7fafd; border-radius: 14px;
-  margin-bottom: 8px; padding: 8px 15px 8px 13px;
-  cursor: pointer; box-shadow: 0 1.6px 8px #e4f1ff11;
-  transition: background .13s;
+body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif; }
+
+.paypage-wrap { 
+  max-width: 430px; margin: 0 auto; 
+  position: relative; background: #fff;
+  border-radius: 15px; min-height: 95vh; 
+  box-shadow: 0 2px 29px #dde0f929;
 }
-.chatpay-friend-card:hover { background: #e8f3ff;}
-.chatpay-avatar {
-  width: 29px; height: 29px; border-radius:50%;
-  background: #e3eafd; color: #2855c2;
-  font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: .96em;
+.paypage-padtop { height: 48px; }
+.paypage-header-row {
+  display: flex; align-items: center; gap: 11px; margin-bottom: 8px; padding: 0 14px 0 20px;
 }
-.chatpay-avatar.detail {
-  width: 32px; height: 32px; font-size: 1.02em; margin-right:2px;
+.paypage-avatar {
+  background: #e1eafb; color: #2541c8; font-weight: 900;
+  border-radius: 50%; width: 36px; height: 36px; font-size: 1.07em;
+  display: flex; align-items: center; justify-content: center;
 }
-.chatpay-names { display: flex; flex-direction: column; line-height: 1.05; }
-.chatpay-friend-name { font-weight: 700; color: #1b2c47; font-size: .99em; }
-.chatpay-friend-balance { font-size: .93em; font-weight: 600; }
-.chatpay-friend-balance.plus { color: #159c3a;}
-.chatpay-friend-balance.minus{ color: #cb3220;}
-.chatpay-friend-balance.settled{ color: #5e8b8f;}
-.chatpay-arrow { font-size: 1.40em; color: #b0c3de; margin-left: auto; }
-.chatpay-detail-wrap { 
-  max-width: 430px; margin: 0 auto 0 auto; min-height:100vh; 
-  background: #fff; border-radius:13px; box-shadow: 0 2.5px 24px #d6e9ff17;
-  position: relative;
+.paypage-username { font-weight: 900; font-size: 1.09em; color: #23275a; margin-right: 10px;}
+.net-pill { font-weight: 700; font-size: .95em; border-radius: 7px; padding: 3px 14px 3px 10px; margin-left: 7px; }
+.net-pill.plus { color: #16933e; background: #e8faef;}
+.net-pill.minus { color: #b63621; background: #fbe7e4;}
+.net-pill.settled{ color: #639e82; background: #e2f5ef;}
+
+/* Search + filter */
+.paypage-searchbar-row {
+  display: flex; align-items: center; gap: 8px; margin: 0 12px 19px 14px; 
 }
-.chatpay-detail-header {
-  display: flex; align-items: center; gap: 9px; margin-bottom: 7px; padding: 12px 10px 8px 10px;
+.paypage-search {
+  flex: 1 1 70%; font-size: .97em; border-radius: 8px; padding: 10px 15px; border: 1.1px solid #cad8ef;
+  background: #fafcff; min-width: 0;
 }
-.chatpay-back { background: none; border: none; color: #3050b0; font-size: 1.17em; cursor: pointer; border-radius: 7px;}
-.chatpay-detail-name { font-weight: 800; font-size: 1.03em; color: #253059; }
-.net-pill { font-weight: 700; font-size: .91em; border-radius: 5px; padding: 2px 8px; margin-left:6px; vertical-align: middle; }
-.net-pill.plus { color: #19b043; background: #e9faef;}
-.net-pill.minus { color: #c13b23; background: #fbe8e8;}
-.net-pill.settled { color: #528386; background: #e2f5ef;}
-/* Chat Bubble Layout */
-.chatpay-chatbox { 
-  display: flex; flex-direction: column; gap: 10px; margin: 12px 0 72px 0; 
+.paypage-filter {
+  flex: 1 1 33%; min-width: 92px; max-width: 124px; font-size: 1em; border-radius: 8px;
+  border: 1.2px solid #c5d4ec; background: #f0f5fa; color: #2753a9; padding: 9px 12px;
 }
-.chatpay-bubble-row {
-  display: flex; width: 100%;
+
+/* Chat bubble area */
+.paypage-chat {
+  display: flex; flex-direction: column; gap: 12px; margin-top: 10px;
+  margin-bottom: 89px;
 }
+.paypage-bubble-row { display: flex; width: 100%; }
 .bubble-left    { justify-content: flex-start; }
 .bubble-right   { justify-content: flex-end; }
-.chatpay-bubble-card {
-  display: flex; flex-direction: column;
+.paypage-bubble {
+  display: flex; flex-direction: column; gap: 4px;
   padding: 8px 16px 8px 14px;
-  background: #f7fafd;
-  border-radius: 15px 15px 15px 6px;
-  max-width: 85vw;
-  min-width: 149px;
-  box-shadow: 0 1.6px 10px #e4f8ff11;
-  gap: 5px;
+  background: #f8fafd;
+  border-radius: 13px 13px 13px 7px;
+  max-width: 92vw;
+  min-width: 140px;
+  box-shadow: 0 1.6px 10px #e7f2fe12;
   font-size: .97em;
+  border: 1.3px solid #e9edf4;
+  position: relative;
 }
-.bubble-right .chatpay-bubble-card {
-  background: #e8f0ff;
+.bubble-right .paypage-bubble {
+  background: #f2f6fe;
   border-radius: 14px 14px 8px 16px;
-  box-shadow: 0 1.6px 7px #e3e9ff12;
+  border: 1.3px solid #e3e9fa;
 }
-.bubble-amt-row {
-  display: flex; align-items: center; gap: 8px;
+.bubble-left .paypage-bubble {
+  background: #f8fafd;
 }
-.bubble-amt { font-weight: 800; font-size: .99em; letter-spacing:.01em;}
-.bubble-amt.plus { color: #169f43; }
-.bubble-amt.minus { color: #d14332;}
-.bubble-type { font-weight: 600; color: #8c6239; font-size: .93em;}
+.bubble-amt { 
+  font-weight: 800; font-size: 1em; margin-right: 7px; 
+  letter-spacing:.01em; 
+  min-width: 60px; display: inline-block;
+}
+.amt-send { color: #d14332; }
+.amt-recv { color: #19953c; }
+.bubble-label { font-weight: 600; color: #745d46; font-size: .96em; margin-right:7px;}
 .status-pill {
-  font-weight: 700; font-size: .92em; border-radius: 7px; padding: 2.3px 9px;
-  background: #ececec; display:inline-block; min-width:55px; text-align:center; margin-left:5px;
+  font-weight: 700; font-size: .93em; border-radius: 7px; padding: 2.5px 11px; 
+  background: #ececec; display:inline-block; min-width:60px; text-align:center;
+  margin-right:7px;
 }
-.status-pill.pending { background: #fff7cf; color: #95791b;}
-.status-pill.accepted { background: #d2f7df; color: #229352;}
-.status-pill.rejected { background: #fed6d6; color: #c92d3a;}
-.bubble-meta-row {
-  display: flex; align-items: center;
-}
-.bubble-date { color: #929fab; font-size: .91em; }
+.status-pill.pending { background: #fff9d7; color: #ab9412;}
+.status-pill.accepted { background: #d8f8e4; color: #1e8745;}
+.status-pill.rejected { background: #fff0ee; color: #c52d2a;}
+.bubble-meta { color: #929bab; font-size: .92em; margin-top:1px; display:flex; align-items:center; gap:10px;}
 .bubble-cancel {
-  font-size: .89em;
-  margin-left: 12px;
-  padding: 2px 7px;
+  font-size: .92em;
+  margin-left: 13px;
+  padding: 2px 11px;
   border-radius: 7px;
-  background: #f5f5f7;
-  border: 1px solid #bababa;
+  background: #ecf2f6;
+  border: 1px solid #c5cadc;
   color: #888; font-weight: 600; cursor: pointer; transition: background .13s, color .12s, border .13s;
 }
 .bubble-cancel:active { border-color: #bb2020; color: #bb2020; background: #fde8dd; }
-.chatpay-actionbar-fixed {
-  display: flex; background: #fff; gap: 11px; justify-content:center; padding: 9px 0 8px 0;
-  border-top: 1px solid #f5f5f7; position: fixed; left:0; right:0; bottom:0; z-index: 10; max-width: 430px; margin: 0 auto;
+
+/* Pay/Remind Bar */
+.paypage-actionsbar {
+  display: flex; background: #fff; gap: 13px; justify-content: center; padding: 10px 0 10px 0;
+  border-top: 1.1px solid #f1f4f7; 
+  position: fixed; left:0; right:0; bottom:0; z-index:10; max-width: 430px; margin: 0 auto;
 }
-.chatpay-btn {
-  padding: 7px 26px;
-  font-size: .97em;
+.paypage-btn {
+  padding: 9px 33px;
+  font-size: .98em;
   border-radius: 19px;
   font-weight: 700;
   border: none;
   cursor: pointer;
-  transition: background .13s;
-  background: #264bd7; color: #fff;
+  background: #214be7; color: #fff;
+  transition: background .14s;
 }
-.chatpay-btn.remind { background: #e5eefd; color: #224fa8;}
-.chatpay-btn:active { filter: brightness(.92);}
-@media (max-width: 540px) {
-  .chatpay-main, .chatpay-detail-wrap { max-width: 99vw;}
-  .chatpay-actionbar-fixed { max-width: 99vw;}
-  .chatpay-friend-card, .chatpay-bubble-card { font-size: .97em; }
-  .chatpay-btn { padding: 7px 13vw; }
+.paypage-btn.remind { background: #e9ecfa; color: #2246b8;}
+.paypage-btn:active { filter: brightness(.93);}
+@media (max-width: 600px) {
+  .paypage-wrap { max-width: 99vw;}
+  .paypage-header-row, .paypage-searchbar-row { padding: 0 2vw;}
+  .paypage-actionsbar { max-width: 99vw;}
+  .paypage-bubble { font-size: .97em; }
+  .paypage-btn { padding: 9px 19vw; }
 }
