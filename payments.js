@@ -8,7 +8,8 @@ export function showPaymentsPanel(container, user) {
         { type: "payment", dir: "to", status: "pending", amount: 8, date: "9 Jul", time: "12:01 pm" },
         { type: "payment", dir: "to", status: "pending", amount: 6, date: "7 Aug", time: "7:14 am" },
         { type: "payment", dir: "to", status: "accepted", amount: 5, date: "5 Aug", time: "10:05 am" },
-        { type: "payment", dir: "to", status: "rejected", amount: 10, date: "4 Aug", time: "04:21 pm" }
+        { type: "payment", dir: "from", status: "accepted", amount: 14, date: "2 Aug", time: "12:10 pm" },
+        { type: "payment", dir: "to", status: "rejected", amount: 10, date: "1 Aug", time: "04:21 pm" }
       ]
     },
     {
@@ -36,19 +37,19 @@ export function showPaymentsPanel(container, user) {
 
   function friendList() {
     return `
-      <div class="pay-main">
+      <div class="chatpay-main">
         <div style="height:36px"></div>
-        <div class="pay-friends-list">
+        <div class="chatpay-friends-list">
           ${friends.map((f, i) => `
-            <div class="pay-friend-card" data-idx="${i}">
-              <div class="pay-avatar">${f.initials}</div>
-              <div class="pay-names">
-                <div class="pay-friend-name">${f.name}</div>
-                <div class="pay-friend-balance ${f.net>0?'plus':f.net<0?'minus':'settled'}">
+            <div class="chatpay-friend-card" data-idx="${i}">
+              <div class="chatpay-avatar">${f.initials}</div>
+              <div class="chatpay-names">
+                <div class="chatpay-friend-name">${f.name}</div>
+                <div class="chatpay-friend-balance ${f.net>0?'plus':f.net<0?'minus':'settled'}">
                   ${f.net>0?`+${f.net}`:f.net<0?`–${Math.abs(f.net)}`:"Settled"} QAR
                 </div>
               </div>
-              <span class="pay-arrow">&#8250;</span>
+              <span class="chatpay-arrow">&#8250;</span>
             </div>
           `).join("")}
         </div>
@@ -56,41 +57,39 @@ export function showPaymentsPanel(container, user) {
     `;
   }
 
-  function detailsPage(friend) {
+  function chatSession(friend) {
     return `
-      <div class="pay-detail-wrap">
+      <div class="chatpay-detail-wrap">
         <div style="height:30px"></div>
-        <div class="pay-detail-header">
-          <button class="pay-back" aria-label="Back">&larr;</button>
-          <span class="pay-avatar detail">${friend.initials}</span>
-          <span class="pay-detail-name">${friend.name}</span>
+        <div class="chatpay-detail-header">
+          <button class="chatpay-back" aria-label="Back">&larr;</button>
+          <span class="chatpay-avatar detail">${friend.initials}</span>
+          <span class="chatpay-detail-name">${friend.name}</span>
           ${netPill(friend.net)}
         </div>
-        <div class="pay-txn-list">
+        <div class="chatpay-chatbox">
           ${friend.timeline.map(ev => `
-            <div class="pay-txn-card ${ev.dir === "from" ? "receive" : "send"}">
-              <div class="pay-txn-row">
-                <div>
-                  <span class="pay-txn-type">${ev.dir === "from" ? "Received" : "Paid"}</span>
-                  <span class="pay-txn-amt ${ev.dir === "from" ? "plus" : "minus"}">
+            <div class="chatpay-bubble-row ${ev.dir === "from" ? "bubble-left" : "bubble-right"}">
+              <div class="chatpay-bubble-card ${ev.dir === "from" ? "receive" : "send"}">
+                <div class="bubble-amt-row">
+                  <span class="bubble-amt ${ev.dir === "from" ? "plus" : "minus"}">
                     ${ev.dir === "from" ? "+" : "–"}${ev.amount} QAR
                   </span>
-                </div>
-                <span class="pay-txn-status-row">
+                  <span class="bubble-type">${ev.dir === "from" ? "Received" : "Paid"}</span>
                   ${statusPill(ev.status)}
-                  ${ev.status === "pending"
-                    ? `<button class="pay-txn-cancel">Cancel</button>` : ""}
-                </span>
-              </div>
-              <div class="pay-txn-meta">
-                <span class="pay-txn-dt">${ev.date}, ${ev.time}</span>
+                </div>
+                <div class="bubble-meta-row">
+                  <span class="bubble-date">${ev.date}, ${ev.time}</span>
+                  ${ev.dir === "to" && ev.status === "pending"
+                    ? `<button class="bubble-cancel" title="Cancel payment">Cancel</button>` : ""}
+                </div>
               </div>
             </div>
           `).join("")}
         </div>
-        <div class="pay-actionbar-fixed">
-          <button class="pay-btn pay">Pay</button>
-          <button class="pay-btn remind">Remind</button>
+        <div class="chatpay-actionbar-fixed">
+          <button class="chatpay-btn pay">Pay</button>
+          <button class="chatpay-btn remind">Remind</button>
         </div>
       </div>
     `;
@@ -99,19 +98,18 @@ export function showPaymentsPanel(container, user) {
   function render() {
     if (selected === null) {
       container.innerHTML = friendList();
-      container.querySelectorAll('.pay-friend-card').forEach(row =>
+      container.querySelectorAll('.chatpay-friend-card').forEach(row =>
         row.onclick = () => { selected = Number(row.dataset.idx); render(); }
       );
     } else {
-      container.innerHTML = detailsPage(friends[selected]);
-      container.querySelector('.pay-back').onclick = () => { selected = null; render(); };
-      container.querySelectorAll('.pay-txn-cancel').forEach(btn =>
+      container.innerHTML = chatSession(friends[selected]);
+      container.querySelector('.chatpay-back').onclick = () => { selected = null; render(); };
+      container.querySelectorAll('.bubble-cancel').forEach(btn =>
         btn.onclick = () => alert("Cancel (demo)")
       );
-      container.querySelector('.pay-btn.pay').onclick = () => alert("Pay (demo)");
-      container.querySelector('.pay-btn.remind').onclick = () => alert("Remind (demo)");
+      container.querySelector('.chatpay-btn.pay').onclick = () => alert("Pay (demo)");
+      container.querySelector('.chatpay-btn.remind').onclick = () => alert("Remind (demo)");
     }
   }
-
   render();
 }
