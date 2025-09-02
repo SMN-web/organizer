@@ -1,23 +1,34 @@
 export function showPaymentsPanel(container, user) {
+  // Utilities for date grouping
+  const DAY_LABELS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  function smartDateLabel(rawDate) {
+    // Assumes rawDate like "7 Aug" / "2 Sep", without year
+    const now = new Date();
+    const todayStr = now.getDate()+" "+now.toLocaleString('en',{month:"short"});
+    const yesterday = new Date(Date.now()-86400000);
+    const yesterdayStr = yesterday.getDate()+" "+yesterday.toLocaleString('en',{month:"short"});
+    if (rawDate === todayStr) return "Today";
+    if (rawDate === yesterdayStr) return "Yesterday";
+    for(let i=2;i<=7;++i){
+      let nd=new Date(Date.now()-i*86400000);
+      if(nd.getDate()+" "+nd.toLocaleString('en',{month:"short"})===rawDate)
+        return DAY_LABELS[nd.getDay()];
+    }
+    return rawDate;
+  }
+
+  // Demo data with spread dates
   const friends = [
     {
       initials: "RA", name: "Rafseed", net: -70, timeline: [
         { dir: "to", status: "pending", amount: 8, date: "9 Jul", time: "12:01 pm" },
         { dir: "to", status: "pending", amount: 6, date: "7 Aug", time: "7:14 am" },
-        { dir: "to", status: "accepted", amount: 5, date: "5 Aug", time: "10:05 am" },
-        { dir: "from", status: "pending", amount: 14, date: "2 Aug", time: "12:10 pm" },
-        { dir: "to", status: "rejected", amount: 10, date: "1 Aug", time: "04:21 pm" },
-        { dir: "from", status: "accepted", amount: 30, date: "28 Jul", time: "09:02 am" },
-        { dir: "to", status: "accepted", amount: 7, date: "23 Jul", time: "06:21 pm" },
-        { dir: "to", status: "accepted", amount: 15, date: "21 Jul", time: "01:39 pm" },
-        { dir: "to", status: "pending", amount: 8, date: "9 Jul", time: "12:01 pm" },
-        { dir: "to", status: "pending", amount: 6, date: "7 Aug", time: "7:14 am" },
-        { dir: "to", status: "accepted", amount: 5, date: "5 Aug", time: "10:05 am" },
-        { dir: "from", status: "pending", amount: 14, date: "2 Aug", time: "12:10 pm" },
-        { dir: "to", status: "rejected", amount: 10, date: "1 Aug", time: "04:21 pm" },
-        { dir: "from", status: "accepted", amount: 30, date: "28 Jul", time: "09:02 am" },
-        { dir: "to", status: "accepted", amount: 7, date: "23 Jul", time: "06:21 pm" },
-        { dir: "to", status: "accepted", amount: 15, date: "21 Jul", time: "01:39 pm" }
+        { dir: "to", status: "accepted", amount: 5, date: "7 Aug", time: "10:05 am" },
+        { dir: "from", status: "pending", amount: 14, date: "5 Aug", time: "12:10 pm" },
+        { dir: "to", status: "rejected", amount: 10, date: "3 Aug", time: "04:21 pm" },
+        { dir: "from", status: "accepted", amount: 30, date: "2 Aug", time: "09:02 am" },
+        { dir: "to", status: "accepted", amount: 7, date: "1 Aug", time: "06:21 pm" },
+        { dir: "to", status: "accepted", amount: 15, date: "31 Jul", time: "01:39 pm" }
       ]
     },
     {
@@ -37,20 +48,20 @@ export function showPaymentsPanel(container, user) {
     },
     {
       initials: "AN", name: "Anjali", net: 48, timeline: [
-        { dir: "from", status: "pending", amount: 20, date: "31 Aug", time: "07:55 am" },
-        { dir: "from", status: "accepted", amount: 28, date: "30 Aug", time: "08:13 am" },
-        { dir: "to", status: "pending", amount: 9, date: "23 Aug", time: "05:21 pm" }
+        { dir: "from", status: "pending", amount: 20, date: "31 Jul", time: "07:55 am" },
+        { dir: "from", status: "accepted", amount: 28, date: "30 Jul", time: "08:13 am" },
+        { dir: "to", status: "pending", amount: 9, date: "23 Jul", time: "05:21 pm" }
       ]
     },
     {
       initials: "LS", name: "Lisa", net: -98, timeline: [
-        { dir: "to", status: "pending", amount: 54, date: "14 Jul", time: "10:22 am" },
+        { dir: "to", status: "pending", amount: 54, date: "12 Jul", time: "10:22 am" },
         { dir: "to", status: "accepted", amount: 44, date: "10 Jul", time: "02:50 pm" }
       ]
     },
     {
       initials: "SH", name: "Shyam", net: 7, timeline: [
-        { dir: "from", status: "pending", amount: 7, date: "7 Sep", time: "05:17 pm" }
+        { dir: "from", status: "pending", amount: 7, date: "2 Sep", time: "05:17 pm" }
       ]
     }
   ];
@@ -66,10 +77,8 @@ export function showPaymentsPanel(container, user) {
   let current = 0;
   let searchTerm = "";
   let filter = "all";
-  // Local focus state for search
   let searchHadFocus = false;
   let searchSelection = 0;
-  // Timeline state for each friend
   let userTimeline = friends.map(f => f.timeline.map(row => ({ ...row })));
 
   function netPill(net) {
@@ -119,7 +128,6 @@ export function showPaymentsPanel(container, user) {
           </div>
         </div>
       `;
-      // Persistent search input focus and cursor maintenance
       const searchEl = container.querySelector('.paypage-search');
       searchEl.value = searchTerm;
       if (searchHadFocus) {
@@ -139,7 +147,6 @@ export function showPaymentsPanel(container, user) {
       container.querySelector('.paypage-filter').onchange = e => { filter = e.target.value; render(); };
       container.querySelectorAll('.paypage-friend-row').forEach(row =>
         row.onclick = () => {
-          // Friend index in filtered list
           const idx = Number(row.dataset.idx);
           current = friends.findIndex(f => f.name === flist[idx].name);
           view = "user"; render();
@@ -148,6 +155,7 @@ export function showPaymentsPanel(container, user) {
     } else {
       const friend = friends[current];
       const timeline = userTimeline[current];
+      let lastDate = "";
       container.innerHTML = `
         <div class="paypage-wrap">
           <div class="paypage-padding-top"></div>
@@ -157,30 +165,39 @@ export function showPaymentsPanel(container, user) {
             <span class="paypage-username">${friend.name}</span>
             ${netPill(friend.net)}
           </div>
+          <div class="user-header-divider"></div>
           <div class="paypage-chat">
-            ${timeline.map((ev, idx) => `
-              <div class="paypage-bubble-row ${ev.dir === "from" ? "bubble-left" : "bubble-right"}">
-                <div class="paypage-bubble ${ev.dir === "from" ? "bubble-recv" : "bubble-send"}">
-                  <div>
-                    <span class="bubble-amt ${ev.dir==="from"?"amt-recv":"amt-send"}">${ev.amount} QAR</span>
-                    <span class="bubble-label">${ev.dir==="from"?"Received":"Paid"}</span>
-                    ${
-                      ev.status !== "pending"
-                        ? statusPill(ev.status)
-                        : (ev.dir === "from")
-                          ? `<button class="bubble-accept" data-idx="${idx}">Accept</button>
-                             <button class="bubble-reject" data-idx="${idx}">Reject</button>`
-                          : statusPill("pending")
-                    }
-                  </div>
-                  <div class="bubble-meta">
-                    <span>${ev.date}, ${ev.time}</span>
-                    ${ev.dir === "to" && ev.status === "pending"
-                      ? `<button class="bubble-cancel" data-idx="${idx}">Cancel</button>` : ""}
+            ${timeline.map((ev, idx) => {
+              let datedisplay = "";
+              if (ev.date !== lastDate) {
+                datedisplay = `<div class="pay-date-header">${smartDateLabel(ev.date)}</div>`;
+                lastDate = ev.date;
+              }
+              return `
+                ${datedisplay}
+                <div class="paypage-bubble-row ${ev.dir === "from" ? "bubble-left" : "bubble-right"}">
+                  <div class="paypage-bubble ${ev.dir === "from" ? "bubble-recv" : "bubble-send"}">
+                    <div>
+                      <span class="bubble-amt ${ev.dir==="from"?"amt-recv":"amt-send"}">${ev.amount} QAR</span>
+                      <span class="bubble-label">${ev.dir==="from"?"Received":"Paid"}</span>
+                      ${
+                        ev.status !== "pending"
+                          ? statusPill(ev.status)
+                          : (ev.dir === "from")
+                            ? `<button class="bubble-accept" data-idx="${idx}">Accept</button>
+                               <button class="bubble-reject" data-idx="${idx}">Reject</button>`
+                            : statusPill("pending")
+                      }
+                    </div>
+                    <div class="bubble-meta">
+                      <span>${ev.time}</span>
+                      ${ev.dir === "to" && ev.status === "pending"
+                        ? `<button class="bubble-cancel" data-idx="${idx}">Cancel</button>` : ""}
+                    </div>
                   </div>
                 </div>
-              </div>
-            `).join("")}
+              `;
+            }).join("")}
           </div>
           <div class="paypage-actionsbar">
             <button class="paypage-btn pay">Pay</button>
