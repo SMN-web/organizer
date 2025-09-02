@@ -1,5 +1,4 @@
 export function showPaymentsPanel(container, user) {
-  // --- Demo data ---
   const friends = [
     {
       initials: "RA", name: "Rafseed", net: -70, events: [
@@ -11,8 +10,8 @@ export function showPaymentsPanel(container, user) {
     },
     {
       initials: "BA", name: "Bala", net: 120, events: [
-        { dir: "to", amount: 50, status: "pending", time: "10m ago" },
-        { dir: "to", amount: 70, status: "accepted", time: "27m ago" }
+        { dir: "from", amount: 50, status: "accepted", time: "10m ago" },
+        { dir: "from", amount: 70, status: "accepted", time: "27m ago" }
       ]
     },
     {
@@ -28,7 +27,7 @@ export function showPaymentsPanel(container, user) {
     },
     {
       initials: "JO", name: "Jose", net: 0, events: [
-        { dir: "to", amount: 40, status: "accepted", time: "50m ago" }
+        { dir: "from", amount: 40, status: "accepted", time: "50m ago" }
       ]
     }
   ];
@@ -39,7 +38,6 @@ export function showPaymentsPanel(container, user) {
     { value: "done", label: "Settled" }
   ];
 
-  // Persistent state (not reset on every render)
   let searchTerm = "", filterVal = "all";
   let modalIdx = null;
   let searchHadFocus = false;
@@ -49,19 +47,26 @@ export function showPaymentsPanel(container, user) {
     return events && events.some(e => e.status === "pending" && e.dir === "to");
   }
 
-  function displayNet(net) {
-    if (net === 0) return "Settled";
-    return (net > 0 ? "+" : "–") + Math.abs(net) + " QAR";
+  function netState(net) {
+    if (net === 0) return "settled";
+    return net > 0 ? "plus" : "minus";
   }
 
-  function friendStatusClass(net) {
-    if (net > 0) return "plus";
-    if (net < 0) return "minus";
-    return "settled";
+  function displayNet(net) {
+    if (net === 0) return `<span class="pm-net-status settled">Settled</span>`;
+    return `<span class="pm-net-status ${net > 0 ? "plus" : "minus"}">${net > 0 ? "+" : "–"}${Math.abs(net)} QAR</span>`;
+  }
+
+  function rowAmount(ev) {
+    return `<span class="pm-hamt ${ev.dir==="from"?"plus":"minus"}">${ev.dir==="from"?"+":"–"}${ev.amount} QAR</span>`;
+  }
+
+  function rowStatus(ev) {
+    if(ev.dir==="from") return `<span class="pm-ttxt plus">Received</span>`;
+    return `<span class="pm-ttxt minus">Paid</span>`;
   }
 
   function render() {
-    // Filtered visible friends
     const filtered = friends.filter(f => {
       const m = !searchTerm || f.name.toLowerCase().includes(searchTerm);
       if (filterVal === "all") return m;
@@ -86,7 +91,7 @@ export function showPaymentsPanel(container, user) {
               <span class="pm-avatar">${f.initials}</span>
               <span class="pm-fmeta">
                 <span class="pm-fname">${f.name}</span>
-                <span class="pm-fnet ${friendStatusClass(f.net)}">${displayNet(f.net)}</span>
+                ${displayNet(f.net)}
               </span>
               <span class="pm-arrow">&#8250;</span>
             </div>
@@ -96,7 +101,7 @@ export function showPaymentsPanel(container, user) {
       </div>
     `;
 
-    // Search persistence and debounce
+    // Search bar persistence
     const searchEl = container.querySelector("#pmSearch");
     searchEl.value = searchTerm;
     if (searchHadFocus) {
@@ -105,7 +110,6 @@ export function showPaymentsPanel(container, user) {
         searchEl.setSelectionRange(searchSelection, searchSelection);
       }, 0);
     }
-    // User input events
     searchEl.oninput = e => {
       searchTerm = e.target.value;
       searchHadFocus = true;
@@ -114,20 +118,13 @@ export function showPaymentsPanel(container, user) {
     };
     searchEl.onfocus = e => { searchHadFocus = true; searchSelection = e.target.selectionStart; };
     searchEl.onblur = e => { searchHadFocus = false; };
-
-    // Dropdown filters
     container.querySelector("#pmFilter").value = filterVal;
     container.querySelector("#pmFilter").onchange = e => { filterVal = e.target.value; render(); };
-
-    // Friend modal open/close
     container.querySelectorAll('.pm-fcard').forEach(fc => {
       fc.onclick = () => { modalIdx = Number(fc.dataset.idx); render(); };
     });
     if (modalIdx !== null) {
-      // Back arrow and modal close
       container.querySelector('.pm-modal-back').onclick = () => { modalIdx = null; render(); };
-
-      // Pay button logic (show msg and revert if already pending)
       const payBtn = container.querySelector('.pm-btn.pay');
       if (payBtn) {
         payBtn.onclick = () => {
@@ -139,17 +136,33 @@ export function showPaymentsPanel(container, user) {
           }
         };
       }
-      // Remind button click (always enabled)
       const remindBtn = container.querySelector('.pm-btn.remind');
       if (remindBtn) remindBtn.onclick = () => alert("Remind sent (demo)");
-      // Cancel for pending payments
       container.querySelectorAll('.pm-mini-act').forEach(btn => btn.onclick = () => alert("Cancel request sent (demo)"));
     }
   }
 
   function modalView(friend) {
-    const netState = friendStatusClass(friend.net);
+    const netCls = netState(friend.net);
     const pending = hasPending(friend.events);
+    if(friend.net === 0) {
+      return `
+      <div class="pm-modal-bg"></div>
+      <div class="pm-modal">
+        <button class="pm-modal-back" aria-label="Back">&larr;</button>
+        <div class="pm-modal-pinfo">
+          <span class="pm-avatar big">${friend.initials}</span>
+          <span>
+            <span class="pm-fname big">${friend.name}</span>
+            ${displayNet(friend.net)}
+          </span>
+        </div>
+        <div class="pm-modal-actions">
+          <span class="pm-settled-tag">All Settled</span>
+        </div>
+      </div>
+      `;
+    }
     return `
       <div class="pm-modal-bg"></div>
       <div class="pm-modal">
@@ -158,22 +171,23 @@ export function showPaymentsPanel(container, user) {
           <span class="pm-avatar big">${friend.initials}</span>
           <span>
             <span class="pm-fname big">${friend.name}</span>
-            <span class="pm-fnet big ${netState}">${displayNet(friend.net)}</span>
+            ${displayNet(friend.net)}
           </span>
         </div>
         <div class="pm-modal-actions">
           ${pending ? "" : `<button class="pm-btn pay">Pay</button>`}
           <button class="pm-btn remind">Remind</button>
         </div>
-        <div class="pm-modal-hist">
-          ${(friend.events || []).map(ev => `
+        <div class="pm-modal-hist clean-table">
+          ${(friend.events||[]).map((ev, i) => `
             <div class="pm-modal-hrow ${ev.status}">
-              <span>${ev.dir === "to" ? `You paid ${friend.name}` : `${friend.name} paid you`}</span>
-              <span class="pm-hamt">${ev.amount} QAR</span>
+              ${rowAmount(ev)}
+              ${rowStatus(ev)}
               <span class="pm-hstat">${ev.status.charAt(0).toUpperCase() + ev.status.slice(1)}</span>
               <span class="pm-htime">${ev.time}</span>
               ${(ev.status === "pending" && ev.dir === "to") ? `<button class="pm-mini-act">Cancel</button>` : ""}
             </div>
+            ${i < friend.events.length - 1 ? '<div class="hr-row"></div>' : ''}
           `).join("")}
         </div>
       </div>
