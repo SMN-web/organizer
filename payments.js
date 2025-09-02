@@ -1,5 +1,4 @@
 export function showPaymentsPanel(container, user) {
-  // Demo data
   const friends = [
     {
       initials: "RA", name: "Rafseed", net: -70, timeline: [
@@ -7,12 +6,43 @@ export function showPaymentsPanel(container, user) {
         { dir: "to", status: "pending", amount: 6, date: "7 Aug", time: "7:14 am" },
         { dir: "to", status: "accepted", amount: 5, date: "5 Aug", time: "10:05 am" },
         { dir: "from", status: "pending", amount: 14, date: "2 Aug", time: "12:10 pm" },
-        { dir: "to", status: "rejected", amount: 10, date: "1 Aug", time: "04:21 pm" }
+        { dir: "to", status: "rejected", amount: 10, date: "1 Aug", time: "04:21 pm" },
+        { dir: "from", status: "accepted", amount: 30, date: "28 Jul", time: "09:02 am" },
+        { dir: "to", status: "accepted", amount: 7, date: "23 Jul", time: "06:21 pm" },
+        { dir: "to", status: "accepted", amount: 15, date: "21 Jul", time: "01:39 pm" }
       ]
     },
     {
       initials: "BA", name: "Bala", net: 120, timeline: [
-        { dir: "from", status: "accepted", amount: 120, date: "7 Aug", time: "8:48 am" }
+        { dir: "from", status: "accepted", amount: 120, date: "7 Aug", time: "8:48 am" },
+        { dir: "to", status: "pending", amount: 33, date: "2 Jul", time: "02:17 pm" },
+        { dir: "from", status: "accepted", amount: 65, date: "15 Jun", time: "10:17 am" },
+        { dir: "to", status: "accepted", amount: 16, date: "6 Jun", time: "10:15 am" }
+      ]
+    },
+    {
+      initials: "JO", name: "Joseph", net: 0, timeline: [
+        { dir: "from", status: "accepted", amount: 31, date: "2 Sep", time: "09:01 am" },
+        { dir: "to", status: "accepted", amount: 31, date: "29 Aug", time: "11:30 am" },
+        { dir: "from", status: "pending", amount: 24, date: "23 Aug", time: "01:31 am" }
+      ]
+    },
+    {
+      initials: "AN", name: "Anjali", net: 48, timeline: [
+        { dir: "from", status: "pending", amount: 20, date: "31 Aug", time: "07:55 am" },
+        { dir: "from", status: "accepted", amount: 28, date: "30 Aug", time: "08:13 am" },
+        { dir: "to", status: "pending", amount: 9, date: "23 Aug", time: "05:21 pm" }
+      ]
+    },
+    {
+      initials: "LS", name: "Lisa", net: -98, timeline: [
+        { dir: "to", status: "pending", amount: 54, date: "14 Jul", time: "10:22 am" },
+        { dir: "to", status: "accepted", amount: 44, date: "10 Jul", time: "02:50 pm" }
+      ]
+    },
+    {
+      initials: "SH", name: "Shyam", net: 7, timeline: [
+        { dir: "from", status: "pending", amount: 7, date: "7 Sep", time: "05:17 pm" }
       ]
     }
   ];
@@ -28,7 +58,10 @@ export function showPaymentsPanel(container, user) {
   let current = 0;
   let searchTerm = "";
   let filter = "all";
-  // Account for stateful "accept/reject" on incoming
+  // Local focus state for search
+  let searchHadFocus = false;
+  let searchSelection = 0;
+  // Timeline state for each friend
   let userTimeline = friends.map(f => f.timeline.map(row => ({ ...row })));
 
   function netPill(net) {
@@ -61,7 +94,7 @@ export function showPaymentsPanel(container, user) {
         <div class="paypage-wrap">
           <div class="paypage-padding-top"></div>
           <div class="paypage-searchbar-row">
-            <input class="paypage-search" placeholder="Search friends..." value="${searchTerm}">
+            <input class="paypage-search" autocomplete="off" placeholder="Search friends..." value="${searchTerm}">
             <select class="paypage-filter">
               ${FILTERS.map(f => `<option value="${f.value}"${filter===f.value?" selected":""}>${f.label}</option>`).join("")}
             </select>
@@ -78,8 +111,23 @@ export function showPaymentsPanel(container, user) {
           </div>
         </div>
       `;
-      // Events
-      container.querySelector('.paypage-search').oninput = e => { searchTerm = e.target.value; render(); };
+      // Persistent search input focus and cursor maintenance
+      const searchEl = container.querySelector('.paypage-search');
+      searchEl.value = searchTerm;
+      if (searchHadFocus) {
+        setTimeout(() => {
+          searchEl.focus();
+          searchEl.setSelectionRange(searchSelection, searchSelection);
+        }, 0);
+      }
+      searchEl.oninput = e => {
+        searchTerm = e.target.value;
+        searchHadFocus = true;
+        searchSelection = e.target.selectionStart;
+        render();
+      };
+      searchEl.onfocus = e => { searchHadFocus = true; searchSelection = e.target.selectionStart; };
+      searchEl.onblur = e => { searchHadFocus = false; };
       container.querySelector('.paypage-filter').onchange = e => { filter = e.target.value; render(); };
       container.querySelectorAll('.paypage-friend-row').forEach(row =>
         row.onclick = () => {
@@ -133,8 +181,6 @@ export function showPaymentsPanel(container, user) {
         </div>
       `;
       container.querySelector('.paypage-back').onclick = () => { view = "friends"; render(); };
-
-      // Accept/reject/cancel actions (mutate timeline for this session)
       container.querySelectorAll('.bubble-accept').forEach(btn => {
         btn.onclick = () => {
           const idx = Number(btn.dataset.idx);
