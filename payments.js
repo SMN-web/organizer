@@ -27,7 +27,6 @@ export function showPaymentsPanel(container, user) {
     if (net === 0) return `<span class="net-pill settled">Settled</span>`;
     return `<span class="net-pill ${net > 0 ? "plus" : "minus"}">${net > 0 ? "+" : "–"}${Math.abs(net)} QAR</span>`;
   }
-
   function statusPill(status) {
     if (status === "pending") return `<span class="status-pill pending">Pending</span>`;
     if (status === "accepted") return `<span class="status-pill accepted">Accepted</span>`;
@@ -37,17 +36,19 @@ export function showPaymentsPanel(container, user) {
 
   function friendList() {
     return `
-      <div class="gpay-main-container">
-        <div style="height:38px"></div>
-        <div class="gpay-friends-list">
+      <div class="pay-main">
+        <div style="height:36px"></div>
+        <div class="pay-friends-list">
           ${friends.map((f, i) => `
-            <div class="gpay-friend-row" data-idx="${i}">
-              <span class="gpay-friend-avatar">${f.initials}</span>
-              <span class="gpay-friend-name">${f.name}</span>
-              <span class="gpay-friend-net ${f.net>0?'plus':f.net<0?'minus':'settled'}">
-                ${f.net>0?`+${f.net}`:f.net<0?`–${Math.abs(f.net)}`:"Settled"} QAR
-              </span>
-              <span class="gpay-open">&#8250;</span>
+            <div class="pay-friend-card" data-idx="${i}">
+              <div class="pay-avatar">${f.initials}</div>
+              <div class="pay-names">
+                <div class="pay-friend-name">${f.name}</div>
+                <div class="pay-friend-balance ${f.net>0?'plus':f.net<0?'minus':'settled'}">
+                  ${f.net>0?`+${f.net}`:f.net<0?`–${Math.abs(f.net)}`:"Settled"} QAR
+                </div>
+              </div>
+              <span class="pay-arrow">&#8250;</span>
             </div>
           `).join("")}
         </div>
@@ -57,32 +58,39 @@ export function showPaymentsPanel(container, user) {
 
   function detailsPage(friend) {
     return `
-      <div class="gpay-detail-section">
+      <div class="pay-detail-wrap">
         <div style="height:30px"></div>
-        <div class="gpay-detail-header">
-          <button class="gpay-back" aria-label="Back">&larr;</button>
-          <span class="gpay-detail-avatar">${friend.initials}</span>
-          <span class="gpay-detail-title">${friend.name}</span>
+        <div class="pay-detail-header">
+          <button class="pay-back" aria-label="Back">&larr;</button>
+          <span class="pay-avatar detail">${friend.initials}</span>
+          <span class="pay-detail-name">${friend.name}</span>
           ${netPill(friend.net)}
         </div>
-        <div class="gpay-detail-cards">
+        <div class="pay-txn-list">
           ${friend.timeline.map(ev => `
-            <div class="gpay-card gpay-txn-card ${ev.dir === "from" ? "receive" : "send"}">
-              <div class="gpay-txn-head">
-                <span class="gpay-txn-type">${ev.dir === "from" ? "Received" : "Paid"}</span>
-                <span class="gpay-txn-amt ${ev.dir === "from" ? "plus" : "minus"}">
-                  ${ev.dir === "from" ? "+" : "–"}${ev.amount} QAR
+            <div class="pay-txn-card ${ev.dir === "from" ? "receive" : "send"}">
+              <div class="pay-txn-row">
+                <div>
+                  <span class="pay-txn-type">${ev.dir === "from" ? "Received" : "Paid"}</span>
+                  <span class="pay-txn-amt ${ev.dir === "from" ? "plus" : "minus"}">
+                    ${ev.dir === "from" ? "+" : "–"}${ev.amount} QAR
+                  </span>
+                </div>
+                <span class="pay-txn-status-row">
+                  ${statusPill(ev.status)}
+                  ${ev.status === "pending"
+                    ? `<button class="pay-txn-cancel">Cancel</button>` : ""}
                 </span>
               </div>
-              <div class="gpay-txn-status">${statusPill(ev.status)}</div>
-              <div class="gpay-txn-dt">${ev.date}, ${ev.time}</div>
-              ${ev.status === "pending" ? '<button class="row-cancel">Cancel</button>' : ''}
+              <div class="pay-txn-meta">
+                <span class="pay-txn-dt">${ev.date}, ${ev.time}</span>
+              </div>
             </div>
           `).join("")}
         </div>
-        <div class="gpay-actionbar">
-          <button class="gpay-abtn pay">Pay</button>
-          <button class="gpay-abtn remind">Remind</button>
+        <div class="pay-actionbar-fixed">
+          <button class="pay-btn pay">Pay</button>
+          <button class="pay-btn remind">Remind</button>
         </div>
       </div>
     `;
@@ -91,17 +99,17 @@ export function showPaymentsPanel(container, user) {
   function render() {
     if (selected === null) {
       container.innerHTML = friendList();
-      container.querySelectorAll('.gpay-friend-row').forEach(row => {
-        row.onclick = () => { selected = Number(row.dataset.idx); render(); };
-      });
+      container.querySelectorAll('.pay-friend-card').forEach(row =>
+        row.onclick = () => { selected = Number(row.dataset.idx); render(); }
+      );
     } else {
       container.innerHTML = detailsPage(friends[selected]);
-      container.querySelector('.gpay-back').onclick = () => { selected = null; render(); };
-      container.querySelectorAll('.row-cancel').forEach(btn =>
+      container.querySelector('.pay-back').onclick = () => { selected = null; render(); };
+      container.querySelectorAll('.pay-txn-cancel').forEach(btn =>
         btn.onclick = () => alert("Cancel (demo)")
       );
-      container.querySelector('.gpay-abtn.pay').onclick = () => alert("Pay (demo)");
-      container.querySelector('.gpay-abtn.remind').onclick = () => alert("Remind (demo)");
+      container.querySelector('.pay-btn.pay').onclick = () => alert("Pay (demo)");
+      container.querySelector('.pay-btn.remind').onclick = () => alert("Remind (demo)");
     }
   }
 
