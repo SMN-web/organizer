@@ -1,143 +1,89 @@
-body {
-  background: #f5f7fa;
-  margin: 0;
-  font-family: "Inter", Arial, sans-serif;
+body { background: #f5f7fa; margin:0; font-family: "Inter", Arial, sans-serif;}
+.gpay-main-container { max-width: 430px; margin: 0 auto; }
+.gpay-friends-list {
+  padding: 0 0 5px 0;
+  margin-top: 7px;
 }
-
-.ledger-modal {
-  max-width: 500px;
-  margin: 36px auto 0 auto;
-  background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 2px 28px #b8cbfb25;
-  padding: 0 2vw 2vw 2vw;
-}
-
-.ledger-summary {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  padding: 22px 2vw 0 2vw;
-}
-.ledger-back {
-  background: none; border: none; color: #3054bd; font-size: 1.23em; cursor: pointer; border-radius: 7px;
-}
-.ledger-avatar {
-  background: #e3e6fa; color: #25316a; font-weight: 700;
-  border-radius: 50%; width: 40px; height: 40px;
-  display: flex; align-items: center; justify-content: center; font-size: 1.13em;
-}
-.ledger-title {
-  font-weight: 900; font-size: 1.07em; color: #233059;
-  display: flex; align-items: center; gap: 6px;
-}
-.net-pill {
-  display: inline-block;
-  font-weight: 700;
-  font-size: .98em;
-  border-radius: 7px;
-  padding: 3px 11px 3px 8px;
-  margin-left: 5px;
-  vertical-align: middle;
-}
-.net-pill.minus { color: #c13b23; background: #fbe8e8; }
-.net-pill.plus { color: #149923; background: #edfbee; }
-.net-pill.settled { color: #528386; background: #e2f5ef; }
-.ledger-remind {
-  margin-left: auto;
-  padding: 8px 20px;
-  color: #3956b7;
-  background: #e5eaff;
-  border-radius: 10px;
-  border: none;
-  font-weight: 700;
-  font-size: 1em;
+.gpay-friend-row {
+  display: flex; align-items: center; gap: 13px;
+  background: #f7fafd;
+  border-radius: 14px;
+  margin-bottom: 8px;
+  padding: 9px 12px 11px 13px;
   cursor: pointer;
+  box-shadow: 0 2.5px 12px #eaf4ff15;
+  transition: background .13s;
 }
+.gpay-friend-row:hover { background: #e1eefd; }
+.gpay-friend-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%; background: #e3eafd; color: #2854d7;
+  font-weight: 900; display: flex; align-items: center; justify-content: center; font-size: 1em;
+}
+.gpay-friend-name { font-weight: 700; color: #162a43;}
+.gpay-friend-net { font-weight: 700; margin-left: auto; font-size: .99em;}
+.gpay-friend-net.plus { color: #19b043;}
+.gpay-friend-net.minus{ color: #c13b23;}
+.gpay-friend-net.settled{ color: #7ea5a7;}
+.gpay-open { font-size: 2.08em; color: #c9d9e7; margin-left:6px;}
+.gpay-instructions { color: #adadad; text-align: center; margin: 4em 0; font-size: 1.03em; }
 
-.ledger-history-section {
-  padding: 7px 2vw 0 2vw;
+.gpay-activity-area { min-height: 120px; }
+.gpay-activity-wrap { margin-top: 14px; }
+.gpay-back-row {
+  display: flex; align-items: center; gap:12px; margin-bottom: 15px;
 }
-.ledger-history-title {
-  font-size: 1.01em;
-  color: #929fad;
-  font-weight: 600;
-  margin-bottom: 6px;
-  margin-left: 5px;
+.gpay-back {
+  background: none; border: none; font-size: 1.16em; color: #3054bd; cursor: pointer; border-radius: 8px;
 }
-.ledger-list {
-  width: 100%;
-}
-.ledger-row {
-  display: grid;
-  grid-template-columns: 1.22fr .95fr 1fr 1fr .95fr;
-  align-items: center;
-  gap: 8px;
-  background: #f9fbfd;
-  margin-bottom: 9px;
-  border-radius: 13px;
-  min-height: 44px;
-  padding: 0 11px;
-  box-shadow: 0 2px 7px #e6eeff09;
-  transition: background .14s;
-}
+.gpay-activity-av { background: #e3e6fa; color: #25316a; font-weight: 700; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: .97em;}
+.gpay-activity-title { font-weight: 700; font-size: 1.04em; }
+.gpay-activity-net { font-weight: 700; margin-left: auto; font-size: .95em;}
+.gpay-activity-net.plus { color: #19b043;}
+.gpay-activity-net.minus{ color: #c13b23;}
+.gpay-activity-net.settled{ color: #7ea5a7;}
 
-.amt.minus {
-  color: #d13b32;
-  font-weight: 900;
-  font-size: 1.08em;
-  background: #fce4e2;
-  border-radius: 7px;
-  padding: 3px 11px;
-  justify-self: left;
+.gpay-activity-cards { display: flex; flex-direction: column; gap: 13px; margin-bottom: 49px;}
+.gpay-card {
+  background: #fff; border-radius: 17px;
+  box-shadow: 0 2.5px 22px #eaf4ff14;
+  padding: 17px 19px 15px 19px;
+  margin: 0 10px;
+  display: flex; flex-direction: column; gap: 7px;
 }
-.type.paid {
-  color: #965438;
-  font-weight: 700;
-  justify-self: left;
+.gpay-txn-card { }
+.gpay-txn-head { display:flex; align-items: baseline; gap:11px;}
+.gpay-txn-type { font-weight: 700; color: #614437;}
+.gpay-txn-amt { font-weight: 900; font-size: 1.25em; }
+.gpay-txn-amt.plus { color: #119c31;}
+.gpay-txn-amt.minus{ color: #d13b32;}
+.gpay-txn-status {
+  display:inline-block; font-size: .99em; font-weight:700; border-radius: 8px; padding:3.2px 14px; margin-top:5px;
+  width: fit-content;
 }
-.status-pill {
-  font-weight: 700;
-  font-size: .98em;
-  border-radius: 7px;
-  padding: 3px 13px;
-  justify-self: left;
+.gpay-txn-status.paid, .gpay-txn-status.accepted { background: #d3f8e2; color: #19b043; }
+.gpay-txn-status.pending { background: #f9f7d6; color: #ae8c29; }
+.gpay-txn-status.rejected { background: #fadede; color: #c52d2a; }
+.gpay-txn-dt { color: #a5acb2; font-size: .95em; }
+.gpay-reward-card { display:flex; flex-direction:row; align-items:center; gap:15px; background: #f5f6fb;}
+.gpay-reward-icon { font-size:2em;}
+.gpay-reward-summary { color: #245494; font-weight: 700; }
+.gpay-actionbar {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  display: flex; background: #fff; padding: 12px 8px 14px 8px; gap: 10px;
+  z-index: 998; box-shadow: 0 -2px 24px #eaeefc43;
 }
-
-.status-pill.pending {
-  background: #fbeec0;
-  color: #95791b;
+.gpay-abtn {
+  padding: 12px 27px; background: #294ae8; color: #fff; border:none; border-radius: 30px; font-weight:700; font-size:1.07em;
+  transition: background .14s; cursor: pointer;
 }
-.status-pill.accepted {
-  background: #c0f5ce;
-  color: #229352;
+.gpay-abtn.request { background: #e5ecfa; color: #2246b8;}
+.gpay-msginpt {
+  flex: 1 1 98px;
+  border-radius: 19px; padding: 10px 14px; border: 1.1px solid #d9e2f8; background: #fafdff; font-size: 1.07em;
 }
-.status-pill.rejected {
-  background: #fdd5d5;
-  color: #c52d2a;
-}
-
-.meta {
-  color: #868f99;
-  font-size: .95em;
-  justify-self: left;
-}
-.row-cancel {
-  background: none;
-  border: 1px solid #bababa;
-  color: #888;
-  border-radius: 7px;
-  padding: 6px 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background .13s, color .11s, border .13s;
-}
-.row-cancel:active {
-  border-color: #bb2020;
-  color: #bb2020;
-  background: #fce8e0;
-}
-@media (max-width: 550px) {
-  .ledger-modal { max-width: 99vw; }
-  .ledger-row { min-height: 49px; padding: 1vw 3vw; font-size: .99em; }
+@media (max-width: 600px) {
+  .gpay-main-container { max-width: 99vw;}
+  .gpay-friends-list { padding: 0 2vw 5px 2vw;}
+  .gpay-card { margin: 0 1vw;}
 }
