@@ -3,7 +3,7 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
   max-width: 430px; margin: 0 auto; position: relative; background: #fff;
   border-radius: 15px; min-height: 95vh; box-shadow: 0 2px 29px #dde0f929;
 }
-.paypage-padding-top { height: 74px; } /* Extra top space for menu/bell */
+.paypage-padding-top { height: 74px; } 
 .paypage-searchbar-row {
   display: flex; align-items: center; gap: 7px; margin: 0 15px 17px 12px;
 }
@@ -30,10 +30,20 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
 .net-pill.plus { color: #16933e; background: #e8faef;}
 .net-pill.minus { color: #b63621; background: #fbe7e4;}
 .net-pill.settled{ color: #639e82; background: #e2f5ef;}
-.paypage-right-arrow { font-size: 2.0em; color: #c9d2e5; margin-left: auto;}
+.paypage-right-arrow { font-size: 2.0em; color: #c9d2e5; margin-left: auto; }
+.paypage-empty { color: #ababab; text-align: center; margin:32px 0 17px 0; }
 
 .paypage-header-row {
-  display: flex; align-items: center; gap: 11px; margin-bottom: 8px; padding: 0 11px 0 17px;
+  display: flex; align-items: center; gap: 11px; margin-bottom: 6px; padding: 0 11px 8px 17px;
+  background: #f7f9fc;
+  font-size: 1.01em;
+}
+.user-header-divider {
+  width: 100%;
+  height: 1.5px;
+  background: linear-gradient(to right, rgba(210,214,230,0) 5%, #e2e6f4 30%, #e2e6f4 70%, rgba(210,214,230,0) 95%);
+  margin-bottom: 6px;
+  margin-top: -3.7px;
 }
 .paypage-back { background: none; border: none; color: #274bb0; font-size: 1.19em; cursor: pointer; border-radius: 7px;}
 .paypage-username { font-weight: 900; font-size: 1.09em; color: #23275a; margin-right: 10px;}
@@ -41,6 +51,29 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
 .paypage-chat {
   display: flex; flex-direction: column; gap: 15px; margin-bottom: 100px;
 }
+.pay-date-header {
+  text-align: center;
+  color: #707990;
+  font-size: .96em;
+  font-weight: 600;
+  margin: 20px 0 9px 0;
+  letter-spacing: .01em;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+}
+.pay-date-header:before, .pay-date-header:after {
+  content:"";
+  flex: 1;
+  border-bottom: 1px solid #e2e8ee;
+  border-radius: 8px;
+  height:1.5px;
+  margin-bottom:2.5px;
+}
+.pay-date-header:before { margin-right:8px;}
+.pay-date-header:after  { margin-left:8px;}
+
 .paypage-bubble-row { display: flex; width: 100%; }
 .bubble-left    { justify-content: flex-start; }
 .bubble-right   { justify-content: flex-end; }
@@ -92,7 +125,6 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
 }
 .paypage-btn.remind { background: #e9ecfa; color: #1a37a1;}
 .paypage-btn:active { filter: brightness(.94);}
-.paypage-empty { color: #ababab; text-align: center; margin:32px 0 17px 0; }
 
 @media (max-width: 600px) {
   .paypage-wrap { max-width: 99vw;}
