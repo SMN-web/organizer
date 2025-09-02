@@ -11,8 +11,7 @@ export async function showPaymentsPanel(container, user) {
   let searchTerm = "";
   let filter = "all";
   let friends = [];
-  let current = 0;
-  let currentFriend = null; // will ALWAYS have .username
+  let currentFriend = null; // (always .username)
   let timeline = [];
   let errMsg = "";
   const CURRENCY = localStorage.getItem('currency') || "QAR";
@@ -28,7 +27,6 @@ export async function showPaymentsPanel(container, user) {
       const token = await user.firebaseUser.getIdToken(true);
       const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/settlements/friends', { headers: { Authorization: "Bearer " + token } });
       const data = await resp.json();
-      // now: {username, initials, name, net}[]
       friends = Array.isArray(data) ? data : [];
       if (!Array.isArray(data) && data.error) errMsg = data.error;
     } catch (e) {
@@ -172,8 +170,7 @@ export async function showPaymentsPanel(container, user) {
         `).join('');
     el.querySelectorAll('.paypage-friend-row').forEach(row =>
       row.onclick = async () => {
-        current = Number(row.dataset.idx);
-        currentFriend = flist[current]; // includes .username!!
+        currentFriend = flist[Number(row.dataset.idx)];
         view = "user";
         await loadTimeline(currentFriend.username);
         renderUserView();
