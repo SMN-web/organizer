@@ -12,7 +12,7 @@ export async function showPaymentsPanel(container, user) {
   let filter = "all";
   let friends = [];
   let current = 0;
-  let currentFriend = null; // always has .username
+  let currentFriend = null; // will ALWAYS have .username
   let timeline = [];
   let errMsg = "";
   const CURRENCY = localStorage.getItem('currency') || "QAR";
@@ -28,7 +28,7 @@ export async function showPaymentsPanel(container, user) {
       const token = await user.firebaseUser.getIdToken(true);
       const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/settlements/friends', { headers: { Authorization: "Bearer " + token } });
       const data = await resp.json();
-      // Ensure each friend has: username, initials, name, net
+      // now: {username, initials, name, net}[]
       friends = Array.isArray(data) ? data : [];
       if (!Array.isArray(data) && data.error) errMsg = data.error;
     } catch (e) {
@@ -173,7 +173,7 @@ export async function showPaymentsPanel(container, user) {
     el.querySelectorAll('.paypage-friend-row').forEach(row =>
       row.onclick = async () => {
         current = Number(row.dataset.idx);
-        currentFriend = flist[current];
+        currentFriend = flist[current]; // includes .username!!
         view = "user";
         await loadTimeline(currentFriend.username);
         renderUserView();
@@ -224,7 +224,7 @@ export async function showPaymentsPanel(container, user) {
     container.querySelector('.paypage-back').onclick = async () => {
       await loadFriends();
       view = "friends";
-      renderMain(); 
+      renderMain();
     };
     if (currentFriend.net < 0) {
       container.querySelector('.paypage-btn.pay').onclick = async () => {
