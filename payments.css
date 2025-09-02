@@ -1,46 +1,50 @@
-body { background: #f5f7fa; margin:0; font-family: "Inter", Arial, sans-serif; }
+body { background: #f5f7fa; margin:0; font-family: "Inter", Arial, sans-serif;}
 .gpay-main-container { max-width: 430px; margin: 0 auto; }
-
-.gpay-friends-list { padding: 0 0 3px 0; margin-top: 7px; }
-.gpay-friend-card { margin-bottom: 15px; }
+.gpay-friends-list { padding: 0 0 5px 0; margin-top: 7px; }
 .gpay-friend-row {
-  display: flex; align-items: center; gap: 11px; background: #f7fafd;
-  border-radius: 15px; padding: 10px 14px 11px 15px;
-  cursor: pointer; box-shadow: 0 2.5px 9px #eaf4ff11; transition: background .13s;
+  display: flex; align-items: center; gap: 13px; background: #f7fafd;
+  border-radius: 14px; margin-bottom: 8px;
+  padding: 12px 15px 12px 15px;
+  cursor: pointer; box-shadow: 0 2.5px 12px #eaf4ff15; transition: background .13s;
 }
-.gpay-friend-row:hover { background: #e9f2fd; }
+.gpay-friend-row:hover { background: #e1eefd;}
 .gpay-friend-avatar {
-  width: 33px; height: 33px;
-  border-radius: 50%; background: #e3eafd; color: #2854d7;
-  font-weight: 900; display: flex; align-items: center; justify-content: center; font-size: .99em;
-}
-.gpay-friend-block { display: flex; flex-direction: column; gap: 2px; flex: 1; }
-.gpay-friend-name { font-weight: 700; color: #162a43; font-size: 1em;}
-.net-pill {
-  font-weight: 700; font-size: .98em; border-radius: 6px; padding: 3px 11px 3px 8px;
-  display: inline-block; margin-top: 1px; vertical-align: middle;
-}
-.net-pill.plus { color: #19b043; background: #e8faed; }
-.net-pill.minus { color: #c13b23; background: #fbe8e8; }
-.net-pill.settled { color: #528386; background: #e2f5ef; }
-.gpay-open { font-size: 1.55em; color: #c9d9e7; margin-left: 10px;}
-.gpay-expand { animation: fadeinOpen .34s;}
-@keyframes fadeinOpen {from{opacity:0;transform:translateY(15px);} to{opacity:1;transform:none;}}
+  width: 36px; height: 36px; border-radius: 50%; background: #e3eafd; color: #2854d7;
+  font-weight: 900; display: flex; align-items: center; justify-content: center; font-size: 1em;}
+.gpay-friend-name { font-weight: 700; color: #162a43;}
+.gpay-friend-net { font-weight: 700; margin-left: auto; font-size: .99em;}
+.gpay-friend-net.plus { color: #19b043;}
+.gpay-friend-net.minus{ color: #c13b23;}
+.gpay-friend-net.settled{ color: #7ea5a7;}
+.gpay-open { font-size: 2.08em; color: #c9d9e7; margin-left:8px;}
 
-.gpay-activity-cards { display: flex; flex-direction: column; gap: 14px; margin: 14px 0 14px 0;}
+/* Details page */
+.gpay-detail-section { max-width: 430px; margin: 0 auto 0 auto; min-height:100vh; background:#fff; border-radius:18px; box-shadow: 0 2.5px 32px #eaf4ff1a;}
+.gpay-detail-header {
+  display: flex; align-items: center; gap: 13px; margin-bottom: 7px; padding: 18px 10px 0 10px;
+}
+.gpay-back { background: none; border: none; color: #3054bd; font-size: 1.23em; cursor: pointer; border-radius: 7px;}
+.gpay-detail-avatar {
+  background: #e3e6fa; color: #25316a; font-weight: 700;
+  border-radius: 50%; width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center; font-size: 1em;
+}
+.gpay-detail-title { font-weight: 900; font-size: 1.07em; color: #233059; }
+.net-pill { font-weight: 700; font-size: .98em; border-radius: 7px; padding: 3px 11px 3px 8px; margin-left:6px; vertical-align: middle;}
+.net-pill.plus { color: #19b043; background: #e8faed;}
+.net-pill.minus { color: #c13b23; background: #fbe8e8;}
+.net-pill.settled { color: #528386; background: #e2f5ef;}
+.gpay-detail-cards { display: flex; flex-direction: column; gap: 14px; margin: 19px 0 42px 0; padding:0 10px;}
 .gpay-card { background: #fff; border-radius: 17px; box-shadow: 0 2.5px 12px #eaf4ff0e;
   padding: 16px 17px 13px 18px; display: flex; flex-direction: column; gap: 8px; }
-.gpay-txn-card { }
 .gpay-txn-head { display: flex; align-items: baseline; gap: 10px;}
 .gpay-txn-type { font-weight: 700; color: #825438;}
 .gpay-txn-amt { font-weight: 900; font-size: 1.13em;}
 .gpay-txn-amt.plus { color: #119c31;}
-.gpay-txn-amt.minus { color: #d13b32;}
+.gpay-txn-amt.minus{ color: #d13b32;}
 .gpay-txn-status { margin-top: 3px;}
-.status-pill {
-  font-weight: 700; font-size: .96em; border-radius: 8px; padding: 3.2px 14px; margin-left: 7px;
-  background: #e6e6e6; display:inline-block; min-width:60px; text-align:center;
-}
+.status-pill { font-weight: 700; font-size: .96em; border-radius: 8px; padding: 3.2px 14px; margin-left: 7px;
+  background: #e6e6e6; display:inline-block; min-width:60px; text-align:center;}
 .status-pill.pending { background: #fbeec0; color: #95791b;}
 .status-pill.accepted { background: #c0f5ce; color: #229352;}
 .status-pill.rejected { background: #fdd5d5; color: #c52d2a;}
@@ -51,16 +55,17 @@ body { background: #f5f7fa; margin:0; font-family: "Inter", Arial, sans-serif; }
   transition: background .13s, color .12s, border .13s;
 }
 .row-cancel:active { border-color: #bb2020; color: #bb2020; background: #fce8e0; }
-
-.gpay-profile-snippet {
-  margin-top: 8px; padding: 12px 7px 9px 14px; background: #f9fbfd; border-radius: 11px;
-  font-size: .98em; color: #225;
+.gpay-actionbar {
+  display: flex; background: #fff; gap: 15px; padding: 19px 10px 17px 10px;
+  border-top: 1.2px solid #f2f3f6; position: sticky; left:0; right:0; bottom: 0; z-index: 10;
 }
-.gpay-profile-header {
-  font-weight: 700; font-size: .97em; color: #437; margin-bottom: 4px; display: block;
+.gpay-abtn {
+  padding: 13px 29px; background: #294ae8; color: #fff; border:none; border-radius: 30px; font-weight:700; font-size:1.08em;
+  transition: background .14s; cursor: pointer;
 }
-.gpay-profile-body { color: #333; }
-@media (max-width: 420px) {
-  .gpay-main-container { max-width: 99vw;}
-  .gpay-card { padding: 12px 3vw 12px 3vw; }
+.gpay-abtn.remind { background: #e5ecfa; color: #2246b8;}
+@media (max-width: 600px) {
+  .gpay-main-container, .gpay-detail-section { max-width: 99vw;}
+  .gpay-card { padding: 11px 2vw 11px 2vw;}
+  .gpay-actionbar { padding: 2vw; gap: 8px; }
 }
