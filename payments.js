@@ -11,7 +11,7 @@ export async function showPaymentsPanel(container, user) {
   let searchTerm = "";
   let filter = "all";
   let friends = [];
-  let currentFriend = null; // (always .username)
+  let currentFriend = null;
   let timeline = [];
   let errMsg = "";
   const CURRENCY = localStorage.getItem('currency') || "QAR";
@@ -25,7 +25,7 @@ export async function showPaymentsPanel(container, user) {
     try {
       if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function') throw new Error("Not logged in");
       const token = await user.firebaseUser.getIdToken(true);
-      const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/settlements/friends', { headers: { Authorization: "Bearer " + token } });
+      const resp = await fetch('/api/settlements/friends', { headers: { Authorization: "Bearer " + token } });
       const data = await resp.json();
       friends = Array.isArray(data) ? data : [];
       if (!Array.isArray(data) && data.error) errMsg = data.error;
@@ -44,7 +44,7 @@ export async function showPaymentsPanel(container, user) {
     timeline = [];
     try {
       const token = await user.firebaseUser.getIdToken(true);
-      const url = `https://pa-ca.nafil-8895-s.workers.dev/api/transactions?friend=${encodeURIComponent(friendUsername)}`;
+      const url = `/api/transactions?friend=${encodeURIComponent(friendUsername)}`;
       const resp = await fetch(url, { headers: { Authorization: "Bearer " + token } });
       const data = await resp.json();
       if (!Array.isArray(data)) throw new Error((data && data.error) ? data.error : "Invalid timeline");
@@ -68,7 +68,7 @@ export async function showPaymentsPanel(container, user) {
     showSpinner(container);
     try {
       const token = await user.firebaseUser.getIdToken(true);
-      const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment', {
+      const resp = await fetch('/api/expense_payment', {
         method: "POST",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({ to_user: toUsername, amount })
@@ -90,8 +90,6 @@ export async function showPaymentsPanel(container, user) {
     return `<span class="net-pill ${net > 0 ? "plus" : "minus"}">${Math.abs(net)} ${CURRENCY}</span>`;
   }
   function statusPill(status) {
-    if (status === "pending") return `<span class="status-pill pending">Pending</span>`;
-    if (status === "accepted") return `<span class="status-pill accepted">Accepted</span>`;
     if (status === "rejected") return `<span class="status-pill rejected">Rejected</span>`;
     if (status === "canceled") return `<span class="status-pill canceled">Canceled</span>`;
     return "";
@@ -190,27 +188,63 @@ export async function showPaymentsPanel(container, user) {
         </div>
         <div class="user-header-divider"></div>
         <div class="paypage-chat">
-          ${timeline.length === 0 ? 
-            `<div style="color:#888;text-align:center;padding:40px 0;">No transactions yet with ${currentFriend.name}.</div>` :
-            timeline.map((ev, idx) => `
-              <div class="paypage-bubble-row ${ev.dir === "from" ? "bubble-left" : "bubble-right"}">
-                <div class="paypage-bubble ${ev.dir === "from" ? "bubble-recv" : "bubble-send"}">
-                  <div>
-                    <span class="bubble-amt ${ev.dir==="from"?"amt-recv":"amt-send"}">${ev.amount} ${CURRENCY}</span>
-                    <span class="bubble-label">${ev.dir==="from"?"Received":"Paid"}</span>
-                    ${statusPill(ev.status)}
-                  </div>
-                  <div class="bubble-meta">
-                    <span>${timeAgo(ev.last_updated)}</span>
-                    ${
-                      ev.status==="pending" && ev.dir==="to"
-                      ? `<button class="bubble-cancel" disabled>Cancel</button>`
-                      : ""
+          ${
+            timeline.length === 0
+              ? `<div style="color:#888;text-align:center;padding:40px 0;">No transactions yet with ${currentFriend.name}.</div>`
+              : timeline.map((ev, idx) => {
+                  // Custom bubble label and actions logic
+                  let label = "";
+                  if (ev.status === "pending" && ev.dir === "from") {
+                    label = `${currentFriend.name} has sent you ${ev.amount} ${CURRENCY}`;
+                  } else if (ev.status === "accepted" && ev.dir === "from") {
+                    label = `${ev.amount} ${CURRENCY} received`;
+                  } else if (ev.dir === "from") {
+                    label = `Received ${ev.amount} ${CURRENCY}`;
+                  } else if (ev.status === "pending" && ev.dir === "to") {
+                    label = `You paid ${currentFriend.name} ${ev.amount} ${CURRENCY}`;
+                  } else if (ev.status === "accepted" && ev.dir === "to") {
+                    label = `You paid ${currentFriend.name} ${ev.amount} ${CURRENCY}`;
+                  } else {
+                    label = `You paid ${currentFriend.name} ${ev.amount} ${CURRENCY}`;
+                  }
+
+                  let actions = "";
+                  if (ev.status === "pending") {
+                    if (ev.dir === "to") {
+                      actions = `<button class="bubble-cancel" data-idx="${idx}">Cancel</button>`;
+                    } else {
+                      actions = `
+                        <button class="bubble-accept" data-idx="${idx}">Accept</button>
+                        <button class="bubble-reject" data-idx="${idx}">Reject</button>
+                      `;
                     }
+                  }
+
+                  let statusPillHtml = "";
+                  if (ev.status === "accepted" && ev.dir === "to") {
+                    statusPillHtml = `<span class="status-pill accepted">Accepted</span>`;
+                  } else if (ev.status === "rejected") {
+                    statusPillHtml = `<span class="status-pill rejected">Rejected</span>`;
+                  } else if (ev.status === "canceled") {
+                    statusPillHtml = `<span class="status-pill canceled">Canceled</span>`;
+                  }
+
+                  return `
+                  <div class="paypage-bubble-row ${ev.dir === "from" ? "bubble-left" : "bubble-right"}">
+                    <div class="paypage-bubble ${ev.dir === "from" ? "bubble-recv" : "bubble-send"}">
+                      <div>
+                        <span class="bubble-label">${label}</span>
+                        ${statusPillHtml}
+                      </div>
+                      <div class="bubble-meta">
+                        <span>${timeAgo(ev.last_updated)}</span>
+                        ${actions}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-          `).join('')}
+                  `;
+                }).join('')
+          }
         </div>
         <div class="paypage-actionsbar">
           <button class="paypage-btn pay"${currentFriend.net < 0 ? "" : " disabled"}>Pay</button>
@@ -228,5 +262,15 @@ export async function showPaymentsPanel(container, user) {
         await sendPayment(currentFriend.username, Math.abs(currentFriend.net));
       };
     }
+    // Demo handlers for action buttons (replace with real API POST to accept/reject/cancel)
+    container.querySelectorAll('.bubble-cancel').forEach(btn =>
+      btn.onclick = () => alert("Cancel payment (to be implemented)")
+    );
+    container.querySelectorAll('.bubble-accept').forEach(btn =>
+      btn.onclick = () => alert("Accept payment (to be implemented)")
+    );
+    container.querySelectorAll('.bubble-reject').forEach(btn =>
+      btn.onclick = () => alert("Reject payment (to be implemented)")
+    );
   }
 }
