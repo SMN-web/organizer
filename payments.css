@@ -248,4 +248,34 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
 .paypage-chat {
   margin-bottom: 98px;
 }
+.modal-backdrop {
+  position: fixed; z-index: 1099; inset: 0;
+  background: rgba(40,60,100,0.12);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal {
+  background: #fff; border-radius: 11px; min-width:250px; max-width:98vw;
+  padding: 1.4em 1.2em 1.2em 1.2em;
+  box-shadow: 0 6px 40px #3d52731a;
+  position: relative;
+}
+.modal-close {
+  position: absolute; top: 13px; right: 13px; font-size: 1.6em; color: #8b98a4;
+  background: none; border: none; cursor:pointer; padding:0; min-width:28px;
+}
+.modal h3 { margin-top:0; margin-bottom: 0.7em; color: #222b3a; font-size:1.09em;}
+.modal input[type="number"], .modal input[type="text"] {
+  font-size:1.13em; padding:8px 12px; width:98%; border:1.2px solid #c9d4e3; border-radius:7px; margin: 0.4em 0 1em 0;
+}
+.modal-btn-row { display:flex; justify-content: flex-end; gap: 13px; margin-top: 19px;}
+.modal-btn {
+  background: #2548a8; color:#fff; border:none;
+  border-radius: 6px; padding: 8px 25px; font-weight: 700; font-size: 1em; cursor:pointer;
+  margin-top: 0.5em;
+}
+.modal-btn-alt { background: #e7e8ea; color: #223347; border: none; }
+.modal-btn:active { filter: brightness(.95);}
+.modal-profile-label {color:#718299;font-size:.99em;}
+.modal-profile-value { font-size:1.11em; font-weight:700; color:#293161; margin-bottom:1em; word-break:break-all;}
+
 
