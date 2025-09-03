@@ -192,3 +192,60 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
   border: 1.3px solid #a7ded6;
   color: #165f68;
 }
+/* Bubble Amount + Status: combo row */
+.bubble-amount-row {
+  display: flex; align-items: center; gap: 9px;
+  margin-top: 2px; margin-bottom: 1px;
+  /* Keep amount/status on same line, prevent break */
+  flex-wrap: nowrap;
+}
+.bubble-amount {
+  font-size: 1.18em;
+  font-weight: 700;
+  color: #1e8745;
+  white-space: nowrap;
+  margin-right: 0;
+}
+.status-pill {
+  font-weight: 700; font-size: 0.98em; border-radius: 7px; padding: 3px 13px;
+  background: #ececec; display:inline-block; min-width:60px; text-align:center; margin-left:7px;
+  /* prevent wrap from amount */
+  white-space: nowrap;
+}
+.status-pill.accepted { background: #d8f8e4; color: #1e8745;}
+.status-pill.rejected { background: #fff0ef; color: #c52d2a;}
+.status-pill.pending  { background: #fff9d7; color: #ab9412;}
+.status-pill.cancelled { background: #faf2e0; color: #bb8822;}
+
+/* Dropdown menu below three-dot button */
+.paypage-menu-dropdown {
+  position: absolute;
+  right: 0;
+  min-width: 110px;
+  background: #fff;
+  border: 1.3px solid #e2e7fb;
+  border-radius: 9px;
+  box-shadow: 0 3px 11px #e6eafc41;
+  padding: 8px 0;
+  z-index: 30;
+  display: none;
+}
+.paypage-menu-dropdown div {
+  padding: 11px 18px;
+  cursor: pointer;
+  font-size: 1.04em;
+  color: #234;
+  border-radius: 6px;
+  transition: background 0.12s;
+}
+.paypage-menu-dropdown div:hover {
+  background: #e2eafd;
+  color: #1d347a;
+  font-weight: 700;
+}
+
+/* Ensure action bar does not overlap bubbles on small devices */
+.paypage-chat {
+  margin-bottom: 98px;
+}
+
