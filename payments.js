@@ -4,7 +4,7 @@ import { showTransferPopup } from './transfer.js';
 function parseDBDatetimeAsUTC(dt) {
   const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
   if (!m) return new Date(dt);
-  return new Date(Date.UTC(+m[1], m[5]-1, +m[6], +m[7], +m[8], +m[9]));
+  return new Date(Date.UTC(+m[1], m[2]-1, +m[3], +m[4], +m[5], +m[6]));
 }
 function getDateLabel(date) {
   const now = new Date();
@@ -188,7 +188,7 @@ export async function showPaymentsPanel(container, user) {
       ? `<div class="paypage-empty">No friends found.</div>`
       : flist.map((f, i) => `
           <div class="paypage-friend-row" data-idx="${i}">
-            <span class="paypage-avatar">${f.initials || (f.name||"")}</span>
+            <span class="paypage-avatar">${f.initials || (f.name||"")[0]}</span>
             <span class="paypage-friend-name">${f.name}</span>
             ${netPill(f.net)}
             <span class="paypage-right-arrow">&#8250;</span>
@@ -211,48 +211,44 @@ export async function showPaymentsPanel(container, user) {
       const dtObj = parseDBDatetimeAsUTC(ev.last_updated);
       const groupLabel = getDateLabel(dtObj);
       if (groupLabel !== lastDate) {
-        timelineRows.push(`<div class="date-divider">${groupLabel}</div>`);
+        timelineRows.push(`<div class="paypage-date-divider pay-date-header">${groupLabel}</div>`);
         lastDate = groupLabel;
       }
       if (ev.status === 'canceled' && ev.dir === 'from') return;
 
-      // Main label, two-line split
-      let label = "";
-      if (ev.dir === "to") {
-        if (ev.status === "pending") label = "Payment sent, awaiting approval.";
-        else if (ev.status === "accepted") label = "Payment sent & accepted.";
-        else if (ev.status === "rejected") label = "Payment sent & rejected!";
-        else if (ev.status === "canceled") label = "Payment cancelled.";
-      } else {
-        if (ev.status === "pending") label = "Payment received, awaiting your approval.";
-        else if (ev.status === "accepted") label = "Payment received and accepted.";
-        else if (ev.status === "rejected") label = "Payment received but you rejected!";
-        else if (ev.status === "canceled") label = "Payment cancelled.";
-      }
+      let label =
+        ev.dir === "to"
+          ? ev.status === "pending"    ? "Payment sent, awaiting approval."
+            : ev.status === "accepted" ? "Payment sent & accepted."
+            : ev.status === "rejected" ? "Payment sent & rejected!"
+            : "Payment cancelled."
+          : ev.status === "pending"    ? "Payment received, awaiting your approval."
+            : ev.status === "accepted" ? "Payment received and accepted."
+            : ev.status === "rejected" ? "Payment received but you rejected!"
+            : "Payment cancelled.";
 
-      // Status badge logic
-      let statusPillHtml = "";
-      if (ev.status === "accepted") statusPillHtml = `<span class="status-pill accepted">Accepted</span>`;
-      else if (ev.status === "rejected") statusPillHtml = `<span class="status-pill rejected">Rejected</span>`;
-      else if (ev.status === "pending") statusPillHtml = `<span class="status-pill pending">Pending</span>`;
-      else if (ev.status === "canceled") statusPillHtml = `<span class="status-pill cancelled">Cancelled</span>`;
-      
-      // Actions if needed
+      let statusPill =
+        ev.status === "accepted" ? `<span class="status-pill accepted">Accepted</span>`
+        : ev.status === "rejected" ? `<span class="status-pill rejected">Rejected</span>`
+        : ev.status === "pending"  ? `<span class="status-pill pending">Pending</span>`
+        : `<span class="status-pill cancelled">Cancelled</span>`;
+
       let actions = "";
       if (ev.status === "pending") {
-        if (ev.dir === "to") actions = `<button class="bubble-cancel" data-idx="${idx}">Cancel</button>`;
-        else actions = `<button class="bubble-accept" data-idx="${idx}">Accept</button><button class="bubble-reject" data-idx="${idx}">Reject</button>`;
+        actions =
+          ev.dir === "to" ?
+            `<button class="bubble-cancel" data-idx="${idx}">Cancel</button>` :
+            `<button class="bubble-accept" data-idx="${idx}">Accept</button>
+             <button class="bubble-reject" data-idx="${idx}">Reject</button>`;
       }
 
       timelineRows.push(`
         <div class="paypage-bubble-row ${ev.dir === "from" ? "bubble-left" : "bubble-right"}">
           <div class="paypage-bubble ${ev.dir === "from" ? "" : "bubble-send"}">
-            <div>
-              <div class="bubble-label">${label}</div>
-              <div class="bubble-amount-row">
-                <div class="bubble-amount">${ev.amount} ${CURRENCY}</div>
-                ${statusPillHtml}
-              </div>
+            <div class="bubble-label">${label}</div>
+            <div class="bubble-amount-row">
+              <span class="bubble-amount">${ev.amount} ${CURRENCY}</span>
+              ${statusPill}
             </div>
             <div class="bubble-meta">
               <span>${getTimeLocalAMPM(dtObj)}</span>
@@ -264,15 +260,18 @@ export async function showPaymentsPanel(container, user) {
     });
 
     container.innerHTML = `
-      <div style="position:relative">
-        <div class="header-row">
-          <span class="avatar user">${currentFriend.initials || currentFriend.name}</span>
-          <span class="username user">${currentFriend.name}</span>
-          <span class="status-badge settled">Settled</span>
-          <span class="options">&#8942;</span>
-          <div class="paypage-menu-dropdown" style="display:none;right:0;"></div>
+      <div class="paypage-wrap" style="position:relative">
+        <div class="paypage-padding-top"></div>
+        <div class="paypage-header-row paypad-extra" style="display:flex;align-items:center;">
+          <button class="paypage-back">&larr;</button>
+          <span class="paypage-avatar user">${currentFriend.initials || currentFriend.name[0]}</span>
+          <span class="paypage-username user">${currentFriend.name}</span>
+          ${netPill(currentFriend.net)}
+          <button class="paypage-menu-3dots" style="margin-left:auto;padding:0 12px 0 0;font-size:2em;background:none;border:none;cursor:pointer;">&#x22ee;</button>
+          <div class="paypage-menu-dropdown" style="display:none;position:absolute;right:0;"></div>
         </div>
-        <div>${timelineRows.join('')}</div>
+        <div class="user-header-divider"></div>
+        <div class="paypage-chat">${timelineRows.join('')}</div>
         <div class="paypage-actionsbar">
           <button class="paypage-btn pay">Pay</button>
           <button class="paypage-btn transfer">Transfer</button>
@@ -280,33 +279,34 @@ export async function showPaymentsPanel(container, user) {
       </div>
     `;
 
-    // Revised three-dot dropdown logic, ONLY “Profile”
-    const menuBtn = container.querySelector('.options');
+    // Dropdown: profile only
+    const menuBtn = container.querySelector('.paypage-menu-3dots');
     const dropdown = container.querySelector('.paypage-menu-dropdown');
     dropdown.innerHTML = `<div>Profile</div>`;
-    menuBtn.onclick = function(e) {
-      dropdown.style.display = 'block';
-      dropdown.style.top = (menuBtn.offsetTop + menuBtn.offsetHeight) + 'px';
-      dropdown.style.right = '0px';
-      document.addEventListener('click', function closeMenu(ev) {
-        if (!dropdown.contains(ev.target) && ev.target !== menuBtn) {
-          dropdown.style.display = 'none';
-          document.removeEventListener('click', closeMenu);
-        }
-      });
-    };
+    if (menuBtn) {
+      menuBtn.onclick = function (e) {
+        dropdown.style.display = 'block';
+        dropdown.style.top = (menuBtn.offsetTop + menuBtn.offsetHeight) + 'px';
+        dropdown.style.right = '0px';
+        document.addEventListener('click', function closeMenu(ev) {
+          if (!dropdown.contains(ev.target) && ev.target !== menuBtn) {
+            dropdown.style.display = 'none';
+            document.removeEventListener('click', closeMenu);
+          }
+        });
+      };
+    }
     dropdown.querySelector('div').onclick = () => {
       dropdown.style.display = 'none';
       alert(`Username: ${currentFriend.username}\nName: ${currentFriend.name}`);
     };
 
-    container.querySelector('.paypage-back')?.onclick = async () => {
+    container.querySelector('.paypage-back').onclick = async () => {
       await loadFriends();
       view = "friends";
       renderMain();
     };
 
-    // Action buttons
     const payBtn = container.querySelector('.paypage-btn.pay');
     if (payBtn) {
       payBtn.onclick = () => {
@@ -329,7 +329,6 @@ export async function showPaymentsPanel(container, user) {
         );
       };
     }
-    // Chat bubble actions
     container.querySelectorAll('.bubble-cancel').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
