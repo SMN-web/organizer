@@ -1,7 +1,7 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 import { showTransferPopup } from './transfer.js';
 
-// Modal utility
+// Modal utility (as before)
 function showModal({title, content, inputType, inputPlaceholder, inputValue, onOk, onCancel, okText="OK", cancelText="Cancel", showCancel=true}) {
   let modal = document.createElement('div');
   modal.className = "modal-backdrop";
@@ -128,9 +128,17 @@ export async function showPaymentsPanel(container, user) {
         hideSpinner(container);
         return;
       }
-      await loadTimeline(toUsername);
-      await loadFriends();
-      renderUserView();
+      showModal({
+        title: "Payment Sent",
+        content: `Payment of ${amount} QAR sent to ${currentFriend.name}.`,
+        okText: "OK",
+        showCancel: false,
+        onOk: async () => {
+          await loadTimeline(currentFriend.username);
+          await loadFriends();
+          renderUserView();
+        }
+      });
     } catch (e) {
       hideSpinner(container);
       showModal({ content: e && e.message ? e.message : e, okText: "OK", showCancel: false });
@@ -138,7 +146,7 @@ export async function showPaymentsPanel(container, user) {
     hideSpinner(container);
   }
 
-  async function paymentAction(payment_id, action) {
+  async function paymentAction(payment_id, action, amountText = '', nameText = '') {
     showSpinner(container);
     let ok = false, err = "";
     try {
@@ -155,7 +163,25 @@ export async function showPaymentsPanel(container, user) {
       err = e && e.message ? e.message : e;
     }
     hideSpinner(container);
-    if (!ok) showModal({ content: err, okText: "OK", showCancel: false });
+    if (!ok) {
+      showModal({ content: err, okText: "OK", showCancel: false });
+      return;
+    }
+    let msg = '';
+    if (action === "accept") msg = `Payment has been accepted and will shortly reflect in your account.`;
+    else if (action === "cancel") msg = `This payment has been cancelled.`;
+    else if (action === "reject") msg = `The payment request has been rejected.`;
+    showModal({
+      title: "Transaction Complete",
+      content: msg,
+      okText: "OK",
+      showCancel: false,
+      onOk: async () => {
+        await loadTimeline(currentFriend.username);
+        await loadFriends();
+        renderUserView();
+      }
+    });
   }
 
   function netPill(net) {
@@ -217,8 +243,7 @@ export async function showPaymentsPanel(container, user) {
       ? `<div class="paypage-empty">No friends found.</div>`
       : flist.map((f, i) => `
           <div class="paypage-friend-row" data-idx="${i}">
-            <span class="paypage-avatar">${(f.name||"").substring(0,2).toUpperCase()}
-</span>
+            <span class="paypage-avatar">${(f.name||"").substring(0,2).toUpperCase()}</span>
             <span class="paypage-friend-name">${f.name}</span>
             ${netPill(f.net)}
             <span class="paypage-right-arrow">&#8250;</span>
@@ -293,15 +318,15 @@ export async function showPaymentsPanel(container, user) {
       <div class="paypage-wrap" style="position:relative">
         <div class="paypage-padding-top"></div>
         <div class="paypage-header-row paypad-extra" style="display:flex;align-items:center;">
-          <button class="paypage-back">&larr;</button>
-          <span class="paypage-avatar user">${currentFriend.initials || currentFriend.name[0]}</span>
+          <button class="paypage-back" style="font-size:1.5em;font-weight:800;padding:0 7px 0 0;">&#8592;</button>
+          <span class="paypage-avatar user">${(currentFriend.name||"").substring(0,2).toUpperCase()}</span>
           <span class="paypage-username user">${currentFriend.name}</span>
           ${netPill(currentFriend.net)}
           <button class="paypage-menu-3dots" style="margin-left:auto;padding:0 12px 0 0;font-size:2em;background:none;border:none;cursor:pointer;">&#x22ee;</button>
           <div class="paypage-menu-dropdown" style="display:none;position:absolute;right:0;"></div>
         </div>
         <div class="user-header-divider"></div>
-        <div class="paypage-chat">${timelineRows.join('')}</div>
+        <div class="paypage-chat" style="padding-bottom:98px">${timelineRows.join('')}</div>
         <div class="paypage-actionsbar">
           <button class="paypage-btn pay">Pay</button>
           <button class="paypage-btn transfer">Transfer</button>
@@ -309,7 +334,7 @@ export async function showPaymentsPanel(container, user) {
       </div>
     `;
 
-    // Three-dot dropdown menu for profile modal
+    // Profile modal
     const menuBtn = container.querySelector('.paypage-menu-3dots');
     const dropdown = container.querySelector('.paypage-menu-dropdown');
     dropdown.innerHTML = `<div>Profile</div>`;
@@ -347,7 +372,7 @@ export async function showPaymentsPanel(container, user) {
       renderMain();
     };
 
-    // Pay button uses YOUR modal (not prompt)
+    // Pay button with modal, not prompt
     const payBtn = container.querySelector('.paypage-btn.pay');
     if (payBtn) {
       payBtn.onclick = () => {
@@ -386,7 +411,8 @@ export async function showPaymentsPanel(container, user) {
         );
       };
     }
-    // All confirmations (cancel/accept/reject) use your modal
+
+    // Confirmation modals now for all actions
     container.querySelectorAll('.bubble-cancel').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
@@ -397,8 +423,6 @@ export async function showPaymentsPanel(container, user) {
           okText: "Yes", cancelText: "No",
           onOk: async () => {
             await paymentAction(paymentId, "cancel");
-            await loadTimeline(currentFriend.username);
-            renderUserView();
           }
         });
       }
@@ -413,8 +437,6 @@ export async function showPaymentsPanel(container, user) {
           okText: "Yes", cancelText: "No",
           onOk: async () => {
             await paymentAction(paymentId, "accept");
-            await loadTimeline(currentFriend.username);
-            renderUserView();
           }
         });
       }
@@ -429,8 +451,6 @@ export async function showPaymentsPanel(container, user) {
           okText: "Yes", cancelText: "No",
           onOk: async () => {
             await paymentAction(paymentId, "reject");
-            await loadTimeline(currentFriend.username);
-            renderUserView();
           }
         });
       }
