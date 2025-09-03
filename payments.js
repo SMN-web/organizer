@@ -1,7 +1,7 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 import { showTransferPopup } from './transfer.js';
 
-// Modal utility (as before)
+// --- Custom Modal Utility ---
 function showModal({title, content, inputType, inputPlaceholder, inputValue, onOk, onCancel, okText="OK", cancelText="Cancel", showCancel=true}) {
   let modal = document.createElement('div');
   modal.className = "modal-backdrop";
@@ -136,6 +136,9 @@ export async function showPaymentsPanel(container, user) {
         onOk: async () => {
           await loadTimeline(currentFriend.username);
           await loadFriends();
+          // Update currentFriend reference so badge/amount is live
+          const updated = friends.find(f => f.username === currentFriend.username);
+          if (updated) currentFriend = updated;
           renderUserView();
         }
       });
@@ -146,7 +149,7 @@ export async function showPaymentsPanel(container, user) {
     hideSpinner(container);
   }
 
-  async function paymentAction(payment_id, action, amountText = '', nameText = '') {
+  async function paymentAction(payment_id, action) {
     showSpinner(container);
     let ok = false, err = "";
     try {
@@ -179,6 +182,9 @@ export async function showPaymentsPanel(container, user) {
       onOk: async () => {
         await loadTimeline(currentFriend.username);
         await loadFriends();
+        // Update currentFriend reference so badge/amount is live
+        const updated = friends.find(f => f.username === currentFriend.username);
+        if (updated) currentFriend = updated;
         renderUserView();
       }
     });
