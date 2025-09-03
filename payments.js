@@ -286,7 +286,6 @@ export async function showPaymentsPanel(container, user) {
       `);
     });
 
-    // Button bar
     container.innerHTML = `
       <div class="paypage-wrap" style="position:relative">
         <div class="paypage-padding-top"></div>
@@ -312,7 +311,6 @@ export async function showPaymentsPanel(container, user) {
       </div>
     `;
 
-    // Menu and button logic
     container.querySelector('.paypage-menu-3dots').onclick = e => {
       e.stopPropagation();
       const dd = container.querySelector('.paypage-menu-dropdown');
@@ -329,7 +327,7 @@ export async function showPaymentsPanel(container, user) {
       view = "friends";
       renderMain();
     };
-    // Button actions
+    // Action buttons
     const payBtn = container.querySelector('.paypage-btn.pay');
     if (payBtn) {
       payBtn.onclick = () => {
@@ -362,7 +360,7 @@ export async function showPaymentsPanel(container, user) {
         );
       };
     }
-    // Payment actions in timeline
+    // Actions in chat bubbles
     container.querySelectorAll('.bubble-cancel').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
