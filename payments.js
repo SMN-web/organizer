@@ -1,6 +1,38 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 import { showTransferPopup } from './transfer.js';
 
+// Modal utility
+function showModal({title, content, inputType, inputPlaceholder, inputValue, onOk, onCancel, okText="OK", cancelText="Cancel", showCancel=true}) {
+  let modal = document.createElement('div');
+  modal.className = "modal-backdrop";
+  document.body.appendChild(modal);
+  modal.innerHTML = `
+    <div class="modal">
+      <button class="modal-close" aria-label="Close">&times;</button>
+      ${title ? `<h3>${title}</h3>` : ""}
+      <div style="margin-bottom:1em;">${content || ''}</div>
+      ${inputType ? `<input id="modal-input" type="${inputType}" placeholder="${inputPlaceholder||''}" value="${inputValue||''}" autofocus>` : ''}
+      <div class="modal-btn-row">
+        ${showCancel ? `<button class="modal-btn modal-btn-alt" id="modal-cancel">${cancelText}</button>` : ''}
+        <button class="modal-btn" id="modal-ok">${okText}</button>
+      </div>
+    </div>`;
+  modal.querySelector('.modal-close').onclick = close;
+  if (showCancel) modal.querySelector('#modal-cancel').onclick = () => { close(); if (onCancel) onCancel(); };
+  modal.querySelector('#modal-ok').onclick = () => {
+    if (inputType) {
+      const v = modal.querySelector('#modal-input').value;
+      close();
+      onOk && onOk(v);
+    } else {
+      close();
+      onOk && onOk();
+    }
+  };
+  function close() { document.body.removeChild(modal); }
+  if (inputType) modal.querySelector('#modal-input').focus();
+}
+
 function parseDBDatetimeAsUTC(dt) {
   const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
   if (!m) return new Date(dt);
@@ -80,15 +112,8 @@ export async function showPaymentsPanel(container, user) {
     hideSpinner(container);
   }
 
-  async function sendPayment(toUsername, maxOwed) {
+  async function sendPayment(toUsername, amount) {
     const currency = localStorage.getItem('currency') || "QAR";
-    let amtStr = prompt(`Enter amount to pay (max ${maxOwed}):`, maxOwed);
-    if (!amtStr) return;
-    let amount = Math.round(Number(amtStr));
-    if (isNaN(amount) || amount <= 0 || amount > maxOwed) {
-      alert(`Amount must be a positive integer not exceeding ${maxOwed}`);
-      return;
-    }
     showSpinner(container);
     try {
       const token = await user.firebaseUser.getIdToken(true);
@@ -98,13 +123,17 @@ export async function showPaymentsPanel(container, user) {
         body: JSON.stringify({ to_user: toUsername, amount, currency })
       });
       const result = await resp.json();
-      if (!result.ok && result.error) throw new Error(result.error);
+      if (!result.ok && result.error) {
+        showModal({ content: result.error, okText: "OK", showCancel: false });
+        hideSpinner(container);
+        return;
+      }
       await loadTimeline(toUsername);
       await loadFriends();
       renderUserView();
     } catch (e) {
       hideSpinner(container);
-      alert(e && e.message ? e.message : e);
+      showModal({ content: e && e.message ? e.message : e, okText: "OK", showCancel: false });
     }
     hideSpinner(container);
   }
@@ -126,7 +155,7 @@ export async function showPaymentsPanel(container, user) {
       err = e && e.message ? e.message : e;
     }
     hideSpinner(container);
-    if (!ok) alert(err);
+    if (!ok) showModal({ content: err, okText: "OK", showCancel: false });
   }
 
   function netPill(net) {
@@ -279,7 +308,7 @@ export async function showPaymentsPanel(container, user) {
       </div>
     `;
 
-    // Dropdown: profile only
+    // Three-dot dropdown menu for profile modal
     const menuBtn = container.querySelector('.paypage-menu-3dots');
     const dropdown = container.querySelector('.paypage-menu-dropdown');
     dropdown.innerHTML = `<div>Profile</div>`;
@@ -298,7 +327,17 @@ export async function showPaymentsPanel(container, user) {
     }
     dropdown.querySelector('div').onclick = () => {
       dropdown.style.display = 'none';
-      alert(`Username: ${currentFriend.username}\nName: ${currentFriend.name}`);
+      showModal({
+        title: "Profile",
+        content: `
+          <div class="modal-profile-label">Username</div>
+          <div class="modal-profile-value">${currentFriend.username || ''}</div>
+          <div class="modal-profile-label">Name</div>
+          <div class="modal-profile-value">${currentFriend.name || ''}</div>
+        `,
+        okText: "Close",
+        showCancel: false
+      });
     };
 
     container.querySelector('.paypage-back').onclick = async () => {
@@ -307,14 +346,31 @@ export async function showPaymentsPanel(container, user) {
       renderMain();
     };
 
+    // Pay button uses YOUR modal (not prompt)
     const payBtn = container.querySelector('.paypage-btn.pay');
     if (payBtn) {
       payBtn.onclick = () => {
         if (currentFriend.net >= 0) {
-          alert("You owed nothing to this person.");
+          showModal({ content: "You owed nothing to this person.", okText: "OK", showCancel: false });
           return;
         }
-        sendPayment(currentFriend.username, Math.abs(currentFriend.net));
+        const maxOwed = Math.abs(currentFriend.net);
+        showModal({
+          title: "Send Payment",
+          inputType: "number",
+          inputPlaceholder: `Amount (max ${maxOwed})`,
+          inputValue: maxOwed,
+          okText: "Pay",
+          cancelText: "Cancel",
+          onOk: (v) => {
+            const amount = Math.round(Number(v));
+            if (isNaN(amount) || amount <= 0 || amount > maxOwed) {
+              showModal({ title: "Error", content: "Enter a valid positive amount within max limit.", okText:"OK", showCancel: false });
+              return;
+            }
+            sendPayment(currentFriend.username, amount);
+          }
+        });
       };
     }
     const transferBtn = container.querySelector('.paypage-btn.transfer');
@@ -329,37 +385,53 @@ export async function showPaymentsPanel(container, user) {
         );
       };
     }
+    // All confirmations (cancel/accept/reject) use your modal
     container.querySelectorAll('.bubble-cancel').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
         const paymentId = timeline[idx].payment_id;
-        if (confirm("Cancel this payment?")) {
-          await paymentAction(paymentId, "cancel");
-          await loadTimeline(currentFriend.username);
-          renderUserView();
-        }
+        showModal({
+          title: "Cancel Payment",
+          content: "Are you sure you want to cancel this payment?",
+          okText: "Yes", cancelText: "No",
+          onOk: async () => {
+            await paymentAction(paymentId, "cancel");
+            await loadTimeline(currentFriend.username);
+            renderUserView();
+          }
+        });
       }
     );
     container.querySelectorAll('.bubble-accept').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
         const paymentId = timeline[idx].payment_id;
-        if (confirm("Accept this payment?")) {
-          await paymentAction(paymentId, "accept");
-          await loadTimeline(currentFriend.username);
-          renderUserView();
-        }
+        showModal({
+          title: "Accept Payment",
+          content: "Do you want to accept this payment?",
+          okText: "Yes", cancelText: "No",
+          onOk: async () => {
+            await paymentAction(paymentId, "accept");
+            await loadTimeline(currentFriend.username);
+            renderUserView();
+          }
+        });
       }
     );
     container.querySelectorAll('.bubble-reject').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
         const paymentId = timeline[idx].payment_id;
-        if (confirm("Reject this payment?")) {
-          await paymentAction(paymentId, "reject");
-          await loadTimeline(currentFriend.username);
-          renderUserView();
-        }
+        showModal({
+          title: "Reject Payment",
+          content: "Do you want to reject this payment?",
+          okText: "Yes", cancelText: "No",
+          onOk: async () => {
+            await paymentAction(paymentId, "reject");
+            await loadTimeline(currentFriend.username);
+            renderUserView();
+          }
+        });
       }
     );
   }
