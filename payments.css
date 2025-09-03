@@ -173,3 +173,22 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
   background: #eaf0fd; color: #12347a;
   font-weight: 700;
 }
+.paypage-bubble {
+  max-width: 70%;
+  word-break: break-word;
+  min-width: 120px;
+}
+/* Desktop tweak */
+@media (min-width:700px) {
+  .paypage-bubble { max-width: 380px; }
+}
+.bubble-left .paypage-bubble {
+  background: #f5f8fa;
+  border: 1.3px solid #adc7e0;
+  color: #213154;
+}
+.bubble-right .paypage-bubble {
+  background: #e8f4fa;
+  border: 1.3px solid #a7ded6;
+  color: #165f68;
+}
