@@ -163,10 +163,18 @@ function renderDropdown() {
             `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> disputed the expense `
             + `"${escapeHtml(dat.remarks)}". <span style="color:#db4646;font-weight:600;">Requires your attention.</span>`;
         } else if (n.type === 'expense_approval_fully_accepted') {
-          // DISPUTE CLEARED - NEW UI VISIBLE LINE:
           const dat = JSON.parse(n.data);
           text = `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> reported the dispute resolved on expense: `
               + `"${escapeHtml(dat.remarks)}". <span style="color:#2a974e;font-weight:600;">Awaiting your confirmation.</span>`;
+        } else if (n.type === 'payment_new') {
+          const dat = JSON.parse(n.data);
+          text = `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> sent you a payment request for <b>${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</b>.`;
+        } else if (n.type === 'payment_accept') {
+          const dat = JSON.parse(n.data);
+          text = `<b style="font-weight:700;">${escapeHtml(dat.by)}</b> accepted your payment of <b>${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</b>.`;
+        } else if (n.type === 'payment_reject') {
+          const dat = JSON.parse(n.data);
+          text = `<b style="font-weight:700;">${escapeHtml(dat.by)}</b> rejected your payment of <b>${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</b>.`;
         }
         if (!text) text = `<i style="color:#a7a9ae;">Unknown notification</i>`;
         const timeBadge = n.created_at
