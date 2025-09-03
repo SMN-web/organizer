@@ -109,24 +109,6 @@ export async function showPaymentsPanel(container, user) {
     hideSpinner(container);
   }
 
-  async function remindPayment(toUsername, name, owed, currency) {
-    showSpinner(container);
-    try {
-      const token = await user.firebaseUser.getIdToken(true);
-      const resp = await fetch('https://pa-re.nafil-8895-s.workers.dev/api/remind_payment', {
-        method: "POST",
-        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ to_user: toUsername, name, owed, currency })
-      });
-      const result = await resp.json();
-      if (!result.ok && result.error) throw new Error(result.error);
-      alert("Reminder sent!");
-    } catch (e) {
-      alert(e && e.message ? e.message : e);
-    }
-    hideSpinner(container);
-  }
-
   async function paymentAction(payment_id, action) {
     showSpinner(container);
     let ok = false, err = "";
@@ -305,7 +287,6 @@ export async function showPaymentsPanel(container, user) {
         <div class="paypage-chat">${timelineRows.join('')}</div>
         <div class="paypage-actionsbar" style="display:flex;gap:8px;">
           <button class="paypage-btn pay">Pay</button>
-          ${currentFriend.net > 0 ? `<button class="paypage-btn remind">Remind</button>` : ''}
           <button class="paypage-btn transfer">Transfer</button>
         </div>
       </div>
@@ -338,16 +319,6 @@ export async function showPaymentsPanel(container, user) {
         sendPayment(currentFriend.username, Math.abs(currentFriend.net));
       };
     }
-    const remindBtn = container.querySelector('.paypage-btn.remind');
-    if (remindBtn) {
-      remindBtn.onclick = () => {
-        if (currentFriend.net <= 0) {
-          alert("Nothing owed to you to remind.");
-          return;
-        }
-        remindPayment(currentFriend.username, currentFriend.name, Math.abs(currentFriend.net), CURRENCY);
-      };
-    }
     const transferBtn = container.querySelector('.paypage-btn.transfer');
     if (transferBtn) {
       transferBtn.onclick = () => {
@@ -360,7 +331,7 @@ export async function showPaymentsPanel(container, user) {
         );
       };
     }
-    // Actions in chat bubbles
+    // Chat bubble actions
     container.querySelectorAll('.bubble-cancel').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
