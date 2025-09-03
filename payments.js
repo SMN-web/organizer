@@ -113,7 +113,7 @@ export async function showPaymentsPanel(container, user) {
     showSpinner(container);
     try {
       const token = await user.firebaseUser.getIdToken(true);
-      const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/remind_payment', {
+      const resp = await fetch('https://pa-re.nafil-8895-s.workers.dev/api/remind_payment', {
         method: "POST",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({ to_user: toUsername, name, owed, currency })
