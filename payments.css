@@ -45,7 +45,7 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
 .paypage-username { font-weight: 900; font-size: 1.09em; color: #23275a; margin-right: 10px;}
 
 .paypage-chat {
-  display: flex; flex-direction: column; gap: 15px; margin-bottom: 100px;
+  display: flex; flex-direction: column; gap: 15px; margin-bottom: 0px; padding-bottom: 98px; 
 }
 .pay-date-header {
   text-align: center;
@@ -202,7 +202,7 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
 .bubble-amount {
   font-size: 1.18em;
   font-weight: 700;
-  color: #1e8745;
+  color: #1d1d1f;
   white-space: nowrap;
   margin-right: 0;
 }
