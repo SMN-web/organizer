@@ -136,7 +136,7 @@ function renderDropdown() {
           let amtHtml = "";  // colored value/currency
           let extra = "";    // extra lines for awaiting/conflict
 
-          // Types: payment notifications get extra style
+          // Payment Notifications
           if (n.type === 'payment_new') {
             amtHtml = `<span class="amount-value awaiting">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>`;
             mainLine = `<b class="notify-name">${escapeHtml(dat.from)}</b> sent you a payment request of ${amtHtml}.`;
@@ -149,10 +149,16 @@ function renderDropdown() {
             amtHtml = `<span class="amount-value rejected">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>`;
             mainLine = `<b class="notify-name">${escapeHtml(dat.by)}</b> <span class="notif-action reject">rejected</span> your payment of ${amtHtml}.`;
             badge = `<span class="notif-badge notif-badge-reject">Rejected</span>`;
+
+          // Friend Notifications
           } else if (n.type === 'friend_request') {
             mainLine = `<b class="notify-name">${escapeHtml(dat.from)}</b> sent you a friend request.`;
+            badge = `<span class="notif-badge notif-badge-awaiting">Respond</span>`;
           } else if (n.type === 'friend_accept') {
             mainLine = `<b class="notify-name">${escapeHtml(dat.from)}</b> accepted your friend request.`;
+            badge = `<span class="notif-badge notif-badge-accept">Friends</span>`;
+
+          // Expense Notifications
           } else if (n.type === 'expense_new') {
             amtHtml = `<span class="amount-value awaiting">${escapeHtml(dat.share)} QAR</span>`;
             mainLine = `<b class="notify-name">${escapeHtml(dat.from)}</b> added an expense: <b>"${escapeHtml(dat.remarks)}"</b>. Your share: ${amtHtml}.`;
@@ -168,8 +174,10 @@ function renderDropdown() {
             mainLine = `<b class="notify-name">${escapeHtml(dat.from)}</b> reported the dispute resolved on expense: <b>"${escapeHtml(dat.remarks)}"</b>.`;
             badge = `<span class="notif-badge notif-badge-accept">Resolved</span>`;
             extra = `<span style="color:#277e43;font-size:.97em;font-weight:500;">Awaiting your confirmation.</span>`;
+
+          // Fallback: unknown
           } else {
-            mainLine = `<span style="color:#647096">Unknown notification</span>`;
+            mainLine = `<span style="color:#647096">Unknown notification (${escapeHtml(n.type)})</span>`;
           }
 
           const timeBadge = n.created_at
@@ -208,6 +216,7 @@ function renderDropdown() {
       .notif-action.reject { color: #bb0f27; font-weight:600;}
       .notif-card:hover { background:#f1f7fe !important; box-shadow: 0 3px 24px #1372be16; }
       .notifyItem { cursor:pointer; }
+      .notify-name { font-weight:700; color:#233372; }
     </style>
   `;
 }
