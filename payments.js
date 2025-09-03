@@ -217,7 +217,8 @@ export async function showPaymentsPanel(container, user) {
       ? `<div class="paypage-empty">No friends found.</div>`
       : flist.map((f, i) => `
           <div class="paypage-friend-row" data-idx="${i}">
-            <span class="paypage-avatar">${f.initials || (f.name||"")[0]}</span>
+            <span class="paypage-avatar">${(f.name||"").substring(0,2).toUpperCase()}
+</span>
             <span class="paypage-friend-name">${f.name}</span>
             ${netPill(f.net)}
             <span class="paypage-right-arrow">&#8250;</span>
