@@ -181,7 +181,6 @@ export async function showPaymentsPanel(container, user) {
       const searchEl = container.querySelector('.paypage-search');
       searchEl.value = searchTerm;
       setTimeout(() => { searchEl.focus(); searchEl.setSelectionRange(searchEl.value.length, searchEl.value.length); }, 5);
-
       searchEl.addEventListener("input", e => {
         searchTerm = e.target.value;
         updateFriendList();
@@ -287,7 +286,7 @@ export async function showPaymentsPanel(container, user) {
       `);
     });
 
-    // Action bar with corrected button logic
+    // Button bar
     container.innerHTML = `
       <div class="paypage-wrap" style="position:relative">
         <div class="paypage-padding-top"></div>
@@ -305,7 +304,7 @@ export async function showPaymentsPanel(container, user) {
         </div>
         <div class="user-header-divider"></div>
         <div class="paypage-chat">${timelineRows.join('')}</div>
-        <div class="paypage-actionsbar" style="display:flex;gap:9px;">
+        <div class="paypage-actionsbar" style="display:flex;gap:8px;">
           <button class="paypage-btn pay">Pay</button>
           ${currentFriend.net > 0 ? `<button class="paypage-btn remind">Remind</button>` : ''}
           <button class="paypage-btn transfer">Transfer</button>
@@ -313,7 +312,7 @@ export async function showPaymentsPanel(container, user) {
       </div>
     `;
 
-    // Three-dot menu logic
+    // Menu and button logic
     container.querySelector('.paypage-menu-3dots').onclick = e => {
       e.stopPropagation();
       const dd = container.querySelector('.paypage-menu-dropdown');
@@ -330,7 +329,7 @@ export async function showPaymentsPanel(container, user) {
       view = "friends";
       renderMain();
     };
-    // Button handlers
+    // Button actions
     const payBtn = container.querySelector('.paypage-btn.pay');
     if (payBtn) {
       payBtn.onclick = () => {
@@ -363,7 +362,7 @@ export async function showPaymentsPanel(container, user) {
         );
       };
     }
-    // Payment actions in transaction bubbles
+    // Payment actions in timeline
     container.querySelectorAll('.bubble-cancel').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
