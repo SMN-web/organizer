@@ -104,7 +104,7 @@ export async function fetchNotificationsBadge(user, parent) {
       headers: { Authorization: "Bearer " + token }
     });
     const out = await res.json();
-    await delay(Math.max(0, 700 - (Date.now() - start))); // snappy UX but not jumpy
+    await delay(Math.max(0, 700 - (Date.now() - start)));
     notifications = Array.isArray(out) ? out : [];
     renderBadge();
   } catch (e) {
@@ -131,70 +131,54 @@ function renderDropdown() {
           const isUnread = !n.read;
           let dat = {};
           try { dat = JSON.parse(n.data || '{}'); } catch { dat = {}; }
-          let mainLine = ""; // what user sees
-          let badge = "";    // right-side badge
-          let amtHtml = "";  // colored value/currency
-          let extra = "";    // extra lines for awaiting/conflict
-
-          // Payment Notifications
+          let mainLine = ""; let extra = ""; // what user sees, optional
+          // Payment Notifications: three cases only
           if (n.type === 'payment_new') {
-            amtHtml = `<span class="amount-value awaiting">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>`;
-            mainLine = `<b class="notify-name">${escapeHtml(dat.from)}</b> sent you a payment request of ${amtHtml}.`;
-            badge = `<span class="notif-badge notif-badge-awaiting">Awaiting your confirmation</span>`;
+            mainLine = `<b class="notify-name">${escapeHtml(dat.from)}</b> sent you a payment request for <span style="color:#227b2d;font-weight:700;">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>. <span style="color:#cf9901;font-weight:600;">Awaiting your confirmation.</span>`;
           } else if (n.type === 'payment_accept') {
-            amtHtml = `<span class="amount-value accepted">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>`;
-            mainLine = `<b class="notify-name">${escapeHtml(dat.by)}</b> <span class="notif-action accept">accepted</span> your payment of ${amtHtml}.`;
-            badge = `<span class="notif-badge notif-badge-accept">Accepted</span>`;
+            mainLine = `<b class="notify-name">${escapeHtml(dat.by)}</b> accepted your payment of <span style="color:#1b2d7b;font-weight:700;">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>.`;
           } else if (n.type === 'payment_reject') {
-            amtHtml = `<span class="amount-value rejected">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>`;
-            mainLine = `<b class="notify-name">${escapeHtml(dat.by)}</b> <span class="notif-action reject">rejected</span> your payment of ${amtHtml}.`;
-            badge = `<span class="notif-badge notif-badge-reject">Rejected</span>`;
-
-          // Friend Notifications
-          } else if (n.type === 'friend_request') {
-            mainLine = `<b class="notify-name">${escapeHtml(dat.from)}</b> sent you a friend request.`;
-            badge = `<span class="notif-badge notif-badge-awaiting">Respond</span>`;
-          } else if (n.type === 'friend_accept') {
-            mainLine = `<b class="notify-name">${escapeHtml(dat.from)}</b> accepted your friend request.`;
-            badge = `<span class="notif-badge notif-badge-accept">Friends</span>`;
-
-          // Expense Notifications
-          } else if (n.type === 'expense_new') {
-            amtHtml = `<span class="amount-value awaiting">${escapeHtml(dat.share)} QAR</span>`;
-            mainLine = `<b class="notify-name">${escapeHtml(dat.from)}</b> added an expense: <b>"${escapeHtml(dat.remarks)}"</b>. Your share: ${amtHtml}.`;
-            badge = `<span class="notif-badge notif-badge-awaiting">Awaiting your confirmation</span>`;
-          } else if (n.type === 'expense_approval_accepted') {
-            mainLine = `<b class="notify-name">${escapeHtml(dat.from)}</b> accepted your expense: <b>"${escapeHtml(dat.remarks)}"</b>.`;
-            badge = `<span class="notif-badge notif-badge-accept">Accepted</span>`;
-          } else if (n.type === 'expense_approval_disputed') {
-            mainLine = `<b class="notify-name">${escapeHtml(dat.from)}</b> <span class="notif-action reject">disputed</span> the expense <b>"${escapeHtml(dat.remarks)}"</b>.`;
-            badge = `<span class="notif-badge notif-badge-reject">Disputed</span>`;
-            extra = `<span style="color:#ab2222;font-size:.97em;font-weight:500;">Requires your attention.</span>`;
-          } else if (n.type === 'expense_approval_fully_accepted') {
-            mainLine = `<b class="notify-name">${escapeHtml(dat.from)}</b> reported the dispute resolved on expense: <b>"${escapeHtml(dat.remarks)}"</b>.`;
-            badge = `<span class="notif-badge notif-badge-accept">Resolved</span>`;
-            extra = `<span style="color:#277e43;font-size:.97em;font-weight:500;">Awaiting your confirmation.</span>`;
-
-          // Fallback: unknown
-          } else {
-            mainLine = `<span style="color:#647096">Unknown notification (${escapeHtml(n.type)})</span>`;
+            mainLine = `<b class="notify-name">${escapeHtml(dat.by)}</b> rejected your payment of <span style="color:#a82020;font-weight:700;">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>.`;
           }
 
+          // Existing notification types: unchanged
+          else if (n.type === 'friend_request') {
+            mainLine = `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> sent you a friend request`;
+          } else if (n.type === 'friend_accept') {
+            mainLine = `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> accepted your friend request`;
+          } else if (n.type === 'expense_new') {
+            mainLine =
+              `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> added an expense: `
+              + `"${escapeHtml(dat.remarks)}" for <b>${escapeHtml(dat.total)} QAR</b>.<br>`
+              + `Your share: <b>${escapeHtml(dat.share)}</b> QAR. `
+              + `<span style="color:#3a6;font-weight:600;">Awaiting your confirmation.</span>`;
+          } else if (n.type === 'expense_approval_accepted') {
+            mainLine =
+              `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> accepted your expense: `
+              + `"${escapeHtml(dat.remarks)}".`;
+          } else if (n.type === 'expense_approval_disputed') {
+            mainLine =
+              `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> disputed the expense `
+              + `"${escapeHtml(dat.remarks)}". <span style="color:#db4646;font-weight:600;">Requires your attention.</span>`;
+          } else if (n.type === 'expense_approval_fully_accepted') {
+            mainLine =
+              `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> reported the dispute resolved on expense: `
+                + `"${escapeHtml(dat.remarks)}". <span style="color:#2a974e;font-weight:600;">Awaiting your confirmation.</span>`;
+          }
+          if (!mainLine) mainLine = `<i style="color:#a7a9ae;">Unknown notification</i>`;
           const timeBadge = n.created_at
             ? `<span class="notif-time">${timeAgo(n.created_at)}</span>` : "";
-
           return `
-          <div class="notifyItem notif-card" style="${isUnread ? "background:#f5faff;" : "background:#fff;"}" data-id="${n.id}" data-type="${n.type}">
-            <div class="notif-card-main">
-              <div>
-                ${mainLine} ${extra}
-                <div style="margin-top:4px;">${badge}</div>
+            <div class="notifyItem notif-card" style="${isUnread ? "background:#f4faff;" : "background:#fff;"}" data-id="${n.id}" data-type="${n.type}">
+              <div class="notif-card-main">
+                <div>
+                  ${mainLine}
+                </div>
+                <div class="notif-card-right">
+                  ${timeBadge}
+                </div>
               </div>
-              <div class="notif-card-right">
-                ${timeBadge}
-              </div>
-            </div>
-          </div>`;
+            </div>`;
         }).join("")
       : `<div style="padding:38px 7px 36px 7px;text-align:center;color:#9aa;font-size:1.07em;">No notifications.</div>`
     }
@@ -202,21 +186,10 @@ function renderDropdown() {
     <style>
       .notif-card { margin: 0.7em 1em 0.2em 1em; border-radius: 12px; box-shadow: 0 2px 14px #13216911; padding: 12px 13px 9px 13px; display: flex; align-items: flex-start;}
       .notif-card-main { flex: 1; display: flex; flex-direction: row; justify-content: space-between;}
-      .notif-name { font-weight: 700; color: #213259;}
-      .notif-badge { font-size: .90em; display: inline-block; margin-top:2px; margin-right:10px; vertical-align:middle; border-radius:6px; padding:1px 9px; font-weight:600;}
-      .notif-badge-awaiting { background: #ffe9c1; color: #bb7b07;}
-      .notif-badge-accept { background: #dcfddb; color: #22923a;}
-      .notif-badge-reject { background: #ffe4e2; color: #da3030;}
       .notif-time { color:#8e99a6; font-size:.96em; white-space:nowrap; margin-left: 0.7em;}
-      .amount-value { font-weight:700; letter-spacing:.01em;}
-      .amount-value.accepted { color:#22923a; }
-      .amount-value.awaiting { color:#bb7b07; }
-      .amount-value.rejected { color:#c32919; }
-      .notif-action.accept { color: #22923a; font-weight:600;}
-      .notif-action.reject { color: #bb0f27; font-weight:600;}
+      .notify-name { font-weight:700; color:#233372; }
       .notif-card:hover { background:#f1f7fe !important; box-shadow: 0 3px 24px #1372be16; }
       .notifyItem { cursor:pointer; }
-      .notify-name { font-weight:700; color:#233372; }
     </style>
   `;
 }
