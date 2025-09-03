@@ -1,5 +1,5 @@
 import { showSpinner, hideSpinner } from './spinner.js';
-import { showTransferPopup } from './transfer.js'; // **Clean, separate transfer logic**
+import { showTransferPopup } from './transfer.js';
 
 function parseDBDatetimeAsUTC(dt) {
   const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
@@ -287,6 +287,7 @@ export async function showPaymentsPanel(container, user) {
       `);
     });
 
+    // Action bar with corrected button logic
     container.innerHTML = `
       <div class="paypage-wrap" style="position:relative">
         <div class="paypage-padding-top"></div>
@@ -305,12 +306,14 @@ export async function showPaymentsPanel(container, user) {
         <div class="user-header-divider"></div>
         <div class="paypage-chat">${timelineRows.join('')}</div>
         <div class="paypage-actionsbar" style="display:flex;gap:9px;">
-          <button class="paypage-btn pay"${currentFriend.net < 0 ? "" : " disabled"}>Pay</button>
-          <button class="paypage-btn remind" ${currentFriend.net >= 0 ? "disabled" : ""}>Remind</button>
-          <button class="paypage-btn transfer"${currentFriend.net < 0 ? "" : " disabled"}>Transfer</button>
+          <button class="paypage-btn pay">Pay</button>
+          ${currentFriend.net > 0 ? `<button class="paypage-btn remind">Remind</button>` : ''}
+          <button class="paypage-btn transfer">Transfer</button>
         </div>
       </div>
     `;
+
+    // Three-dot menu logic
     container.querySelector('.paypage-menu-3dots').onclick = e => {
       e.stopPropagation();
       const dd = container.querySelector('.paypage-menu-dropdown');
@@ -327,18 +330,40 @@ export async function showPaymentsPanel(container, user) {
       view = "friends";
       renderMain();
     };
-    if (currentFriend.net < 0) {
-      container.querySelector('.paypage-btn.pay').onclick = async () => {
-        await sendPayment(currentFriend.username, Math.abs(currentFriend.net));
-      };
-      container.querySelector('.paypage-btn.remind').onclick = async () => {
-        await remindPayment(currentFriend.username, currentFriend.name, Math.abs(currentFriend.net), CURRENCY);
-      };
-      container.querySelector('.paypage-btn.transfer').onclick = async () => {
-        await showTransferPopup(currentFriend.username, currentFriend.name, Math.abs(currentFriend.net), CURRENCY);
+    // Button handlers
+    const payBtn = container.querySelector('.paypage-btn.pay');
+    if (payBtn) {
+      payBtn.onclick = () => {
+        if (currentFriend.net >= 0) {
+          alert("You owed nothing to this person.");
+          return;
+        }
+        sendPayment(currentFriend.username, Math.abs(currentFriend.net));
       };
     }
-    // Payment actions
+    const remindBtn = container.querySelector('.paypage-btn.remind');
+    if (remindBtn) {
+      remindBtn.onclick = () => {
+        if (currentFriend.net <= 0) {
+          alert("Nothing owed to you to remind.");
+          return;
+        }
+        remindPayment(currentFriend.username, currentFriend.name, Math.abs(currentFriend.net), CURRENCY);
+      };
+    }
+    const transferBtn = container.querySelector('.paypage-btn.transfer');
+    if (transferBtn) {
+      transferBtn.onclick = () => {
+        showTransferPopup(
+          user.username || user.firebaseUser.displayName || user.firebaseUser.email,
+          currentFriend.username,
+          currentFriend.name,
+          Math.abs(currentFriend.net),
+          CURRENCY
+        );
+      };
+    }
+    // Payment actions in transaction bubbles
     container.querySelectorAll('.bubble-cancel').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
