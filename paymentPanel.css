@@ -83,7 +83,7 @@
   gap: 12px;
   justify-content: center;
   margin-top: 14px !important;
-  margin-bottom: 4px !important; /* Tight gap below main tabs */
+  margin-bottom: 2px !important; /* Tight gap below main tabs */
 }
 
 /* Subsection tabs (Ongoing, Completed) */
@@ -91,7 +91,7 @@
   display: flex;
   gap: 12px;
   justify-content: center;
-  margin-top: 4px !important;    /* Tight gap below section tabs */
+  margin-top: 3px !important;    /* Tight gap below section tabs */
   margin-bottom: 0 !important;
 }
 
