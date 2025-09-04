@@ -1,8 +1,9 @@
-import { showPaymentsPanel } from './payments.js';
+import { showPaymentsPanel } from './payments.js';      // <-- Your production payments UI
 import { showTransfersPanel } from './transfers.js';
 import { showHistoryPanel } from './history.js';
 
-export function showPaymentPanel(container, user) {
+// Exported as showPaymentsPanelMain to match your expected import usage
+export function showPaymentsPanelMain(container, user) {
   container.innerHTML = `
     <nav class="section-switch">
       <button data-tab="payments" class="tab-btn active">Payments</button>
@@ -17,11 +18,9 @@ export function showPaymentPanel(container, user) {
     panelContent.innerHTML = "";
     if (tab === "payments") {
       showPaymentsPanel(panelContent, user);
-    }
-    else if (tab === "transfers") {
+    } else if (tab === "transfers") {
       showTransfersPanel(panelContent, user);
-    }
-    else if (tab === "history") {
+    } else if (tab === "history") {
       showHistoryPanel(panelContent, user);
     }
   }
