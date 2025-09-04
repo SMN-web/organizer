@@ -5,6 +5,8 @@ import { showHistoryPanel } from './history.js';
 // Exported as showPaymentsPanelMain to match your expected import usage
 export function showPaymentsPanelMain(container, user) {
   container.innerHTML = `
+        <div class="payments-section">
+      <div class="section-top-spacer"></div>
     <nav class="section-switch">
       <button data-tab="payments" class="tab-btn active">Payments</button>
       <button data-tab="transfers" class="tab-btn">Transfers</button>
