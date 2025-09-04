@@ -2,7 +2,7 @@
   display: flex;
   justify-content: center;
   gap: 11px;
-  margin-top: 42px;    /* Increased top margin for space under menu/bell */
+  margin-top: 60px;    /* Increased top margin for space under menu/bell */
   margin-bottom: 20px;
   background: none;
   border: none;
