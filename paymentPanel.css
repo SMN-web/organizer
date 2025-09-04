@@ -168,3 +168,65 @@
     margin-top: 6px;
   }
 }
+
+/*transfer*/
+
+.fab-create-transfer {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  font-size: 2.2em;
+  background: #3476e5;
+  color: #fff;
+  border: none;
+  box-shadow: 0 6px 18px -4px #126fd04a;
+  z-index: 900;
+  cursor: pointer;
+}
+
+.create-transfer-modal {
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(40,60,80,0.13);
+  z-index: 999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.modal-content {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 10px 28px #325a8440;
+  padding: 32px 22px;
+  max-width: 340px;
+  min-width: 80vw;
+}
+.primary-btn {
+  background: #3476e5;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  width: 100%;
+  font-size: 1.07em;
+  margin-top: 18px;
+}
+.secondary-btn {
+  background: #eee;
+  color: #333;
+  border: none;
+  border-radius: 10px;
+  padding: 12px;
+  width: 100%;
+  font-size: 1.04em;
+  margin-top: 12px;
+}
+.input-error {
+  color: #d6303e;
+  font-size: 0.99em;
+  margin-top: 6px;
+  margin-bottom: 4px;
+}
