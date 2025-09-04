@@ -1,13 +1,12 @@
-import { showPaymentsPanel } from './payments.js'; // Existing legacy or new payments UI
 import { showTransfersPanel } from './transfers.js';
 import { showHistoryPanel } from './history.js';
 
 export function showPaymentsPanelMain(contentContainer, user) {
   contentContainer.innerHTML = `
-    <div class="payments-wrapper">
-      <header class="payments-header">
+    <div class="manage-spend-wrapper">
+      <header class="spend-header">
         <h2 class="centered-title">Payments Center</h2>
-        <p class="payments-desc">Settle, transfer, and audit payments with friends in one place.</p>
+        <p class="spend-desc">Settle, transfer, and audit all group payments in one place.</p>
       </header>
       <nav class="section-switch">
         <button data-section="payments" class="tab-btn active">Payments</button>
@@ -17,12 +16,25 @@ export function showPaymentsPanelMain(contentContainer, user) {
       <div class="section-content"></div>
     </div>
   `;
-  contentContainer.querySelector('.payments-header').style.marginTop = '36px';
+  contentContainer.querySelector('.spend-header').style.marginTop = '36px';
   const sectionContent = contentContainer.querySelector('.section-content');
 
-  function renderSection(section) {
+  async function renderSection(section) {
     sectionContent.innerHTML = '';
-    if (section === 'payments') showPaymentsPanel(sectionContent, user);
+    if (section === 'payments') {
+      sectionContent.innerHTML = '<div style="color:#888;">Loading payments module…</div>';
+      // Use dynamic import!
+      try {
+        const mod = await import('./payments.js');
+        if (mod && typeof mod.showPaymentsPanel === 'function') {
+          mod.showPaymentsPanel(sectionContent, user);
+        } else {
+          sectionContent.innerHTML = '<div style="color:red;">Payments panel failed to load</div>';
+        }
+      } catch (e) {
+        sectionContent.innerHTML = `<div style="color:red;">Import error: ${e.message}</div>`;
+      }
+    }
     else if (section === 'transfers') showTransfersPanel(sectionContent, user);
     else if (section === 'history') showHistoryPanel(sectionContent, user);
   }
