@@ -1,6 +1,6 @@
 import { showPaymentsPanel } from './payments.js';
-import { showTransfersPanel } from './transfers.js'; // Your future or new transfers section
-import { showHistoryPanel } from './history.js';     // Your future or new history section
+import { showTransfersPanel } from './transfers.js';
+import { showHistoryPanel } from './history.js';
 
 export function showPaymentsPanelMain(container, user) {
   container.innerHTML = `
@@ -14,17 +14,25 @@ export function showPaymentsPanelMain(container, user) {
       <div id="paymentsPanelSection"></div>
     </div>
   `;
+
   const section = container.querySelector("#paymentsPanelSection");
+  if (!section) {
+    container.innerHTML += '<div style="color:red">paymentsPanelSection not found</div>';
+    return;
+  }
+
   function activateTab(idx) {
     ["tabPayments", "tabTransfers", "tabHistory"].forEach((id, i) => {
       const btn = container.querySelector("#" + id);
-      btn.style.background = i === idx ? "#3498db" : "#eee";
-      btn.style.color = i === idx ? "#fff" : "#333";
+      if(btn){
+        btn.style.background = i === idx ? "#3498db" : "#eee";
+        btn.style.color = i === idx ? "#fff" : "#333";
+      }
     });
   }
   container.querySelector("#tabPayments").onclick = () => {
     activateTab(0);
-    showPaymentsPanel(section, user); // Your payments.js function
+    showPaymentsPanel(section, user);
   };
   container.querySelector("#tabTransfers").onclick = () => {
     activateTab(1);
@@ -35,5 +43,5 @@ export function showPaymentsPanelMain(container, user) {
     showHistoryPanel(section, user);
   };
   activateTab(0);
-  showPaymentsPanel(section, user); // Show Payments tab by default
+  showPaymentsPanel(section, user);
 }
