@@ -1,15 +1,15 @@
-import { showLegacyPayments } from './payments.js';
-import { showTransfersPanel } from './transfers.js';
-import { showHistoryPanel } from './history.js';
+import { showPaymentsPanel } from './payments.js';
+import { showTransfersPanel } from './transfers.js'; // Your future or new transfers section
+import { showHistoryPanel } from './history.js';     // Your future or new history section
 
-export function showPaymentsPanel(container, user) {
+export function showPaymentsPanelMain(container, user) {
   container.innerHTML = `
     <div style="padding:2em 1em;max-width:540px;margin:auto;">
       <h2 style="margin-bottom:1.2em;">Payments Center</h2>
       <div style="display:flex;justify-content:center;gap:10px;margin-bottom:1.2em;">
-        <button class="ptab" id="tabPayments" style="background:#3498db;color:#fff;border:none;border-radius:6px;padding:0.7em 1.6em;cursor:pointer;font-size:1em;">Payments</button>
-        <button class="ptab" id="tabTransfers" style="background:#eee;color:#333;border:none;border-radius:6px;padding:0.7em 1.6em;cursor:pointer;font-size:1em;">Transfers</button>
-        <button class="ptab" id="tabHistory" style="background:#eee;color:#333;border:none;border-radius:6px;padding:0.7em 1.6em;cursor:pointer;font-size:1em;">History</button>
+        <button class="ptab" id="tabPayments" style="background:#3498db;color:#fff;border:none;border-radius:6px;padding:0.7em 1.6em;">Payments</button>
+        <button class="ptab" id="tabTransfers" style="background:#eee;color:#333;border:none;border-radius:6px;padding:0.7em 1.6em;">Transfers</button>
+        <button class="ptab" id="tabHistory" style="background:#eee;color:#333;border:none;border-radius:6px;padding:0.7em 1.6em;">History</button>
       </div>
       <div id="paymentsPanelSection"></div>
     </div>
@@ -24,7 +24,7 @@ export function showPaymentsPanel(container, user) {
   }
   container.querySelector("#tabPayments").onclick = () => {
     activateTab(0);
-    showLegacyPayments(section, user);
+    showPaymentsPanel(section, user); // Your payments.js function
   };
   container.querySelector("#tabTransfers").onclick = () => {
     activateTab(1);
@@ -35,5 +35,5 @@ export function showPaymentsPanel(container, user) {
     showHistoryPanel(section, user);
   };
   activateTab(0);
-  showLegacyPayments(section, user);
+  showPaymentsPanel(section, user); // Show Payments tab by default
 }
