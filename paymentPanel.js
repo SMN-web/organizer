@@ -1,3 +1,5 @@
+// NOTE: Remove payments.js import for isolated testing
+// import { showPaymentsPanel } from './payments.js';
 import { showTransfersPanel } from './transfers.js';
 import { showHistoryPanel } from './history.js';
 
@@ -20,14 +22,19 @@ export function showPaymentsPanelMain(contentContainer, user) {
   `;
 
   const sectionContent = contentContainer.querySelector('.payments-main-section');
-
   function renderSection(section) {
     sectionContent.innerHTML = '';
     if (section === 'payments') {
-      sectionContent.innerHTML = '<div style="padding:2em;color:#888;text-align:center;">Payments section (payments.js not imported yet)</div>';
+      sectionContent.innerHTML = '<div style="padding:2em;text-align:center;color:#888;">Payments section works (no import yet)</div>';
+      // Uncomment the next line only if you CONFIRM showPaymentsPanel is currectly imported!
+      // showPaymentsPanel(sectionContent, user);
     }
-    else if (section === 'transfers') showTransfersPanel(sectionContent, user);
-    else if (section === 'history') showHistoryPanel(sectionContent, user);
+    else if (section === 'transfers') {
+      showTransfersPanel(sectionContent, user);
+    }
+    else if (section === 'history') {
+      showHistoryPanel(sectionContent, user);
+    }
   }
   renderSection('payments'); // Default tab
 
