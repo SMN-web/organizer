@@ -4,7 +4,8 @@ import { showFriends } from './friends.js';
 import { showUserProfile } from './userProfile.js';
 import { fetchNotificationsBadge, mountNotifications } from './notifications.js';
 import { sendHeartbeat } from './heartbeat.js';
-import { showPaymentsPanelMain } from './paymentPanel.js';
+
+import { showPaymentsPanelMain } from './paymentPanel.js'; // <<====== NEW: Use the main tabbed panel
 
 let heartbeatTimer = null;
 
@@ -31,7 +32,6 @@ export async function showUserPanel(container, auth) {
         style="opacity:0;pointer-events:none;position:fixed;left:50%;top:90px;transform:translateX(-50%) scale(0.98);
         width:90vw;max-width:340px;background:#fff;border-radius:12px;box-shadow:0 4px 24px #0002;border:1px solid #eee;
         z-index:150;transition:opacity 0.22s cubic-bezier(.45,1.6,.41,1),transform 0.17s cubic-bezier(.45,1.6,.41,1);display:flex;flex-direction:column;">
-        
         <div id="userHeader" style="display:flex;align-items:center;padding:18px 18px 16px 18px;cursor:pointer;">
           <span id="avatarCircle"
             style="background:#e1e6ef;color:#355;font-weight:700;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;font-size:1.2em;margin-right:13px;">
@@ -82,7 +82,7 @@ export async function showUserPanel(container, auth) {
     localStorage.setItem('currency', currencyDropdown.value);
   };
 
-  // --- HEARTBEAT LOGIC (START) ---
+  // --- HEARTBEAT LOGIC (unchanged) ---
   async function getFreshToken() {
     if (!auth.currentUser) throw new Error("Not logged in");
     return await auth.currentUser.getIdToken(true);
@@ -104,7 +104,6 @@ export async function showUserPanel(container, auth) {
   }
   startHeartbeat();
   window.addEventListener("hashchange", clearHeartbeat, { once: true });
-  // --- HEARTBEAT LOGIC (END) ---
 
   // Fetch user info (name, initials, email)
   let userDisplayName = "Unknown";
@@ -139,7 +138,7 @@ export async function showUserPanel(container, auth) {
 
   await fetchNotificationsBadge(userContext, document.getElementById('notifyBell'));
 
-  // --- Loading spinner: rotate for ~2 seconds then reveal UI ---
+  // --- Loading spinner ---
   menuBtn.disabled = true;
   simpleMenu.style.pointerEvents = "none";
   setTimeout(() => {
@@ -154,7 +153,7 @@ export async function showUserPanel(container, auth) {
     spend: showManageSpend,
     friends: showFriends,
     userprofile: showUserProfile,
-    payments: showPaymentsPanelMain
+    payments: showPaymentsPanelMain // <<<< ***** CHANGE ONLY HERE
   };
 
   let lastTab = localStorage.getItem('lastTab') || 'dashboard';
@@ -165,7 +164,7 @@ export async function showUserPanel(container, auth) {
   }
   (TAB_KEYS[tabToLoad] || showDashboard)(mainContent, userContext);
 
-  // --- Menu logic ---
+  // --- Menu logic (unchanged) ---
   menuBtn.onclick = () => {
     simpleMenu.style.opacity = "1";
     simpleMenu.style.transform = "translateX(-50%) scale(1)";
@@ -187,7 +186,7 @@ export async function showUserPanel(container, auth) {
   container.querySelector("#friends").onclick = () => selectTab('friends');
   userHeader.onclick = () => selectTab('userprofile');
 
-  // Logout
+  // --- Logout logic (unchanged) ---
   logoutBtn.onclick = async (e) => {
     e.preventDefault();
     localStorage.clear();
@@ -201,7 +200,7 @@ export async function showUserPanel(container, auth) {
     simpleMenu.style.pointerEvents = "none";
   }
 
-  // --- Notification -> friends inbox tab redirect, unchanged ---
+  // --- Notification logic (unchanged) ---
   function showFriendsInbox(tabContainer, userContext) {
     showFriends(tabContainer, userContext);
     const t0 = Date.now();
@@ -224,4 +223,3 @@ export async function showUserPanel(container, auth) {
     }
   );
 }
-
