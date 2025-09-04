@@ -1,26 +1,28 @@
-// In transfers.js
+import { showOngoingTransfersPanel } from './ongoingTransfers.js';
+import { showCompletedTransfersPanel } from './completedTransfers.js';
+
 export function showTransfersPanel(container, user) {
   container.innerHTML = `
-    <div class="transfers-panel-container">
-      <nav class="transfers-subtabs">
-        <button data-tab="ongoing" class="transfers-subtab active">Ongoing</button>
-        <button data-tab="completed" class="transfers-subtab">Completed</button>
+    <div>
+      <nav class="approval-subtabs" style="display:flex;gap:12px;margin-bottom:13px;">
+        <button data-tab="ongoing" class="approval-subtab subtab-btn active">Ongoing</button>
+        <button data-tab="completed" class="approval-subtab subtab-btn">Completed</button>
       </nav>
-      <div class="transfers-subpanel"></div>
+      <div class="transfer-sub-content"></div>
     </div>
   `;
-  const subPanel = container.querySelector('.transfers-subpanel');
+  const subContent = container.querySelector('.transfer-sub-content');
+
   function renderSubSection(tab) {
     if (tab === 'ongoing') {
-      subPanel.innerHTML = `<b>Ongoing Transfers</b>
-      <div>No ongoing transfers at this time.</div>`;
-    } else {
-      subPanel.innerHTML = `<b>Completed Transfers</b>
-      <div>No transfers have been completed yet.</div>`;
+      showOngoingTransfersPanel(subContent, user);
+    } else if (tab === 'completed') {
+      showCompletedTransfersPanel(subContent, user);
     }
   }
+
   renderSubSection('ongoing');
-  const subTabs = container.querySelectorAll('.transfers-subtab');
+  const subTabs = container.querySelectorAll('.approval-subtab');
   subTabs.forEach(tab => {
     tab.onclick = () => {
       subTabs.forEach(t => t.classList.remove('active'));
