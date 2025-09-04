@@ -1,41 +1,47 @@
+import { showPaymentsPanel } from './payments.js';
 import { showTransfersPanel } from './transfers.js';
 import { showHistoryPanel } from './history.js';
 
-export function showPaymentsPanelMain(contentContainer, user) {
-  contentContainer.innerHTML = `
-    <div class="manage-spend-wrapper">
-      <header class="spend-header">
-        <h2 class="centered-title">Payments Center</h2>
-        <p class="spend-desc">Settle, transfer, and audit all group payments in one place.</p>
-      </header>
-      <nav class="section-switch">
-        <button data-section="payments" class="tab-btn active">Payments</button>
-        <button data-section="transfers" class="tab-btn">Transfers</button>
-        <button data-section="history" class="tab-btn">History</button>
-      </nav>
-      <div class="section-content" style="padding:1.6em;font-size:1.22em;color:#325;text-align:center;"></div>
+export function showPaymentsPanelMain(container, user) {
+  container.innerHTML = `
+    <div style="padding:2em 1em;max-width:540px;margin:auto;">
+      <h2 style="margin-bottom:1.2em;">Payments Center</h2>
+      <div style="display:flex;justify-content:center;gap:10px;margin-bottom:1.2em;">
+        <button class="ptab" id="tabPayments" style="background:#3498db;color:#fff;border:none;border-radius:6px;padding:0.7em 1.6em;">Payments</button>
+        <button class="ptab" id="tabTransfers" style="background:#eee;color:#333;border:none;border-radius:6px;padding:0.7em 1.6em;">Transfers</button>
+        <button class="ptab" id="tabHistory" style="background:#eee;color:#333;border:none;border-radius:6px;padding:0.7em 1.6em;">History</button>
+      </div>
+      <div id="paymentsPanelSection"></div>
     </div>
   `;
-  contentContainer.querySelector('.spend-header').style.marginTop = '36px';
-  const sectionContent = contentContainer.querySelector('.section-content');
 
-  function renderSection(section) {
-    if (section === 'payments') {
-      sectionContent.innerHTML = 'Payments tab active (basic test)';
-    } else if (section === 'transfers') {
-      showTransfersPanel(sectionContent, user);
-    } else if (section === 'history') {
-      showHistoryPanel(sectionContent, user);
-    }
+  const section = container.querySelector("#paymentsPanelSection");
+  if (!section) {
+    container.innerHTML += '<div style="color:red">paymentsPanelSection not found</div>';
+    return;
   }
 
-  renderSection('payments');
-  const tabs = contentContainer.querySelectorAll('.tab-btn');
-  tabs.forEach(tab => {
-    tab.onclick = () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      renderSection(tab.dataset.section);
-    };
-  });
+  function activateTab(idx) {
+    ["tabPayments", "tabTransfers", "tabHistory"].forEach((id, i) => {
+      const btn = container.querySelector("#" + id);
+      if(btn){
+        btn.style.background = i === idx ? "#3498db" : "#eee";
+        btn.style.color = i === idx ? "#fff" : "#333";
+      }
+    });
+  }
+  container.querySelector("#tabPayments").onclick = () => {
+    activateTab(0);
+    showPaymentsPanel(section, user);
+  };
+  container.querySelector("#tabTransfers").onclick = () => {
+    activateTab(1);
+    showTransfersPanel(section, user);
+  };
+  container.querySelector("#tabHistory").onclick = () => {
+    activateTab(2);
+    showHistoryPanel(section, user);
+  };
+  activateTab(0);
+  showPaymentsPanel(section, user);
 }
