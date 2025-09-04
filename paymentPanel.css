@@ -1,0 +1,66 @@
+.manage-spend-wrapper {
+  max-width: 430px;
+  margin: 44px auto 0 auto;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px #c3dae41a;
+  padding: 22px 8px 38px 8px;
+  min-height: 70vh;
+}
+
+.spend-header, .payments-header {
+  margin-top: 36px;
+  padding-bottom: 2px;
+}
+
+.centered-title {
+  text-align: center;
+  margin: 0 0 .11em 0;
+  font-size: 2em;
+  font-weight: 700;
+}
+
+.payments-desc, .spend-desc {
+  text-align: center;
+  margin-bottom: 1em;
+  font-size: 1.07em;
+  color: #5f627c;
+}
+
+.section-switch {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 14px 0 13px 0;
+}
+
+.tab-btn {
+  color: #28508B;
+  cursor: pointer;
+  border: none;
+  background: #f6f8fa;
+  padding: 7px 16px;
+  border-radius: 12px;
+  font-size: 1.04em;
+  font-weight: 500;
+  transition: background .12s, color .12s;
+}
+
+.tab-btn.active {
+  background: #e5effc;
+  color: #2355a2;
+  font-weight: 600;
+}
+
+.tab-btn:hover:not(.active) {
+  background: #e5ecfa;
+  color: #1b3c7c;
+}
+
+.section-content,
+.payments-section-content {
+  padding: 1.6em;
+  font-size: 1.13em;
+  color: #325;
+  text-align: center;
+}
