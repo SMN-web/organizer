@@ -64,3 +64,84 @@
   color: #325;
   text-align: center;
 }
+
+/* Transfers Panel Only Styles */
+
+.transfers-panel-container {
+  max-width: 430px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.transfers-tabs {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 18px;
+  margin-bottom: 0;
+}
+
+.transfers-section-content {
+  padding: 0;
+}
+
+.transfers-subtabs {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+  margin-bottom: 10px;
+}
+
+.transfers-subtab {
+  background: #f1f5fa;
+  color: #1761a0;
+  border: none;
+  border-radius: 7px;
+  padding: 5px 15px;
+  font-size: 1.01em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.13s, color 0.11s;
+  outline: none;
+  box-shadow: none;
+}
+
+.transfers-subtab.active {
+  background: #2268c5;
+  color: #fff;
+}
+
+.transfers-subtab:hover:not(.active) {
+  background: #e5ecfa;
+  color: #1b3c7c;
+}
+
+.transfers-subpanel {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 1.09em;
+  color: #22244d;
+}
+
+.transfers-subpanel b {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 1.13em;
+  color: #27265a;
+}
+
+@media (max-width: 600px) {
+  .transfers-panel-container {
+    max-width: 97vw;
+    padding: 0 2vw;
+  }
+  .transfers-subtabs {
+    gap: 4px;
+    margin-top: 10px;
+    margin-bottom: 8px;
+  }
+  .transfers-subpanel {
+    font-size: 0.99em;
+  }
+}
