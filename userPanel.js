@@ -4,10 +4,11 @@ import { showFriends } from './friends.js';
 import { showUserProfile } from './userProfile.js';
 import { fetchNotificationsBadge, mountNotifications } from './notifications.js';
 import { sendHeartbeat } from './heartbeat.js';
-import { showPaymentsPanel } from './paymentPanel.js';
+import { showPaymentsPanelMain } from './paymentPanel.js'; // NEW: Entry for all payments (tabbed)
 
 let heartbeatTimer = null;
 
+// Main function
 export async function showUserPanel(container, auth) {
   container.innerHTML = `
     <div style="position:relative; width:100%; min-height:100vh;">
@@ -65,32 +66,161 @@ export async function showUserPanel(container, auth) {
     </style>
   `;
 
-  // ...CURRENCY DROPDOWN, HEARTBEAT, fetchNameAndAvatar, notification logic as before...
+  // Elements
+  const loadingOverlay = container.querySelector("#loadingOverlay");
+  const menuBtn = container.querySelector("#menuBtn");
+  const simpleMenu = container.querySelector("#simpleMenu");
+  const avatarCircle = container.querySelector("#avatarCircle");
+  const menuName = container.querySelector("#menuName");
+  const mainContent = container.querySelector("#mainContent");
+  const userHeader = container.querySelector("#userHeader");
+  const logoutBtn = container.querySelector("#logoutBtn");
+  const currencyDropdown = container.querySelector("#currencyDropdown");
 
-  // -- Set up tab dispatchers --
+  // --- CURRENCY DROPDOWN ---
+  currencyDropdown.value = localStorage.getItem('currency') || "QAR";
+  currencyDropdown.onchange = () => {
+    localStorage.setItem('currency', currencyDropdown.value);
+  };
+
+  // --- HEARTBEAT LOGIC ---
+  async function getFreshToken() {
+    if (!auth.currentUser) throw new Error("Not logged in");
+    return await auth.currentUser.getIdToken(true);
+  }
+  async function doHeartbeat() {
+    try {
+      const token = await getFreshToken();
+      await sendHeartbeat(token);
+    } catch (e) {}
+  }
+  function startHeartbeat() {
+    clearHeartbeat();
+    doHeartbeat();
+    heartbeatTimer = setInterval(doHeartbeat, 2 * 60 * 1000);
+  }
+  function clearHeartbeat() {
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+  startHeartbeat();
+  window.addEventListener("hashchange", clearHeartbeat, { once: true });
+
+  // --- Fetch user info (name/initials/email) ---
+  let userDisplayName = "Unknown";
+  let userInitials = "??";
+  let userEmail = "";
+  async function fetchNameAndAvatar() {
+    try {
+      if (!auth.currentUser) throw new Error("No logged in user");
+      await auth.currentUser.reload();
+      const token = await auth.currentUser.getIdToken(true);
+      const resp = await fetch("https://us-api.nafil-8895-s.workers.dev/api/userpanel", {
+        headers: { Authorization: "Bearer " + token },
+        mode: "cors",
+      });
+      const data = await resp.json();
+      if (resp.status === 200 && data.name) {
+        userDisplayName = data.name;
+        userEmail = data.email || "";
+        userInitials = (data.name.match(/[A-Z]/gi) || []).join('').toUpperCase().slice(0,2) || "??";
+      }
+    } catch (e) {}
+    menuName.textContent = userDisplayName;
+    avatarCircle.textContent = userInitials;
+  }
+  await fetchNameAndAvatar();
+
+  const userContext = {
+    name: userDisplayName,
+    email: userEmail,
+    firebaseUser: auth.currentUser
+  };
+
+  await fetchNotificationsBadge(userContext, document.getElementById('notifyBell'));
+
+  // Loading spinner: rotate for ~2 seconds then reveal UI
+  menuBtn.disabled = true;
+  simpleMenu.style.pointerEvents = "none";
+  setTimeout(() => {
+    loadingOverlay.style.display = "none";
+    menuBtn.disabled = false;
+    simpleMenu.style.pointerEvents = "";
+  }, 1900);
+
+  // --- Set up tab dispatchers ---
   const TAB_KEYS = {
     dashboard: showDashboard,
     spend: showManageSpend,
     friends: showFriends,
     userprofile: showUserProfile,
-    payments: showPaymentsPanel // now delegates to paymentPanel.js
+    payments: showPaymentsPanelMain    // <-- NEW: Use paymentPanel.js, not payments.js
   };
 
-  // -- Tab menu logic as before --
+  let lastTab = localStorage.getItem('lastTab') || 'dashboard';
+  let tabToLoad = lastTab;
+  if (!localStorage.getItem('userSignedIn')) {
+    tabToLoad = 'dashboard';
+    localStorage.setItem('userSignedIn', '1');
+  }
+  (TAB_KEYS[tabToLoad] || showDashboard)(mainContent, userContext);
+
+  // --- Menu logic ---
+  menuBtn.onclick = () => {
+    simpleMenu.style.opacity = "1";
+    simpleMenu.style.transform = "translateX(-50%) scale(1)";
+    simpleMenu.style.pointerEvents = "auto";
+  };
+  document.addEventListener("click", function handler(e) {
+    if (!simpleMenu.contains(e.target) && e.target !== menuBtn) closeMenu();
+  });
+
   function selectTab(key) {
     closeMenu();
     localStorage.setItem('lastTab', key);
     (TAB_KEYS[key] || showDashboard)(mainContent, userContext);
   }
 
-  // -- Tab menu onclick wiring --
   container.querySelector("#dashboard").onclick = () => selectTab('dashboard');
   container.querySelector("#spend").onclick = () => selectTab('spend');
   container.querySelector("#payments").onclick = () => selectTab('payments');
   container.querySelector("#friends").onclick = () => selectTab('friends');
   userHeader.onclick = () => selectTab('userprofile');
 
-  logoutBtn.onclick = async (e) => { /* ...as in your example... */ };
+  // Logout
+  logoutBtn.onclick = async (e) => {
+    e.preventDefault();
+    localStorage.clear();
+    await auth.signOut();
+    location.reload();
+  };
 
-  // -- Notification logic as before --
+  function closeMenu() {
+    simpleMenu.style.opacity = "0";
+    simpleMenu.style.transform = "translateX(-50%) scale(0.98)";
+    simpleMenu.style.pointerEvents = "none";
+  }
+
+  // -- Notification logic unchanged --
+  function showFriendsInbox(tabContainer, userContext) {
+    showFriends(tabContainer, userContext);
+    const t0 = Date.now();
+    function tryClickInbox() {
+      const inboxBtn = tabContainer.querySelector("#tabInbox");
+      if (inboxBtn) {
+        inboxBtn.click();
+      } else if (Date.now() - t0 < 2500) {
+        setTimeout(tryClickInbox, 40);
+      }
+    }
+    tryClickInbox();
+  }
+
+  mountNotifications(
+    document.getElementById('notifyBell'),
+    userContext,
+    (type) => {
+      if (type === "friend_request") showFriendsInbox(mainContent, userContext);
+    }
+  );
 }
