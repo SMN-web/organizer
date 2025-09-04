@@ -3,7 +3,7 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
   max-width: 430px; margin: 0 auto; position: relative; background: #fff;
   border-radius: 15px; min-height: 95vh; box-shadow: 0 2px 29px #dde0f929;
 }
-.paypage-padding-top { height: 20px; } 
+.paypage-padding-top { height: 74px; } 
 .paypage-searchbar-row {
   display: flex; align-items: center; gap: 7px; margin: 0 15px 17px 12px;
 }
