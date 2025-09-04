@@ -1,9 +1,4 @@
-.section-switch {
-  display: flex;
-  justify-content: center;
-  gap: 11px;
-  margin-top: 60px;    /* Increased top margin for space under menu/bell */
-  margin-bottom: 20px;
-  background: none;
-  border: none;
+.panel-content, .section-switch {
+  /* Only panel zone, not header */
+  margin-top: 30px;   /* adjust as necessary */
 }
