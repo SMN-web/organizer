@@ -5,7 +5,7 @@ import { showUserProfile } from './userProfile.js';
 import { fetchNotificationsBadge, mountNotifications } from './notifications.js';
 import { sendHeartbeat } from './heartbeat.js';
 
-import { showPaymentsPanel } from './payments.js'; // <<====== NEW: Use the main tabbed panel
+import { showPaymentsPanelMain } from './paymentPanel.js'; // <<====== NEW: Use the main tabbed panel
 
 let heartbeatTimer = null;
 
@@ -153,7 +153,7 @@ export async function showUserPanel(container, auth) {
     spend: showManageSpend,
     friends: showFriends,
     userprofile: showUserProfile,
-    payments: showPaymentsPanel // <<<< ***** CHANGE ONLY HERE
+    payments: showPaymentsPanelMain // <<<< ***** CHANGE ONLY HERE
   };
 
   let lastTab = localStorage.getItem('lastTab') || 'dashboard';
