@@ -4,7 +4,7 @@ import { showCompletedTransfersPanel } from './completedTransfers.js';
 export function showTransfersPanel(container, user) {
   container.innerHTML = `
     <div>
-      <nav class="approval-subtabs" style="display:flex;gap:12px;margin-bottom:13px;">
+      <nav class="approval-subtabs">
         <button data-tab="ongoing" class="approval-subtab subtab-btn active">Ongoing</button>
         <button data-tab="completed" class="approval-subtab subtab-btn">Completed</button>
       </nav>
