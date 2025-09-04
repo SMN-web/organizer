@@ -67,38 +67,17 @@
 
 /* Transfers Panel Only Styles */
 
-/* Panel container */
-.transfers-panel-container {
-  max-width: 430px;
-  margin: 0 auto;
-  padding: 0;
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 10px 30px #c3dae41a;
-  min-height: 70vh;
-}
-
-/* MAIN and SUBTABS - unified style */
-.section-switch,
 .transfers-subtabs {
   display: flex;
   gap: 12px;
   justify-content: center;
+  /* Make the gap between section and subsection tight */
+  margin-top: 7px;
+  margin-bottom: 0;
 }
 
-.section-switch {
-  margin-bottom: 6px !important;
-  margin-top: 14px !important;
-}
-
-.transfers-subtabs {
-  margin-top: 4px !important;   /* less gap than before */
-  margin-bottom: 6px !important;
-}
-
-/* BUTTONS for both main and sub tabs */
-.tab-btn,
 .transfers-subtab {
+  /* EXACT SAME AS .tab-btn */
   color: #28508B;
   cursor: pointer;
   border: none;
@@ -110,51 +89,36 @@
   transition: background .12s, color .12s;
 }
 
-.tab-btn.active,
 .transfers-subtab.active {
-  background: #2268c5;
-  color: #fff;
+  background: #e5effc;
+  color: #2355a2;
   font-weight: 600;
 }
 
-.tab-btn:hover:not(.active),
 .transfers-subtab:hover:not(.active) {
   background: #e5ecfa;
   color: #1b3c7c;
 }
 
-/* Panel content */
-.transfers-subpanel, .transfer-sub-content {
-  margin-top: 6px !important;
+/* Panel content below subtabs */
+.transfers-subpanel {
+  margin-top: 8px;  /* Small gap below subtabs */
   text-align: center;
-  font-size: 1.07em !important;
-  color: #22244d;
-}
-
-.transfers-subpanel b {
-  display: block;
-  margin-bottom: 7px;
   font-size: 1.13em;
-  color: #27265a;
+  color: #325;
 }
 
 /* Responsive adjustments */
 @media (max-width: 600px) {
-  .transfers-panel-container {
-    max-width: 97vw;
-    padding: 0 2vw;
-  }
-  .section-switch,
   .transfers-subtabs {
-    gap: 7px !important;
+    gap: 7px;
+    margin-top: 5px;
   }
-  .section-switch { margin-bottom: 4px !important; margin-top: 12px !important; }
-  .transfers-subtabs { margin-top: 3px !important; margin-bottom: 4px !important; }
-  .transfers-subpanel, .transfer-sub-content {
-    font-size: 0.99em !important;
-    margin-top: 4px !important;
+  .transfers-subpanel {
+    font-size: 1.01em;
+    margin-top: 6px;
   }
-  .tab-btn, .transfers-subtab {
+  .transfers-subtab {
     padding: 5px 12px;
     font-size: 0.97em;
   }
