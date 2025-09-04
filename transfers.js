@@ -1,5 +1,6 @@
 import { showOngoingTransfersPanel } from './ongoingTransfers.js';
 import { showCompletedTransfersPanel } from './completedTransfers.js';
+import { showCreateTransfer } from './createTransfer.js'; // Import FAB/modal logic
 
 export function showTransfersPanel(container, user) {
   container.innerHTML = `
@@ -11,6 +12,7 @@ export function showTransfersPanel(container, user) {
       <div class="transfer-sub-content"></div>
     </div>
   `;
+
   const subContent = container.querySelector('.transfer-sub-content');
 
   function renderSubSection(tab) {
@@ -30,4 +32,18 @@ export function showTransfersPanel(container, user) {
       renderSubSection(tab.dataset.tab);
     };
   });
+
+  // ==== FAB for Create Transfer ====
+  // Create only if not already present (prevents duplicates)
+  let fab = document.getElementById('fabCreateTransfer');
+  if (!fab) {
+    fab = document.createElement('button');
+    fab.id = 'fabCreateTransfer';
+    fab.className = 'fab-create-transfer';
+    fab.title = 'Create Transfer';
+    fab.innerText = '+';
+    document.body.appendChild(fab);
+  }
+  // FAB click opens the Create Transfer modal
+  fab.onclick = () => { showCreateTransfer(user); };
 }
