@@ -54,7 +54,7 @@ function getTimeLocalAMPM(date) {
   return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-export async function showPaymentsPanel(container, user) {
+export async function showLegacyPayments(container, user) {
   const FILTERS = [
     { value: "all", label: "All" },
     { value: "owed", label: "Owed" },
