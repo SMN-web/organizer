@@ -1,6 +1,3 @@
-import { showTransfersPanel } from './transfers.js';
-import { showHistoryPanel } from './history.js';
-
 export function showPaymentsPanelMain(contentContainer, user) {
   contentContainer.innerHTML = `
     <div class="manage-spend-wrapper">
@@ -13,47 +10,22 @@ export function showPaymentsPanelMain(contentContainer, user) {
         <button data-section="transfers" class="tab-btn">Transfers</button>
         <button data-section="history" class="tab-btn">History</button>
       </nav>
-      <div class="section-content"></div>
+      <div class="section-content" style="padding:1.6em;font-size:1.22em;color:#325;text-align:center;"></div>
     </div>
   `;
-
   contentContainer.querySelector('.spend-header').style.marginTop = '36px';
   const sectionContent = contentContainer.querySelector('.section-content');
-  renderSection('payments'); // default
+
+  // Default visible content
+  sectionContent.innerHTML = 'Payments tab active (basic test)<br><span style="font-size:0.8em;color:#888;">If you see this, your JS and layout work.</span>';
 
   function renderSection(section) {
-    sectionContent.innerHTML = '';
     if (section === 'payments') {
-      sectionContent.innerHTML = '<div style="color:#888; text-align:center;">Loading payments module…</div>';
-      // Dynamic import for direct mobile feedback
-      import('./payments.js')
-        .then(mod => {
-          sectionContent.innerHTML += '<div style="color:green; margin-top:8px;">payments.js loaded.</div>';
-          if (!mod || typeof mod.showPaymentsPanel !== 'function') {
-            sectionContent.innerHTML += '<div style="color:red;">showPaymentsPanel not found in payments.js</div>';
-          } else {
-            try {
-              mod.showPaymentsPanel(sectionContent, user);
-            } catch(e) {
-              sectionContent.innerHTML = '<div style="color:red;">Error running showPaymentsPanel: ' + e + '</div>';
-            }
-          }
-        })
-        .catch(e => {
-          sectionContent.innerHTML = '<div style="color:red;">Failed to load payments.js: ' + e + '</div>';
-        });
-    }
-    else if (section === 'transfers') {
-      sectionContent.innerHTML = '<div style="color:#888; text-align:center;">Loading transfers…</div>';
-      try { showTransfersPanel(sectionContent, user); } catch(e) {
-        sectionContent.innerHTML += '<div style="color:red;">Transfers error: ' + e + '</div>';
-      }
-    }
-    else if (section === 'history') {
-      sectionContent.innerHTML = '<div style="color:#888; text-align:center;">Loading history…</div>';
-      try { showHistoryPanel(sectionContent, user); } catch(e) {
-        sectionContent.innerHTML += '<div style="color:red;">History error: ' + e + '</div>';
-      }
+      sectionContent.innerHTML = 'Payments tab active (basic test)<br><span style="font-size:0.8em;color:#888;">If you see this, your JS and layout work.</span>';
+    } else if (section === 'transfers') {
+      sectionContent.innerHTML = 'Transfers tab <span style="font-size:0.8em;color:#888;">(dummy content)</span>';
+    } else if (section === 'history') {
+      sectionContent.innerHTML = 'History tab <span style="font-size:0.8em;color:#888;">(dummy content)</span>';
     }
   }
 
