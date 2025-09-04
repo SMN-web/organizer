@@ -1,4 +1,3 @@
-export async function showHistoryPanel(container, user) {
-  container.innerHTML = `<div style="color:#888;">(Transaction history coming soon.)</div>`;
-  // TODO: Implement unified fetch and display of history
+export function showHistoryPanel(container, user) {
+  container.innerHTML = `<div style="padding:2em;color:#888;">(History/audit section coming soon.)</div>`;
 }
