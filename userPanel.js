@@ -154,7 +154,7 @@ export async function showUserPanel(container, auth) {
     spend: showManageSpend,
     friends: showFriends,
     userprofile: showUserProfile,
-    payments: showPaymentsPanel
+    payments: showPaymentsPanelMain
   };
 
   let lastTab = localStorage.getItem('lastTab') || 'dashboard';
