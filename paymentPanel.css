@@ -67,3 +67,104 @@
 
 /* Transfers Panel Only Styles */
 
+/* Panel container styling for clean card look */
+.transfers-panel-container {
+  max-width: 430px;
+  margin: 0 auto;
+  padding: 0;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px #c3dae41a;
+}
+
+/* Section tabs (Payments, Transfers, History) */
+.section-switch {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 14px !important;
+  margin-bottom: 4px !important; /* Tight gap below main tabs */
+}
+
+/* Subsection tabs (Ongoing, Completed) */
+.approval-subtabs {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 4px !important;    /* Tight gap below section tabs */
+  margin-bottom: 0 !important;
+}
+
+/* Tab styles (shared for both sets of tabs) */
+.tab-btn,
+.approval-subtab,
+.subtab-btn {
+  color: #28508B;
+  background: #f6f8fa;
+  border: none;
+  border-radius: 12px;
+  padding: 7px 16px;
+  font-size: 1.04em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+
+.tab-btn.active,
+.approval-subtab.active,
+.subtab-btn.active {
+  background: #e5effc;
+  color: #2355a2;
+  font-weight: 600;
+}
+
+.tab-btn:hover:not(.active),
+.approval-subtab:hover:not(.active),
+.subtab-btn:hover:not(.active) {
+  background: #e5ecfa;
+  color: #1b3c7c;
+}
+
+/* Transfer subsection content panel */
+.transfer-sub-content {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 1.13em;
+  color: #23234b;
+}
+
+.transfer-sub-content b {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #23234b;
+  font-size: 1.13em;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 600px) {
+  .transfers-panel-container {
+    max-width: 97vw;
+    padding: 0 2vw;
+  }
+  .section-switch {
+    gap: 7px;
+    margin-top: 12px !important;
+    margin-bottom: 3px !important;
+  }
+  .approval-subtabs {
+    gap: 7px;
+    margin-top: 3px !important;
+    margin-bottom: 0 !important;
+  }
+  .tab-btn,
+  .approval-subtab,
+  .subtab-btn {
+    padding: 5px 12px;
+    font-size: 0.97em;
+  }
+  .transfer-sub-content {
+    font-size: 1.01em;
+    margin-top: 6px;
+  }
+}
