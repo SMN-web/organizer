@@ -1,4 +1,4 @@
-import { showLegacyPayments } from './payments.js';
+import { showPaymentsPanel } from './payments.js';
 import { showTransfersPanel } from './transfers.js';
 import { showHistoryPanel } from './history.js';
 
