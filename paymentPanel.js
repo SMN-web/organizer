@@ -1,3 +1,6 @@
+import { showTransfersPanel } from './transfers.js';
+import { showHistoryPanel } from './history.js';
+
 export function showPaymentsPanelMain(contentContainer, user) {
   contentContainer.innerHTML = `
     <div class="manage-spend-wrapper">
@@ -16,19 +19,17 @@ export function showPaymentsPanelMain(contentContainer, user) {
   contentContainer.querySelector('.spend-header').style.marginTop = '36px';
   const sectionContent = contentContainer.querySelector('.section-content');
 
-  // Default visible content
-  sectionContent.innerHTML = 'Payments tab active (basic test)<br><span style="font-size:0.8em;color:#888;">If you see this, your JS and layout work.</span>';
-
   function renderSection(section) {
     if (section === 'payments') {
-      sectionContent.innerHTML = 'Payments tab active (basic test)<br><span style="font-size:0.8em;color:#888;">If you see this, your JS and layout work.</span>';
+      sectionContent.innerHTML = 'Payments tab active (basic test)';
     } else if (section === 'transfers') {
-      sectionContent.innerHTML = 'Transfers tab <span style="font-size:0.8em;color:#888;">(dummy content)</span>';
+      showTransfersPanel(sectionContent, user);
     } else if (section === 'history') {
-      sectionContent.innerHTML = 'History tab <span style="font-size:0.8em;color:#888;">(dummy content)</span>';
+      showHistoryPanel(sectionContent, user);
     }
   }
 
+  renderSection('payments');
   const tabs = contentContainer.querySelectorAll('.tab-btn');
   tabs.forEach(tab => {
     tab.onclick = () => {
