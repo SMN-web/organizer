@@ -71,28 +71,31 @@
   max-width: 430px;
   margin: 0 auto;
   padding: 0;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px #c3dae41a;
+  min-height: 70vh;
 }
 
-.transfers-tabs {
+/* Payments/Transfers/History main section tabs */
+.section-switch {
   display: flex;
   gap: 12px;
   justify-content: center;
-  margin-top: 18px;
-  margin-bottom: 0;
+  margin-bottom: 5px !important;   /* much tighter */
+  margin-top: 14px !important;
 }
 
-.transfers-section-content {
-  padding: 0;
-}
-
-.transfers-subtabs {
+/* Ongoing/Completed subtabs */
+.transfers-subtabs, .approval-subtabs {
   display: flex;
-  gap: 8px;
+  gap: 7px !important;
   justify-content: center;
-  margin-top: 16px;
-  margin-bottom: 10px;
+  margin-top: 6px !important;
+  margin-bottom: 6px !important;
 }
 
+/* Subtab buttons */
 .transfers-subtab {
   background: #f1f5fa;
   color: #1761a0;
@@ -117,10 +120,11 @@
   color: #1b3c7c;
 }
 
-.transfers-subpanel {
-  margin-top: 14px;
+/* Transfer tab content panel */
+.transfers-subpanel, .transfer-sub-content {
+  margin-top: 6px !important;
   text-align: center;
-  font-size: 1.09em;
+  font-size: 1.07em !important;
   color: #22244d;
 }
 
@@ -131,17 +135,24 @@
   color: #27265a;
 }
 
+/* Tighten margins for responsive */
 @media (max-width: 600px) {
   .transfers-panel-container {
     max-width: 97vw;
     padding: 0 2vw;
   }
-  .transfers-subtabs {
-    gap: 4px;
-    margin-top: 10px;
-    margin-bottom: 8px;
+  .section-switch {
+    margin-bottom: 4px !important;
+    margin-top: 12px !important;
   }
-  .transfers-subpanel {
-    font-size: 0.99em;
+  .transfers-subtabs, .approval-subtabs {
+    gap: 4px !important;
+    margin-top: 4px !important;
+    margin-bottom: 4px !important;
+  }
+  .transfers-subpanel, .transfer-sub-content {
+    font-size: 0.99em !important;
+    margin-top: 4px !important;
   }
 }
+
