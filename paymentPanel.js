@@ -1,33 +1,39 @@
-export function showPaymentsPanelMain(container, user) {
-  container.innerHTML = `
-    <div style="padding:2em 1em;max-width:540px;margin:auto;">
-      <h2 style="margin-bottom:1.2em;">Payments Center</h2>
-      <div style="display:flex;justify-content:center;gap:10px;margin-bottom:1.2em;">
-        <button class="ptab" id="tabPayments">Payments</button>
-        <button class="ptab" id="tabTransfers">Transfers</button>
-        <button class="ptab" id="tabHistory">History</button>
-      </div>
-      <div id="paymentsPanelSection"></div>
+import { showPaymentsPanel } from './payments.js'; // Existing legacy or new payments UI
+import { showTransfersPanel } from './transfers.js';
+import { showHistoryPanel } from './history.js';
+
+export function showPaymentsPanelMain(contentContainer, user) {
+  contentContainer.innerHTML = `
+    <div class="payments-wrapper">
+      <header class="payments-header">
+        <h2 class="centered-title">Payments Center</h2>
+        <p class="payments-desc">Settle, transfer, and audit payments with friends in one place.</p>
+      </header>
+      <nav class="section-switch">
+        <button data-section="payments" class="tab-btn active">Payments</button>
+        <button data-section="transfers" class="tab-btn">Transfers</button>
+        <button data-section="history" class="tab-btn">History</button>
+      </nav>
+      <div class="section-content"></div>
     </div>
   `;
-  const section = container.querySelector("#paymentsPanelSection");
-  document.getElementById("tabPayments").onclick = () => {
-    try {
-      section.innerHTML = 'Attempting to run payments.js…';
-      // Dynamically import for extra safety:
-      import('./payments.js').then(mod => {
-        if (typeof mod.showPaymentsPanel === "function") {
-          mod.showPaymentsPanel(section, user);
-        } else {
-          section.innerHTML = '<div style="color:red">showPaymentsPanel not found in payments.js</div>';
-        }
-      }).catch(e => {
-        section.innerHTML = '<div style="color:red">Import error: ' + e + '</div>';
-      });
-    } catch(e) {
-      section.innerHTML = 'Error: ' + e.message;
-    }
-  };
-  // optional: default tab content
-  section.innerHTML = '<div style="color:blue;">Payments tab is ready. Click to load panel.</div>';
+  contentContainer.querySelector('.payments-header').style.marginTop = '36px';
+  const sectionContent = contentContainer.querySelector('.section-content');
+
+  function renderSection(section) {
+    sectionContent.innerHTML = '';
+    if (section === 'payments') showPaymentsPanel(sectionContent, user);
+    else if (section === 'transfers') showTransfersPanel(sectionContent, user);
+    else if (section === 'history') showHistoryPanel(sectionContent, user);
+  }
+  renderSection('payments');
+
+  const tabs = contentContainer.querySelectorAll('.tab-btn');
+  tabs.forEach(tab => {
+    tab.onclick = () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      renderSection(tab.dataset.section);
+    };
+  });
 }
