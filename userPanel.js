@@ -4,7 +4,7 @@ import { showFriends } from './friends.js';
 import { showUserProfile } from './userProfile.js';
 import { fetchNotificationsBadge, mountNotifications } from './notifications.js';
 import { sendHeartbeat } from './heartbeat.js';
-import { showPaymentsPanel } from './paymentPanel.js';
+import { showPaymentsPanelMain } from './paymentPanel.js';
 
 let heartbeatTimer = null;
 
