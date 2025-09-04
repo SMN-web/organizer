@@ -67,6 +67,7 @@
 
 /* Transfers Panel Only Styles */
 
+/* Panel container */
 .transfers-panel-container {
   max-width: 430px;
   margin: 0 auto;
@@ -77,50 +78,52 @@
   min-height: 70vh;
 }
 
-/* Payments/Transfers/History main section tabs */
-.section-switch {
+/* MAIN and SUBTABS - unified style */
+.section-switch,
+.transfers-subtabs {
   display: flex;
   gap: 12px;
   justify-content: center;
-  margin-bottom: 5px !important;   /* much tighter */
+}
+
+.section-switch {
+  margin-bottom: 6px !important;
   margin-top: 14px !important;
 }
 
-/* Ongoing/Completed subtabs */
-.transfers-subtabs, .approval-subtabs {
-  display: flex;
-  gap: 7px !important;
-  justify-content: center;
-  margin-top: 6px !important;
+.transfers-subtabs {
+  margin-top: 4px !important;   /* less gap than before */
   margin-bottom: 6px !important;
 }
 
-/* Subtab buttons */
+/* BUTTONS for both main and sub tabs */
+.tab-btn,
 .transfers-subtab {
-  background: #f1f5fa;
-  color: #1761a0;
-  border: none;
-  border-radius: 7px;
-  padding: 5px 15px;
-  font-size: 1.01em;
-  font-weight: 600;
+  color: #28508B;
   cursor: pointer;
-  transition: background 0.13s, color 0.11s;
-  outline: none;
-  box-shadow: none;
+  border: none;
+  background: #f6f8fa;
+  padding: 7px 16px;
+  border-radius: 12px;
+  font-size: 1.04em;
+  font-weight: 500;
+  transition: background .12s, color .12s;
 }
 
+.tab-btn.active,
 .transfers-subtab.active {
   background: #2268c5;
   color: #fff;
+  font-weight: 600;
 }
 
+.tab-btn:hover:not(.active),
 .transfers-subtab:hover:not(.active) {
   background: #e5ecfa;
   color: #1b3c7c;
 }
 
-/* Transfer tab content panel */
+/* Panel content */
 .transfers-subpanel, .transfer-sub-content {
   margin-top: 6px !important;
   text-align: center;
@@ -135,24 +138,24 @@
   color: #27265a;
 }
 
-/* Tighten margins for responsive */
+/* Responsive adjustments */
 @media (max-width: 600px) {
   .transfers-panel-container {
     max-width: 97vw;
     padding: 0 2vw;
   }
-  .section-switch {
-    margin-bottom: 4px !important;
-    margin-top: 12px !important;
+  .section-switch,
+  .transfers-subtabs {
+    gap: 7px !important;
   }
-  .transfers-subtabs, .approval-subtabs {
-    gap: 4px !important;
-    margin-top: 4px !important;
-    margin-bottom: 4px !important;
-  }
+  .section-switch { margin-bottom: 4px !important; margin-top: 12px !important; }
+  .transfers-subtabs { margin-top: 3px !important; margin-bottom: 4px !important; }
   .transfers-subpanel, .transfer-sub-content {
     font-size: 0.99em !important;
     margin-top: 4px !important;
   }
+  .tab-btn, .transfers-subtab {
+    padding: 5px 12px;
+    font-size: 0.97em;
+  }
 }
-
