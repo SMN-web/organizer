@@ -177,13 +177,11 @@ select option:disabled {
   color: #bababc !important;
 }
 
-/* Modal and username-tag previously given! */
-
-/* Custom Dropdown */
+/* Custom Modal + Dropdown Styles */
 .custom-dropdown-box {
   position: relative;
+  min-width: 0;
   width: 100%;
-  min-width: 120px;
 }
 .dropdown-selected-row {
   display: flex;
@@ -191,26 +189,34 @@ select option:disabled {
   border: 1.3px solid #e5e9f2;
   border-radius: 8px;
   background: #f8fafc;
-  cursor: pointer;
-  padding: 2px 8px 2px 8px;
-  min-height: 36px;
+  min-height: 38px;
+  padding: 0 8px;
+  font-size: 1.04em;
+  font-family: inherit;
 }
 .dropdown-selected-input {
+  flex: 1;
   outline: none;
   border: none;
-  flex: 1;
   background: transparent;
   color: #2d386a;
   font-weight: 600;
-  font-size: 1.08em;
+  font-size: 1em;
+  min-height: 32px;
+  padding: 0;
+  margin: 0;
   cursor: pointer;
+  font-family: inherit;
 }
-.dropdown-selected-input:focus { background: #f1f6fe; }
+.dropdown-selected-input::placeholder { color: #b1b5be; }
 .custom-dropdown-arrow {
-  font-size: 1.16em;
-  color: #395080;
   margin-left: 6px;
+  font-size: 1.25em;
+  color: #7c869b;
   pointer-events: none;
+  position: relative;
+  top: 1px;
+  padding: 0;
 }
 .dropdown-menu {
   position: absolute;
@@ -225,9 +231,7 @@ select option:disabled {
   padding: 7px 0 5px 0;
   display: none;
 }
-.dropdown-menu.open {
-  display: block;
-}
+.dropdown-menu.open { display: block; }
 .dropdown-search {
   width: 90%;
   margin: 0 5% 4px 5%;
@@ -256,8 +260,21 @@ select option:disabled {
   color: #bbc0c7 !important;
   cursor: not-allowed;
 }
-.dropdown-option:hover:not(.disabled) {
-  background: #e4efff;
+.dropdown-option:hover:not(.disabled) { background: #e4efff; }
+#amountInput {
+  border: 1.3px solid #e5e9f2;
+  background: #f8fafc;
+  border-radius: 8px;
+  color: #2d386a;
+  font-size: 1.04em;
+  min-height: 38px;
+  padding: 0 8px;
+  font-family: inherit;
+}
+#amountInput:focus, .dropdown-selected-row:focus-within {
+  border-color: #2987e0;
+  background: #f1f6fe;
 }
 
+/* Modal, .modal-row, .modal-btn, etc. as per your base modal css */
 
