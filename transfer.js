@@ -1,6 +1,6 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 
-// Modal utility
+// Modal utility (no css/inline styles here)
 function showModal({ title, content, okText = "OK", onOk, showCancel = false, cancelText = "Cancel", onCancel }) {
   const modal = document.createElement('div');
   modal.className = 'modal-backdrop';
@@ -22,7 +22,6 @@ function showModal({ title, content, okText = "OK", onOk, showCancel = false, ca
   function close() { modal.remove(); }
 }
 
-// Main Transfer UI
 export async function showTransferPopup(container, user, defaultFromUsername = "") {
   showSpinner(container);
   let friends = [];
@@ -51,12 +50,10 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
     return;
   }
 
-  // Dropdown state
   let fromOpen = false, toOpen = false;
   let fromSearchVal = "", toSearchVal = "";
   let fromSelected = "", toSelected = "";
 
-  // Preselect "from" if provided
   if (defaultFromUsername && friends.some(f => f.username === defaultFromUsername)) {
     fromSelected = defaultFromUsername;
   }
@@ -106,19 +103,19 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
   `;
   document.body.appendChild(modal);
 
-  // FROM dropdown logic
+  // FROM
   const fromDropdownBox = modal.querySelector('#fromDropdownBox');
   const fromDropdownMenu = modal.querySelector('#fromDropdownMenu');
   const fromSelectedInput = modal.querySelector('#fromSelectedInput');
   const fromSearchBox = modal.querySelector('#fromSearchBox');
   const fromOptions = modal.querySelector('#fromOptions');
-  // TO dropdown logic
+  // TO
   const toDropdownBox = modal.querySelector('#toDropdownBox');
   const toDropdownMenu = modal.querySelector('#toDropdownMenu');
   const toSelectedInput = modal.querySelector('#toSelectedInput');
   const toSearchBox = modal.querySelector('#toSearchBox');
   const toOptions = modal.querySelector('#toOptions');
-
+  // REST
   const amountInput = modal.querySelector('#amountInput');
   const errorRow = modal.querySelector('.error-row');
   const transferBtn = modal.querySelector('#transferBtn');
@@ -131,9 +128,11 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
     const disableVal = (where === 'from' ? toSelected : fromSelected);
     const root = where === 'from' ? fromOptions : toOptions;
     root.innerHTML = "";
+    let any = false;
     friends.forEach(f => {
       const disabled = f.username === disableVal;
       if (!searchVal || f.name.toLowerCase().includes(searchVal) || f.username.toLowerCase().includes(searchVal)) {
+        any = true;
         const div = document.createElement('div');
         div.className = `dropdown-option${disabled ? " disabled" : ""}${selected === f.username ? " selected" : ""}`;
         div.textContent = f.name;
@@ -150,7 +149,7 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
               toSelectedInput.value = f.name;
               toDropdownMenu.classList.remove('open');
               toOpen = false;
-              renderOptions('to'); renderOptions('from');
+              renderOptions('from'); renderOptions('to');
             }
           };
         }
@@ -158,9 +157,16 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
         root.appendChild(div);
       }
     });
+    if (!any) {
+      const div = document.createElement('div');
+      div.className = 'dropdown-option disabled';
+      div.textContent = "No friends found.";
+      div.tabIndex = "-1";
+      root.appendChild(div);
+    }
   }
 
-  // Open/close/focus for both
+  // Open/close/focus for both (arrow+input)
   fromSelectedInput.onclick = () => {
     fromOpen = !fromOpen;
     fromDropdownMenu.classList.toggle('open', fromOpen);
@@ -186,8 +192,6 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
     if (fromSelected === toSelected) return showError("From and To friends cannot be the same.");
     const amount = Number(amountInput.value);
     if (!amountInput.value || isNaN(amount) || amount <= 0) return showError("Enter a valid positive amount.");
-
-    // Confirm modal
     showModal({
       title: "Confirm Transfer",
       content: `Transfer <b>${amount} QAR</b> from <b>${friends.find(f=>f.username===fromSelected).name}</b> to <b>${friends.find(f=>f.username===toSelected).name}</b>?<br>Are these details correct?`,
@@ -195,14 +199,12 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
       cancelText: "Cancel",
       showCancel: true,
       onOk: () => {
-        // On real API, do the transfer here, then show success modal
         showModal({
           title: "Transfer Successful",
           content: `Transfer completed.`,
           okText: "OK"
         });
       }
-      // onCancel (modal just closes, user remains in form)
     });
   };
 
@@ -213,6 +215,7 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
     const match = friends.find(f => f.username === fromSelected);
     if (match) fromSelectedInput.value = match.name;
   }
+  toSelectedInput.value = '';
   renderOptions('from'); renderOptions('to');
   setTimeout(() => fromSelectedInput.focus(), 120);
 }
