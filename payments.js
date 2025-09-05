@@ -409,7 +409,7 @@ export async function showPaymentsPanel(container, user) {
 const transferBtn = container.querySelector('.paypage-btn.transfer');
 if (transferBtn) {
   transferBtn.onclick = () => {
-    showTransferPopup(container, user);
+    showTransferPopup(container, user, currentFriend.username);
   };
 }
 
