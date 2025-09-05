@@ -1,15 +1,20 @@
-// Demo-only transfer popup with friend selection and amount validation
-
 export async function showTransferPopup(container, user) {
-  // DEMO: PRETEND FRIENDS LIST (replace with fetch if needed)
-  // friends = [{ username, name, initials }]
-  const friends = [
-    { username: "shyam", name: "Shyam", initials: "SH" },
-    { username: "bala", name: "Bala", initials: "BA" },
-    { username: "rafi", name: "Rafi", initials: "RA" }
-  ];
+  // 1. Fetch actual friend list from backend (using Firebase JWT)
+  let friends = [];
+  try {
+    if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function') throw new Error("Not logged in");
+    const token = await user.firebaseUser.getIdToken(true);
+    const resp = await fetch('https://tr-am.nafil-8895-s.workers.dev/api/friends/list', {
+      headers: { Authorization: "Bearer " + token }
+    });
+    friends = await resp.json();
+    if (!Array.isArray(friends) || friends.length < 2) throw new Error("At least two friends required to create a transfer.");
+  } catch (e) {
+    alert(e.message || e);
+    return;
+  }
 
-  // Modal base
+  // 2. Modal UI (no CSS here, classes only)
   const modal = document.createElement('div');
   modal.className = 'modal-backdrop';
   modal.innerHTML = `
@@ -20,15 +25,17 @@ export async function showTransferPopup(container, user) {
         <label>From:</label>
         <select id="fromSelect">
           <option value="">Select Friend</option>
-          ${friends.map(f => `<option value="${f.username}">${f.name} (${f.initials})</option>`).join('')}
+          ${friends.map(f => `<option value="${f.username}">${f.name}</option>`).join('')}
         </select>
+        <span id="fromUsernameTag" class="username-tag"></span>
       </div>
       <div class="modal-row">
         <label>To:</label>
         <select id="toSelect">
           <option value="">Select Friend</option>
-          ${friends.map(f => `<option value="${f.username}">${f.name} (${f.initials})</option>`).join('')}
+          ${friends.map(f => `<option value="${f.username}">${f.name}</option>`).join('')}
         </select>
+        <span id="toUsernameTag" class="username-tag"></span>
       </div>
       <div class="modal-row">
         <label>Amount:</label>
@@ -43,45 +50,43 @@ export async function showTransferPopup(container, user) {
   `;
   document.body.appendChild(modal);
 
+  // DOM refs
   const fromSelect = modal.querySelector('#fromSelect');
   const toSelect = modal.querySelector('#toSelect');
+  const fromUsernameTag = modal.querySelector('#fromUsernameTag');
+  const toUsernameTag = modal.querySelector('#toUsernameTag');
   const amountInput = modal.querySelector('#amountInput');
   const errorRow = modal.querySelector('.error-row');
   const transferBtn = modal.querySelector('#transferBtn');
-  const closeBtn = modal.querySelector('.modal-close');
   const cancelBtn = modal.querySelector('#cancelBtn');
+  const closeBtn = modal.querySelector('.modal-close');
 
   function showError(msg) { errorRow.textContent = msg; }
   function resetError() { errorRow.textContent = ""; }
 
+  function updateTags() {
+    const fromUser = fromSelect.value;
+    const toUser = toSelect.value;
+    fromUsernameTag.textContent = fromUser ? `@${fromUser}` : "";
+    toUsernameTag.textContent = toUser ? `@${toUser}` : "";
+  }
+  fromSelect.addEventListener('change', updateTags);
+  toSelect.addEventListener('change', updateTags);
+
   function updateSelects() {
-    // Reset disables
-    for (const opt of toSelect.options) opt.disabled = false;
-    for (const opt of fromSelect.options) opt.disabled = false;
+    for (let opt of toSelect.options) opt.disabled = false;
+    for (let opt of fromSelect.options) opt.disabled = false;
     const fromVal = fromSelect.value;
     const toVal = toSelect.value;
-    if (fromVal) {
-      for (const opt of toSelect.options)
-        if (opt.value === fromVal && opt.value !== "") {
-          opt.disabled = true;
-          opt.style.color = "#bbb";
-        } else if (opt.value !== "") {
-          opt.style.color = "";
-        }
-    }
-    if (toVal) {
-      for (const opt of fromSelect.options)
-        if (opt.value === toVal && opt.value !== "") {
-          opt.disabled = true;
-          opt.style.color = "#bbb";
-        } else if (opt.value !== "") {
-          opt.style.color = "";
-        }
-    }
+    if (fromVal) for (let opt of toSelect.options)
+      if (opt.value === fromVal) { opt.disabled = true; opt.style.color="#bbb"; }
+      else opt.style.color="";
+    if (toVal) for (let opt of fromSelect.options)
+      if (opt.value === toVal) { opt.disabled = true; opt.style.color="#bbb"; }
+      else opt.style.color="";
   }
-
-  fromSelect.addEventListener('change', updateSelects);
-  toSelect.addEventListener('change', updateSelects);
+  fromSelect.addEventListener('change', () => { updateTags(); updateSelects(); });
+  toSelect.addEventListener('change', () => { updateTags(); updateSelects(); });
 
   transferBtn.onclick = () => {
     resetError();
@@ -102,11 +107,10 @@ export async function showTransferPopup(container, user) {
       showError("Enter a valid positive amount.");
       return;
     }
-
-    // DEMO ONLY: Simulate success, show OK message
+    // DEMO: Confirmation
     showError("");
     setTimeout(() => {
-      alert(`(DEMO) Would submit transfer:\nFrom: ${fromUser}\nTo: ${toUser}\nAmount: ${amount}`);
+      alert(`You are transferring ${amount} from ${friends.find(f=>f.username===fromUser).name} (@${fromUser}) to ${friends.find(f=>f.username===toUser).name} (@${toUser}).`);
       modal.remove();
     }, 200);
   };
@@ -114,5 +118,8 @@ export async function showTransferPopup(container, user) {
   closeBtn.onclick = () => modal.remove();
   cancelBtn.onclick = () => modal.remove();
 
+  // Init display on open
+  updateTags();
+  updateSelects();
   setTimeout(() => fromSelect.focus(), 60);
 }
