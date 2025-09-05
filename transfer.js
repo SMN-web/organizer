@@ -1,4 +1,4 @@
-// Util: Show modal with your app's consistent UI
+// --- Utility modal, identical to your current modal utility
 function showModal({ title, content, okText = "OK", onOk, showCancel = false, cancelText = "Cancel", onCancel }) {
   const modal = document.createElement('div');
   modal.className = 'modal-backdrop';
@@ -15,13 +15,12 @@ function showModal({ title, content, okText = "OK", onOk, showCancel = false, ca
   `;
   document.body.appendChild(modal);
   modal.querySelector('.modal-close').onclick = close;
-  if (showCancel) modal.querySelector('#modal-cancel').onclick = () => { close(); if (onCancel) onCancel(); };
+  if (showCancel) modal.querySelector('#modal-cancel').onclick = () => { close(); onCancel && onCancel(); };
   modal.querySelector('#modal-ok').onclick = () => { close(); onOk && onOk(); };
   function close() { modal.remove(); }
 }
 
-// Main Transfer Modal
-export async function showTransferPopup(container, user) {
+export async function showTransferPopup(container, user, defaultSelectedFriendUsername = "") {
   let friends = [];
   try {
     if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function') throw new Error("Not logged in");
@@ -42,10 +41,10 @@ export async function showTransferPopup(container, user) {
     return;
   }
 
-  // Sort friends by name ascending
+  // Sort friends by name
   friends = friends.slice().sort((a, b) => (a.name || "").localeCompare(b.name || ""));
 
-  // Modal markup with search support
+  // Modal markup with individual search per select, default selection supported
   const modal = document.createElement('div');
   modal.className = 'modal-backdrop';
   modal.innerHTML = `
@@ -53,17 +52,19 @@ export async function showTransferPopup(container, user) {
       <button class="modal-close" aria-label="Close">&times;</button>
       <h3>Create Transfer</h3>
       <div class="modal-row">
-        <label>Search:</label>
-        <input id="friendSearchInput" type="text" placeholder="Type to search..." autocomplete="off" style="flex:2;max-width:200px;" />
-      </div>
-      <div class="modal-row">
         <label>From:</label>
-        <select id="fromSelect"></select>
+        <div style="flex:1">
+          <input id="fromSearch" type="text" placeholder="Search..." autocomplete="off" style="margin-bottom:5px;width:100%;"/>
+          <select id="fromSelect" style="width:100%"></select>
+        </div>
         <span id="fromUsernameTag" class="username-tag"></span>
       </div>
       <div class="modal-row">
         <label>To:</label>
-        <select id="toSelect"></select>
+        <div style="flex:1">
+          <input id="toSearch" type="text" placeholder="Search..." autocomplete="off" style="margin-bottom:5px;width:100%;"/>
+          <select id="toSelect" style="width:100%"></select>
+        </div>
         <span id="toUsernameTag" class="username-tag"></span>
       </div>
       <div class="modal-row">
@@ -79,65 +80,50 @@ export async function showTransferPopup(container, user) {
   `;
   document.body.appendChild(modal);
 
-  // DOM references
-  const closeBtn = modal.querySelector('.modal-close');
-  const cancelBtn = modal.querySelector('#cancelBtn');
-  const transferBtn = modal.querySelector('#transferBtn');
-  const errorRow = modal.querySelector('.error-row');
+  // DOM refs
+  const fromSearch = modal.querySelector('#fromSearch');
+  const toSearch = modal.querySelector('#toSearch');
   const fromSelect = modal.querySelector('#fromSelect');
   const toSelect = modal.querySelector('#toSelect');
   const fromUsernameTag = modal.querySelector('#fromUsernameTag');
   const toUsernameTag = modal.querySelector('#toUsernameTag');
   const amountInput = modal.querySelector('#amountInput');
-  const friendSearchInput = modal.querySelector('#friendSearchInput');
+  const errorRow = modal.querySelector('.error-row');
+  const transferBtn = modal.querySelector('#transferBtn');
+  const cancelBtn = modal.querySelector('#cancelBtn');
+  const closeBtn = modal.querySelector('.modal-close');
 
-  let search = "";
+  let fromSearchVal = "", toSearchVal = "";
 
   function showError(msg) { errorRow.textContent = msg; }
   function resetError() { errorRow.textContent = ""; }
 
-  // Filtering and rendering helpers
-  function filtered() {
-    const s = search.trim().toLowerCase();
-    return !s ? friends : friends.filter(
-      f => (f.name || '').toLowerCase().includes(s) || (f.username || '').toLowerCase().includes(s)
-    );
+  function filteredFriends(val) {
+    const s = val.trim().toLowerCase();
+    return !s ? friends :
+      friends.filter(f => (f.name || '').toLowerCase().includes(s) || (f.username || '').toLowerCase().includes(s));
   }
-  function renderSelects() {
-    const list = filtered();
-    // Last chosen values to preserve after rerender
-    const lastFrom = fromSelect.value;
-    const lastTo = toSelect.value;
-    fromSelect.innerHTML = `<option value="">Select Friend</option>` +
-      list.map(f => `<option value="${f.username}">${f.name}</option>`).join('');
-    toSelect.innerHTML = `<option value="">Select Friend</option>` +
-      list.map(f => `<option value="${f.username}">${f.name}</option>`).join('');
-    fromSelect.value = list.find(f => f.username === lastFrom) ? lastFrom : "";
-    toSelect.value = list.find(f => f.username === lastTo) ? lastTo : "";
-    updateTags();
-    updateDisables();
+
+  function renderSelect(selectEl, filtered, selected, otherSelected) {
+    selectEl.innerHTML = `<option value="">Select Friend</option>` +
+      filtered.map(f => `<option value="${f.username}"${otherSelected === f.username ? " disabled style='color:#bbb;'" : ""}>${f.name}</option>`).join('');
+    selectEl.value = filtered.some(f => f.username === selected) && selected !== otherSelected ? selected : "";
   }
-  function updateTags() {
-    // Update username badge
+
+  function updateUsernameTags() {
     fromUsernameTag.textContent = fromSelect.value ? `@${fromSelect.value}` : "";
     toUsernameTag.textContent = toSelect.value ? `@${toSelect.value}` : "";
   }
-  function updateDisables() {
-    const fromVal = fromSelect.value, toVal = toSelect.value;
-    for (let opt of toSelect.options) {
-      opt.disabled = fromVal && opt.value === fromVal;
-      opt.style.color = opt.disabled && opt.value ? "#bbb" : "";
-    }
-    for (let opt of fromSelect.options) {
-      opt.disabled = toVal && opt.value === toVal;
-      opt.style.color = opt.disabled && opt.value ? "#bbb" : "";
-    }
-  }
 
-  // Bindings
-  friendSearchInput.oninput = () => { search = friendSearchInput.value; renderSelects(); };
-  fromSelect.onchange = () => { updateTags(); updateDisables(); };
-  toSelect.onchange = () => { updateTags(); updateDisables(); };
+  function rerenderDropdowns() {
+    renderSelect(fromSelect, filteredFriends(fromSearchVal), fromSelect.value, toSelect.value);
+    renderSelect(toSelect, filteredFriends(toSearchVal), toSelect.value, fromSelect.value);
+    updateUsernameTags();
+  }
+  fromSearch.oninput = () => { fromSearchVal = fromSearch.value; rerenderDropdowns(); };
+  toSearch.oninput = () => { toSearchVal = toSearch.value; rerenderDropdowns(); };
+  fromSelect.onchange = rerenderDropdowns;
+  toSelect.onchange = rerenderDropdowns;
 
   transferBtn.onclick = () => {
     resetError();
@@ -149,21 +135,26 @@ export async function showTransferPopup(container, user) {
     if (fromUser === toUser) return showError("From and To friends cannot be the same.");
     if (!amountStr || isNaN(amount) || amount <= 0) return showError("Enter a valid positive amount.");
 
-    // Success confirmation (replace with real API for live)
     showModal({
       title: "Confirm Transfer",
       content: `You are transferring <b>${amount}</b> from <b>${(friends.find(f=>f.username===fromUser)?.name || fromUser)}</b> <span class="username-tag">@${fromUser}</span>
                 to <b>${(friends.find(f=>f.username===toUser)?.name || toUser)}</b> <span class="username-tag">@${toUser}</span>.`,
-      okText: "OK",
-      showCancel: false
+      okText: "OK"
     });
-    setTimeout(() => modal.remove(), 300); // removes input modal after confirmation
+    setTimeout(() => modal.remove(), 350);
   };
 
   closeBtn.onclick = () => modal.remove();
   cancelBtn.onclick = () => modal.remove();
 
-  // Initialize
-  renderSelects();
-  setTimeout(() => friendSearchInput.focus(), 80);
+  // Initialize selection: pre-select from/to if requested
+  fromSearchVal = ""; toSearchVal = "";
+  rerenderDropdowns();
+
+  // Set default selection (optional, only if passed and user is in friend list)
+  if (defaultSelectedFriendUsername && friends.some(f => f.username === defaultSelectedFriendUsername)) {
+    toSelect.value = defaultSelectedFriendUsername;
+    updateUsernameTags();
+  }
+  setTimeout(() => fromSearch.focus(), 80);
 }
