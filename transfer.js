@@ -1,4 +1,6 @@
-// --- Utility modal, identical to your current modal utility
+import { showSpinner, hideSpinner } from './spinner.js';
+
+// Custom modal utility uses only class names
 function showModal({ title, content, okText = "OK", onOk, showCancel = false, cancelText = "Cancel", onCancel }) {
   const modal = document.createElement('div');
   modal.className = 'modal-backdrop';
@@ -6,7 +8,7 @@ function showModal({ title, content, okText = "OK", onOk, showCancel = false, ca
     <div class="modal transfer-modal">
       <button class="modal-close" aria-label="Close">&times;</button>
       ${title ? `<h3>${title}</h3>` : ""}
-      <div style="margin:1em 0;line-height:1.55;">${content || ''}</div>
+      <div class="modal-msg">${content || ''}</div>
       <div class="modal-btn-row">
         ${showCancel ? `<button class="modal-btn modal-btn-alt" id="modal-cancel">${cancelText}</button>` : ''}
         <button class="modal-btn" id="modal-ok">${okText}</button>
@@ -20,31 +22,45 @@ function showModal({ title, content, okText = "OK", onOk, showCancel = false, ca
   function close() { modal.remove(); }
 }
 
-export async function showTransferPopup(container, user, defaultSelectedFriendUsername = "") {
+export async function showTransferPopup(container, user, defaultFromUsername = "") {
+  showSpinner(container);
   let friends = [];
+  let spinnerTimeout;
   try {
     if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function') throw new Error("Not logged in");
     const token = await user.firebaseUser.getIdToken(true);
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    spinnerTimeout = wait(2000);
     const resp = await fetch('https://tr-am.nafil-8895-s.workers.dev/api/friends/list', {
       headers: { Authorization: "Bearer " + token }
     });
     friends = await resp.json();
     if (!Array.isArray(friends) || friends.length < 2)
       throw new Error("You need at least two friends to create a transfer.");
+    friends = friends.slice().sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    await spinnerTimeout;
+    hideSpinner(container);
   } catch (e) {
+    hideSpinner(container);
     showModal({
       title: "Transfer Not Available",
       content: e.message || e,
-      okText: "OK",
-      showCancel: false
+      okText: "OK"
     });
     return;
   }
 
-  // Sort friends by name
-  friends = friends.slice().sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  // Dropdown state
+  let fromOpen = false, toOpen = false;
+  let fromSearchVal = "", toSearchVal = "";
+  let fromSelected = "", toSelected = "";
 
-  // Modal markup with individual search per select, default selection supported
+  // Preselect "from" if provided
+  if (defaultFromUsername && friends.some(f => f.username === defaultFromUsername)) {
+    fromSelected = defaultFromUsername;
+  }
+
+  // Modal markup - only class-based, ready for CSS
   const modal = document.createElement('div');
   modal.className = 'modal-backdrop';
   modal.innerHTML = `
@@ -52,26 +68,38 @@ export async function showTransferPopup(container, user, defaultSelectedFriendUs
       <button class="modal-close" aria-label="Close">&times;</button>
       <h3>Create Transfer</h3>
       <div class="modal-row">
-        <label>From:</label>
-        <div style="flex:1">
-          <input id="fromSearch" type="text" placeholder="Search..." autocomplete="off" style="margin-bottom:5px;width:100%;"/>
-          <select id="fromSelect" style="width:100%"></select>
+        <label class="modal-label">From:</label>
+        <div class="custom-dropdown-box" id="fromDropdownBox">
+          <div class="dropdown-selected-row">
+            <input id="fromSelectedInput" class="dropdown-selected-input" type="text" readonly placeholder="Select Friend" />
+            <span class="custom-dropdown-arrow">&#x25BC;</span>
+          </div>
+          <div class="dropdown-menu" id="fromDropdownMenu">
+            <input type="text" class="dropdown-search" id="fromSearchBox" placeholder="Search..." autocomplete="off" />
+            <div class="dropdown-options" id="fromOptions"></div>
+          </div>
         </div>
         <span id="fromUsernameTag" class="username-tag"></span>
       </div>
       <div class="modal-row">
-        <label>To:</label>
-        <div style="flex:1">
-          <input id="toSearch" type="text" placeholder="Search..." autocomplete="off" style="margin-bottom:5px;width:100%;"/>
-          <select id="toSelect" style="width:100%"></select>
+        <label class="modal-label">To:</label>
+        <div class="custom-dropdown-box" id="toDropdownBox">
+          <div class="dropdown-selected-row">
+            <input id="toSelectedInput" class="dropdown-selected-input" type="text" readonly placeholder="Select Friend" />
+            <span class="custom-dropdown-arrow">&#x25BC;</span>
+          </div>
+          <div class="dropdown-menu" id="toDropdownMenu">
+            <input type="text" class="dropdown-search" id="toSearchBox" placeholder="Search..." autocomplete="off" />
+            <div class="dropdown-options" id="toOptions"></div>
+          </div>
         </div>
         <span id="toUsernameTag" class="username-tag"></span>
       </div>
       <div class="modal-row">
-        <label>Amount:</label>
+        <label class="modal-label">Amount:</label>
         <input id="amountInput" type="number" min="1" placeholder="Amount" />
       </div>
-      <div class="modal-row error-row" style="color:#d12020;min-height:20px;"></div>
+      <div class="modal-row error-row"></div>
       <div class="modal-btn-row">
         <button class="modal-btn" id="transferBtn">Transfer</button>
         <button class="modal-btn modal-btn-alt" id="cancelBtn" type="button">Cancel</button>
@@ -80,66 +108,100 @@ export async function showTransferPopup(container, user, defaultSelectedFriendUs
   `;
   document.body.appendChild(modal);
 
-  // DOM refs
-  const fromSearch = modal.querySelector('#fromSearch');
-  const toSearch = modal.querySelector('#toSearch');
-  const fromSelect = modal.querySelector('#fromSelect');
-  const toSelect = modal.querySelector('#toSelect');
+  // DOM Refs for FROM
+  const fromDropdownBox = modal.querySelector('#fromDropdownBox');
+  const fromDropdownMenu = modal.querySelector('#fromDropdownMenu');
+  const fromSelectedInput = modal.querySelector('#fromSelectedInput');
+  const fromSearchBox = modal.querySelector('#fromSearchBox');
+  const fromOptions = modal.querySelector('#fromOptions');
   const fromUsernameTag = modal.querySelector('#fromUsernameTag');
+
+  // TO
+  const toDropdownBox = modal.querySelector('#toDropdownBox');
+  const toDropdownMenu = modal.querySelector('#toDropdownMenu');
+  const toSelectedInput = modal.querySelector('#toSelectedInput');
+  const toSearchBox = modal.querySelector('#toSearchBox');
+  const toOptions = modal.querySelector('#toOptions');
   const toUsernameTag = modal.querySelector('#toUsernameTag');
+
   const amountInput = modal.querySelector('#amountInput');
   const errorRow = modal.querySelector('.error-row');
   const transferBtn = modal.querySelector('#transferBtn');
   const cancelBtn = modal.querySelector('#cancelBtn');
   const closeBtn = modal.querySelector('.modal-close');
 
-  let fromSearchVal = "", toSearchVal = "";
+  // Rendering logic for options (no styles, only classes)
+  function renderOptions(where) {
+    const searchVal = (where === 'from' ? fromSearchVal : toSearchVal).trim().toLowerCase();
+    const selected = (where === 'from' ? fromSelected : toSelected);
+    const disableVal = (where === 'from' ? toSelected : fromSelected);
 
+    const root = where === 'from' ? fromOptions : toOptions;
+    root.innerHTML = "";
+    friends.forEach(f => {
+      const disabled = f.username === disableVal;
+      if (!searchVal || f.name.toLowerCase().includes(searchVal) || f.username.toLowerCase().includes(searchVal)) {
+        const div = document.createElement('div');
+        div.className = `dropdown-option${disabled ? " disabled" : ""}${selected === f.username ? " selected" : ""}`;
+        div.textContent = f.name;
+        if (!disabled) {
+          div.onclick = () => {
+            if (where === 'from') {
+              fromSelected = f.username;
+              fromSelectedInput.value = f.name;
+              fromUsernameTag.textContent = `@${f.username}`;
+              fromDropdownMenu.classList.remove('open');
+              fromOpen = false;
+              renderOptions('from'); renderOptions('to');
+            } else {
+              toSelected = f.username;
+              toSelectedInput.value = f.name;
+              toUsernameTag.textContent = `@${f.username}`;
+              toDropdownMenu.classList.remove('open');
+              toOpen = false;
+              renderOptions('from'); renderOptions('to');
+            }
+          };
+        }
+        if (disabled) div.setAttribute('tabindex', '-1');
+        root.appendChild(div);
+      }
+    });
+  }
+
+  // Open/close/focus for both
+  fromSelectedInput.onclick = () => {
+    fromOpen = !fromOpen;
+    fromDropdownMenu.classList.toggle('open', fromOpen);
+    if (fromOpen) { fromSearchBox.value = fromSearchVal; fromSearchBox.focus(); renderOptions('from'); }
+  };
+  fromDropdownBox.querySelector('.custom-dropdown-arrow').onclick = fromSelectedInput.onclick;
+
+  toSelectedInput.onclick = () => {
+    toOpen = !toOpen;
+    toDropdownMenu.classList.toggle('open', toOpen);
+    if (toOpen) { toSearchBox.value = toSearchVal; toSearchBox.focus(); renderOptions('to'); }
+  };
+  toDropdownBox.querySelector('.custom-dropdown-arrow').onclick = toSelectedInput.onclick;
+
+  fromSearchBox.oninput = function() { fromSearchVal = fromSearchBox.value; renderOptions('from'); };
+  toSearchBox.oninput = function() { toSearchVal = toSearchBox.value; renderOptions('to'); };
+
+  // Error helpers
   function showError(msg) { errorRow.textContent = msg; }
   function resetError() { errorRow.textContent = ""; }
 
-  function filteredFriends(val) {
-    const s = val.trim().toLowerCase();
-    return !s ? friends :
-      friends.filter(f => (f.name || '').toLowerCase().includes(s) || (f.username || '').toLowerCase().includes(s));
-  }
-
-  function renderSelect(selectEl, filtered, selected, otherSelected) {
-    selectEl.innerHTML = `<option value="">Select Friend</option>` +
-      filtered.map(f => `<option value="${f.username}"${otherSelected === f.username ? " disabled style='color:#bbb;'" : ""}>${f.name}</option>`).join('');
-    selectEl.value = filtered.some(f => f.username === selected) && selected !== otherSelected ? selected : "";
-  }
-
-  function updateUsernameTags() {
-    fromUsernameTag.textContent = fromSelect.value ? `@${fromSelect.value}` : "";
-    toUsernameTag.textContent = toSelect.value ? `@${toSelect.value}` : "";
-  }
-
-  function rerenderDropdowns() {
-    renderSelect(fromSelect, filteredFriends(fromSearchVal), fromSelect.value, toSelect.value);
-    renderSelect(toSelect, filteredFriends(toSearchVal), toSelect.value, fromSelect.value);
-    updateUsernameTags();
-  }
-  fromSearch.oninput = () => { fromSearchVal = fromSearch.value; rerenderDropdowns(); };
-  toSearch.oninput = () => { toSearchVal = toSearch.value; rerenderDropdowns(); };
-  fromSelect.onchange = rerenderDropdowns;
-  toSelect.onchange = rerenderDropdowns;
-
   transferBtn.onclick = () => {
     resetError();
-    const fromUser = fromSelect.value;
-    const toUser = toSelect.value;
-    const amountStr = amountInput.value;
-    const amount = Number(amountStr);
-    if (!fromUser || !toUser) return showError("Select both 'From' and 'To' friends.");
-    if (fromUser === toUser) return showError("From and To friends cannot be the same.");
-    if (!amountStr || isNaN(amount) || amount <= 0) return showError("Enter a valid positive amount.");
+    if (!fromSelected || !toSelected) return showError("Select both 'From' and 'To' friends.");
+    if (fromSelected === toSelected) return showError("From and To friends cannot be the same.");
+    const amount = Number(amountInput.value);
+    if (!amountInput.value || isNaN(amount) || amount <= 0) return showError("Enter a valid positive amount.");
 
     showModal({
       title: "Confirm Transfer",
-      content: `You are transferring <b>${amount}</b> from <b>${(friends.find(f=>f.username===fromUser)?.name || fromUser)}</b> <span class="username-tag">@${fromUser}</span>
-                to <b>${(friends.find(f=>f.username===toUser)?.name || toUser)}</b> <span class="username-tag">@${toUser}</span>.`,
-      okText: "OK"
+      content: `You are transferring <b>${amount}</b> from <b>${(friends.find(f=>f.username===fromSelected)?.name || fromSelected)}</b> <span class="username-tag">@${fromSelected}</span>
+                to <b>${(friends.find(f=>f.username===toSelected)?.name || toSelected)}</b> <span class="username-tag">@${toSelected}</span>.`
     });
     setTimeout(() => modal.remove(), 350);
   };
@@ -147,14 +209,17 @@ export async function showTransferPopup(container, user, defaultSelectedFriendUs
   closeBtn.onclick = () => modal.remove();
   cancelBtn.onclick = () => modal.remove();
 
-  // Initialize selection: pre-select from/to if requested
-  fromSearchVal = ""; toSearchVal = "";
-  rerenderDropdowns();
-
-  // Set default selection (optional, only if passed and user is in friend list)
-  if (defaultSelectedFriendUsername && friends.some(f => f.username === defaultSelectedFriendUsername)) {
-    toSelect.value = defaultSelectedFriendUsername;
-    updateUsernameTags();
+  // Initial prefill
+  if (fromSelected) {
+    const match = friends.find(f => f.username === fromSelected);
+    if (match) {
+      fromSelectedInput.value = match.name;
+      fromUsernameTag.textContent = `@${match.username}`;
+    }
   }
-  setTimeout(() => fromSearch.focus(), 80);
+  toSelectedInput.value = '';
+  toUsernameTag.textContent = '';
+  renderOptions('from');
+  renderOptions('to');
+  setTimeout(() => fromSelectedInput.focus(), 120);
 }
