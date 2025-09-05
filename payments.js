@@ -405,18 +405,14 @@ export async function showPaymentsPanel(container, user) {
         });
       };
     }
-    const transferBtn = container.querySelector('.paypage-btn.transfer');
-    if (transferBtn) {
-      transferBtn.onclick = () => {
-        showTransferPopup(
-          user.username || user.firebaseUser.displayName || user.firebaseUser.email,
-          currentFriend.username,
-          currentFriend.name,
-          Math.abs(currentFriend.net),
-          CURRENCY
-        );
-      };
-    }
+    // Inside showPaymentsPanel(), when user clicks "Transfer"
+const transferBtn = container.querySelector('.paypage-btn.transfer');
+if (transferBtn) {
+  transferBtn.onclick = () => {
+    showTransferPopup(container, user);
+  };
+}
+
 
     // Confirmation modals now for all actions
     container.querySelectorAll('.bubble-cancel').forEach(btn =>
