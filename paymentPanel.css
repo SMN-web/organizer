@@ -191,10 +191,11 @@ select option:disabled {
   background: #f8fafc;
   height: 44px;
   font-size: 1.08em;
-  padding: 0 10px;
+  padding: 0 10px;                /* Even left/right padding, not too big */
   font-family: inherit;
   box-sizing: border-box;
 }
+
 .dropdown-selected-input {
   flex: 1;
   outline: none;
@@ -203,27 +204,35 @@ select option:disabled {
   color: #2d386a;
   font-weight: 600;
   font-size: 1em;
-  height: 42px;
-  padding: 0;
+  height: 100%;                 /* Take the height from row */
+  padding: 0;                   /* Removes unwanted side gap */
   margin: 0;
   cursor: pointer;
   font-family: inherit;
-  display: flex;
-  align-items: center;
+  /* No flex display here. Remove: display: flex; align-items: center; */
 }
 .dropdown-selected-input::placeholder {
   color: #b1b5be;
   opacity: 1;
 }
+
+.dropdown-selected-input::placeholder {
+  color: #b1b5be;
+  opacity: 1;
+}
 .custom-dropdown-arrow {
-  margin-left: 6px;
-  font-size: 1.25em;
+  margin-left: 8px;                 /* Space from input text */
+  font-size: 1.22em;
   color: #7c869b;
   pointer-events: none;
   position: relative;
-  top: 1px;
+  top: 1px;                          /* Small nudge for perfect vertical align */
   padding: 0;
+  display: flex;
+  align-items: center;
+  height: 100%;
 }
+
 .dropdown-menu {
   position: absolute;
   left: 0; right: 0;
