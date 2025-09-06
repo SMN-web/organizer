@@ -185,7 +185,7 @@ select option:disabled {
 }
 .dropdown-selected-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;   /* <--- KEY: aligns all items to text baseline */
   height: 44px;
   font-size: 1.08em;
   padding: 0 10px;
@@ -203,15 +203,15 @@ select option:disabled {
   font-size: inherit;
   color: #2d386a;
   font-weight: 600;
-  height: 44px;
-  line-height: 44px;
-  padding: 0;
   margin: 0;
+  padding: 0;
   outline: none;
   cursor: pointer;
-  box-sizing: border-box;
-  /* No display:flex, no align-items! */
+  height: 44px;
+  line-height: 44px;
+  font-family: inherit;
 }
+
 .dropdown-selected-input::placeholder {
   color: #b1b5be;
   opacity: 1;
@@ -219,14 +219,16 @@ select option:disabled {
 
 .custom-dropdown-arrow {
   margin-left: 8px;
-  font-size: 1.1em;        /* Slightly smaller than input text */
+  font-size: 1.08em;
   color: #7c869b;
   pointer-events: none;
-  align-self: flex-end;     /* CRITICAL: pull arrow baseline down */
-  /* Or try align-self: center; top: -1px; as alternative */
+  align-self: baseline;     /* <--- KEY: aligns bottom with text baseline */
   line-height: 44px;
-  display: flex;
+  height: 100%;
+  display: inline-block;
+  padding: 0;
 }
+
 
 
 
