@@ -67,7 +67,7 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
         <div class="custom-dropdown-box" id="fromDropdownBox">
           <div class="dropdown-selected-row" tabindex="0">
             <input id="fromSelectedInput" class="dropdown-selected-input" type="text" readonly placeholder="Select Friend" />
-            <span class="custom-dropdown-arrow">&#x25BC;</span>
+            
           </div>
           <div class="dropdown-menu" id="fromDropdownMenu">
             <input type="text" class="dropdown-search" id="fromSearchBox" placeholder="Search..." autocomplete="off" />
@@ -81,7 +81,7 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
         <div class="custom-dropdown-box" id="toDropdownBox">
           <div class="dropdown-selected-row" tabindex="0">
             <input id="toSelectedInput" class="dropdown-selected-input" type="text" readonly placeholder="Select Friend" />
-            <span class="custom-dropdown-arrow">&#x25BC;</span>
+            
           </div>
           <div class="dropdown-menu" id="toDropdownMenu">
             <input type="text" class="dropdown-search" id="toSearchBox" placeholder="Search..." autocomplete="off" />
