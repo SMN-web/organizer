@@ -32,7 +32,7 @@
 /* TRANSFER MODAL & DROPDOWN */
 .modal-backdrop {
   position: fixed;
-  z-index: 9999;
+  z-index: 9998;
   inset: 0;
   background: rgba(52, 66, 90, 0.15);
   display: flex;
