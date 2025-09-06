@@ -196,6 +196,19 @@ select option:disabled {
   box-sizing: border-box;
 }
 
+.dropdown-selected-row {
+  display: flex;
+  align-items: center;               /* Vertically centers all children */
+  border: 1.3px solid #e5e9f2;
+  border-radius: 8px;
+  background: #f8fafc;
+  height: 44px;
+  font-size: 1.08em;
+  padding: 0 10px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
 .dropdown-selected-input {
   flex: 1;
   outline: none;
@@ -204,36 +217,32 @@ select option:disabled {
   color: #2d386a;
   font-weight: 600;
   font-size: 1em;
-  height: 100%;                 /* Take the height from row */
-  padding: 0;                   /* Removes unwanted side gap */
+  height: 42px;
+  line-height: 44px;            /* Match .dropdown-selected-row height */
+  padding: 0;
   margin: 0;
   cursor: pointer;
   font-family: inherit;
-  /* No flex display here. Remove: display: flex; align-items: center; */
-}
-.dropdown-selected-input::placeholder {
-  color: #b1b5be;
-  opacity: 1;
-  height: 44px;
+  /* Remove display:flex and align-items! */
 }
 
 .dropdown-selected-input::placeholder {
   color: #b1b5be;
   opacity: 1;
-  height: 44px;
 }
+
 .custom-dropdown-arrow {
-  margin-left: 8px;                 /* Space from input text */
-  font-size: 1.22em;
+  margin-left: 8px;
+  font-size: 1.15em;
   color: #7c869b;
   pointer-events: none;
-  position: relative;
-  top: 1px;                          /* Small nudge for perfect vertical align */
-  padding: 0;
+  align-self: center;              /* Key: aligns vertically in flex row */
+  line-height: 1;                  /* Prevents vertical stretching */
+  height: 24px;                    /* Prevents oversized SVG or icon */
   display: flex;
-  align-items: center;
-  height: 100%;
+  /* Remove top: 1px and padding: 0; */
 }
+
 
 .dropdown-menu {
   position: absolute;
