@@ -1,6 +1,6 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 
-// Modal utility
+// Modal utility (same as yours)
 function showModal({ title, content, okText = "OK", onOk, showCancel = false, cancelText = "Cancel", onCancel }) {
   const modal = document.createElement('div');
   modal.className = 'modal-backdrop';
@@ -25,13 +25,12 @@ function showModal({ title, content, okText = "OK", onOk, showCancel = false, ca
 export async function showTransferPopup(container, user, defaultFromUsername = "") {
   showSpinner(container);
   let friends = [];
+  let authToken = null;
   try {
     if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function') throw new Error("Not logged in");
-    const token = await user.firebaseUser.getIdToken(true);
-    const wait = ms => new Promise(r => setTimeout(r, ms));
-    await wait(2000);
+    authToken = await user.firebaseUser.getIdToken(true);
     const resp = await fetch('https://tr-am.nafil-8895-s.workers.dev/api/friends/list', {
-      headers: { Authorization: "Bearer " + token }
+      headers: { Authorization: "Bearer " + authToken }
     });
     friends = await resp.json();
     if (!Array.isArray(friends) || friends.length < 2)
@@ -97,7 +96,6 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
   `;
   document.body.appendChild(modal);
 
-  // Dropdown fields and menus
   const fromDropdownBox = modal.querySelector('#fromDropdownBox');
   const fromDropdownMenu = modal.querySelector('#fromDropdownMenu');
   const fromSelectedInput = modal.querySelector('#fromSelectedInput');
@@ -177,7 +175,6 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
     toDropdownMenu.classList.remove('open');
   }
 
-  // Open Menu position handler: opens menu on input click, positions correctly due to position: relative on .custom-dropdown-box
   fromSelectedInput.onclick = () => {
     closeMenus();
     fromOpen = true;
@@ -201,24 +198,64 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
   function showError(msg) { errorRow.textContent = msg; }
   function resetError() { errorRow.textContent = ""; }
 
-  transferBtn.onclick = () => {
+  transferBtn.onclick = async () => {
     resetError();
     if (!fromSelected || !toSelected) return showError("Select both 'From' and 'To' friends.");
     if (fromSelected === toSelected) return showError("From and To friends cannot be the same.");
     const amount = Number(amountInput.value);
     if (!amountInput.value || isNaN(amount) || amount <= 0) return showError("Enter a valid positive amount.");
+
+    // Confirmation dialog
     showModal({
       title: "Confirm Transfer",
-      content: `Transfer <b>${amount} QAR</b> from <b>${friends.find(f=>f.username===fromSelected).name}</b> to <b>${friends.find(f=>f.username===toSelected).name}</b>?<br>Are these details correct?`,
+      content: `Transfer <b>${amount}</b> <b>${localStorage.getItem("currency") || 'QAR'}</b> from <b>${friends.find(f=>f.username===fromSelected).name}</b> to <b>${friends.find(f=>f.username===toSelected).name}</b>?<br>Are these details correct?`,
       okText: "Confirm",
       cancelText: "Cancel",
       showCancel: true,
-      onOk: () => {
-        showModal({
-          title: "Transfer Successful",
-          content: `Transfer completed.`,
-          okText: "OK"
-        });
+      onOk: async () => {
+        showSpinner(container);
+        try {
+          // Compose/submit API call
+          const currency = localStorage.getItem('currency') || 'QAR';
+          const body = {
+            sender: user.username,
+            from_user: fromSelected,
+            to_user: toSelected,
+            amount: amount,
+            currency: currency
+          };
+          const createResp = await fetch("https://tr-am.nafil-8895-s.workers.dev/api/transfer/create", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + authToken,
+            },
+            body: JSON.stringify(body),
+          });
+          const data = await createResp.json();
+          hideSpinner(container);
+          if (data && data.success) {
+            showModal({
+              title: "Transfer Successful",
+              content: `Transfer completed.<br>Reference ID: <b>${data.transfer_id}</b>`,
+              okText: "OK",
+              onOk: () => modal.remove()
+            });
+          } else {
+            showModal({
+              title: "Transfer Failed",
+              content: data && data.message ? data.message : "An unknown error occurred.",
+              okText: "OK"
+            });
+          }
+        } catch (e) {
+          hideSpinner(container);
+          showModal({
+            title: "Transfer Failed",
+            content: (e && e.message) ? e.message : "An error occurred submitting the transfer.",
+            okText: "OK"
+          });
+        }
       }
     });
   };
