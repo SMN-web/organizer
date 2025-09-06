@@ -186,62 +186,42 @@ select option:disabled {
 .dropdown-selected-row {
   display: flex;
   align-items: center;
-  border: 1.3px solid #e5e9f2;
-  border-radius: 8px;
-  background: #f8fafc;
-  height: 44px;
-  font-size: 1.08em;
-  padding: 0 10px;                /* Even left/right padding, not too big */
-  font-family: inherit;
-  box-sizing: border-box;
-}
-
-.dropdown-selected-row {
-  display: flex;
-  align-items: center;               /* Vertically centers all children */
-  border: 1.3px solid #e5e9f2;
-  border-radius: 8px;
-  background: #f8fafc;
   height: 44px;
   font-size: 1.08em;
   padding: 0 10px;
   font-family: inherit;
   box-sizing: border-box;
+  border: 1.3px solid #e5e9f2;
+  border-radius: 8px;
+  background: #f8fafc;
 }
-
 .dropdown-selected-input {
   flex: 1;
-  outline: none;
   border: none;
   background: transparent;
   color: #2d386a;
   font-weight: 600;
-  font-size: 1em;
-  height: 42px;
-  line-height: 44px;            /* Match .dropdown-selected-row height */
-  padding: 0;
+  font-size: inherit;
   margin: 0;
+  padding: 0;
+  outline: none;
   cursor: pointer;
-  font-family: inherit;
-  /* Remove display:flex and align-items! */
+  line-height: 44px;   /* KEY: matches .dropdown-selected-row height */
 }
-
 .dropdown-selected-input::placeholder {
   color: #b1b5be;
   opacity: 1;
 }
-
 .custom-dropdown-arrow {
   margin-left: 8px;
   font-size: 1.15em;
   color: #7c869b;
   pointer-events: none;
-  align-self: center;              /* Key: aligns vertically in flex row */
-  line-height: 1;                  /* Prevents vertical stretching */
-  height: 24px;                    /* Prevents oversized SVG or icon */
+  align-self: center;   /* KEY: vertically centers arrow with flexbox */
+  line-height: 44px;    /* KEY: matches input text */
   display: flex;
-  /* Remove top: 1px and padding: 0; */
 }
+
 
 
 .dropdown-menu {
