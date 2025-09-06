@@ -1,6 +1,6 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 
-// Modal utility (same as yours)
+// Modal utility
 function showModal({ title, content, okText = "OK", onOk, showCancel = false, cancelText = "Cancel", onCancel }) {
   const modal = document.createElement('div');
   modal.className = 'modal-backdrop';
@@ -198,14 +198,13 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
   function showError(msg) { errorRow.textContent = msg; }
   function resetError() { errorRow.textContent = ""; }
 
-  transferBtn.onclick = async () => {
+  transferBtn.onclick = () => {
     resetError();
     if (!fromSelected || !toSelected) return showError("Select both 'From' and 'To' friends.");
     if (fromSelected === toSelected) return showError("From and To friends cannot be the same.");
     const amount = Number(amountInput.value);
     if (!amountInput.value || isNaN(amount) || amount <= 0) return showError("Enter a valid positive amount.");
 
-    // Confirmation dialog
     showModal({
       title: "Confirm Transfer",
       content: `Transfer <b>${amount}</b> <b>${localStorage.getItem("currency") || 'QAR'}</b> from <b>${friends.find(f=>f.username===fromSelected).name}</b> to <b>${friends.find(f=>f.username===toSelected).name}</b>?<br>Are these details correct?`,
@@ -215,7 +214,6 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
       onOk: async () => {
         showSpinner(container);
         try {
-          // Compose/submit API call
           const currency = localStorage.getItem('currency') || 'QAR';
           const body = {
             sender: user.username,
