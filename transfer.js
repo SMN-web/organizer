@@ -65,10 +65,7 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
       <div class="modal-row">
         <label class="modal-label">From:</label>
         <div class="custom-dropdown-box" id="fromDropdownBox">
-          <div class="dropdown-selected-row" tabindex="0">
-            <input id="fromSelectedInput" class="dropdown-selected-input" type="text" readonly placeholder="Select Friend" />
-            
-          </div>
+          <input id="fromSelectedInput" class="dropdown-selected-input" type="text" readonly placeholder="Select Friend" />
           <div class="dropdown-menu" id="fromDropdownMenu">
             <input type="text" class="dropdown-search" id="fromSearchBox" placeholder="Search..." autocomplete="off" />
             <div class="dropdown-options" id="fromOptions"></div>
@@ -79,10 +76,7 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
       <div class="modal-row">
         <label class="modal-label">To:</label>
         <div class="custom-dropdown-box" id="toDropdownBox">
-          <div class="dropdown-selected-row" tabindex="0">
-            <input id="toSelectedInput" class="dropdown-selected-input" type="text" readonly placeholder="Select Friend" />
-            
-          </div>
+          <input id="toSelectedInput" class="dropdown-selected-input" type="text" readonly placeholder="Select Friend" />
           <div class="dropdown-menu" id="toDropdownMenu">
             <input type="text" class="dropdown-search" id="toSearchBox" placeholder="Search..." autocomplete="off" />
             <div class="dropdown-options" id="toOptions"></div>
@@ -103,21 +97,21 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
   `;
   document.body.appendChild(modal);
 
-  // FROM
+  // Dropdown fields and menus
   const fromDropdownBox = modal.querySelector('#fromDropdownBox');
   const fromDropdownMenu = modal.querySelector('#fromDropdownMenu');
   const fromSelectedInput = modal.querySelector('#fromSelectedInput');
   const fromSearchBox = modal.querySelector('#fromSearchBox');
   const fromOptions = modal.querySelector('#fromOptions');
   const fromUsernameDisplay = modal.querySelector('#fromUsernameDisplay');
-  // TO
+
   const toDropdownBox = modal.querySelector('#toDropdownBox');
   const toDropdownMenu = modal.querySelector('#toDropdownMenu');
   const toSelectedInput = modal.querySelector('#toSelectedInput');
   const toSearchBox = modal.querySelector('#toSearchBox');
   const toOptions = modal.querySelector('#toOptions');
   const toUsernameDisplay = modal.querySelector('#toUsernameDisplay');
-  // REST
+
   const amountInput = modal.querySelector('#amountInput');
   const errorRow = modal.querySelector('.error-row');
   const transferBtn = modal.querySelector('#transferBtn');
@@ -183,20 +177,19 @@ export async function showTransferPopup(container, user, defaultFromUsername = "
     toDropdownMenu.classList.remove('open');
   }
 
+  // Open Menu position handler: opens menu on input click, positions correctly due to position: relative on .custom-dropdown-box
   fromSelectedInput.onclick = () => {
     closeMenus();
     fromOpen = true;
     fromDropdownMenu.classList.add('open');
     setTimeout(() => { fromSearchBox.value = fromSearchVal; fromSearchBox.focus(); renderOptions('from'); }, 30);
   };
-  fromDropdownBox.querySelector('.custom-dropdown-arrow').onclick = fromSelectedInput.onclick;
   toSelectedInput.onclick = () => {
     closeMenus();
     toOpen = true;
     toDropdownMenu.classList.add('open');
     setTimeout(() => { toSearchBox.value = toSearchVal; toSearchBox.focus(); renderOptions('to'); }, 30);
   };
-  toDropdownBox.querySelector('.custom-dropdown-arrow').onclick = toSelectedInput.onclick;
 
   document.addEventListener('mousedown', (e) => {
     if (!modal.contains(e.target)) closeMenus();
