@@ -1,3 +1,4 @@
+// notification.js
 import { showSpinner, hideSpinner, delay } from './spinner.js';
 
 let notifications = [];
@@ -33,6 +34,57 @@ function escapeHtml(str) {
   return String(str).replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
 }
+function notificationTypeIcon(type) {
+  switch (type) {
+    case "transfer_send_pending":
+      return `<span class="notify-icon" style="background:#cfe6ff; color:#2970d3;"><i class="fa fa-exchange"></i></span>`;
+    case "friend_request":
+      return `<span class="notify-icon" style="background:#ffeeda; color:#d19e21;"><i class="fa fa-user-plus"></i></span>`;
+    case "payment_new":
+      return `<span class="notify-icon" style="background:#e9faee; color:#36ab49;"><i class="fa fa-dollar"></i></span>`;
+    default:
+      return `<span class="notify-icon"><i class="fa fa-bell"></i></span>`;
+  }
+}
+
+function renderDropdown() {
+  dropdown.innerHTML = `
+    <div>
+    ${
+      notifications.length
+      ? notifications.map((n) => {
+          const isUnread = !n.read;
+          let dat = {};
+          try { dat = JSON.parse(n.data || '{}'); } catch { dat = {}; }
+          let mainLine = "";
+          if (n.type === 'transfer_send_pending') {
+            // Example: Bala initiated a transfer of 50 QAR from you to John.
+            mainLine =
+              `<span class="notify-title">${escapeHtml(dat.sender_name)}</span>
+               <span class="notify-details">initiated a transfer of <b>${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</b> from you to <b>${escapeHtml(dat.to_name === 'you' ? "you" : escapeHtml(dat.to_name))}</b>.</span>`;
+          } else if (n.type === 'friend_request') {
+            mainLine = `<b class="notify-title">${escapeHtml(dat.sender_name)}</b> sent you a friend request.`;
+          } else {
+            mainLine = `<span style="color:#a7a9ae;">Notification: ${escapeHtml(n.type)}</span>`;
+          }
+          // If you want to add sender avatars, you must supply it in notifications data or lookup.
+          const avatarImgUrl = n.avatar_url || "default-avatar.svg";
+          const timeBadge = n.created_at ? `<span class="notify-time">${timeAgo(n.created_at)}</span>` : "";
+          return `
+            <div class="notifyItem${isUnread ? ' unread' : ''}" data-id="${n.id}" data-type="${n.type}">
+              ${notificationTypeIcon(n.type)}
+              <img class="notify-avatar" src="${avatarImgUrl}" loading="lazy" alt="avatar">
+              <div class="notify-content">
+                ${mainLine}
+                <div>${timeBadge}</div>
+              </div>
+            </div>`;
+        }).join("")
+      : `<div class="empty">No notifications.</div>`
+    }
+    </div>
+  `;
+}
 
 export async function fetchNotificationsBadge(user, parent) {
   if (!user?.firebaseUser) return;
@@ -40,13 +92,6 @@ export async function fetchNotificationsBadge(user, parent) {
     notifyCount = parent.querySelector("#notifyCount");
     dropdown = document.createElement('div');
     dropdown.id = "notifyDropdown";
-    dropdown.style.cssText = `
-      display:none;position:fixed;top:65px;right:16px;
-      min-width:312px;max-width:96vw;
-      background:#f6f9fb;border-radius:20px;box-shadow:0 8px 32px #0c22573a,0 2px 7px #0c225710;
-      z-index:400;overflow:hidden;padding:0.5em 0.2em 0.7em 0.2em;
-      border:1px solid #daefff;transform:translateY(-14px) scale(.98);opacity:0.01;
-      transition:opacity .22s cubic-bezier(.5,.6,.4,1),transform .21s cubic-bezier(.5,1.4,.45,1.05);`;
     document.body.appendChild(dropdown);
     renderingSetupDone = true;
     parent.querySelector("#notifyIcon").onclick = () => {
@@ -120,78 +165,6 @@ function renderBadge() {
   const unread = Array.isArray(notifications)
     ? notifications.filter(n => !n.read).length : 0;
   notifyCount.textContent = unread > 0 ? unread : '';
-}
-
-function renderDropdown() {
-  dropdown.innerHTML = `
-    <div style="padding:3px 0 7px 0;">
-    ${
-      notifications.length
-      ? notifications.map((n, i) => {
-          const isUnread = !n.read;
-          let dat = {};
-          try { dat = JSON.parse(n.data || '{}'); } catch { dat = {}; }
-          let mainLine = ""; let extra = ""; // what user sees, optional
-          // Payment Notifications: three cases only
-          if (n.type === 'payment_new') {
-            mainLine = `<b class="notify-name">${escapeHtml(dat.from)}</b> sent you a payment request for <span style="color:#227b2d;font-weight:700;">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>. <span style="color:#cf9901;font-weight:600;">Awaiting your confirmation.</span>`;
-          } else if (n.type === 'payment_accept') {
-            mainLine = `<b class="notify-name">${escapeHtml(dat.by)}</b> accepted your payment of <span style="color:#1b2d7b;font-weight:700;">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>.`;
-          } else if (n.type === 'payment_reject') {
-            mainLine = `<b class="notify-name">${escapeHtml(dat.by)}</b> rejected your payment of <span style="color:#a82020;font-weight:700;">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>.`;
-          }
-
-          // Existing notification types: unchanged
-          else if (n.type === 'friend_request') {
-            mainLine = `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> sent you a friend request`;
-          } else if (n.type === 'friend_accept') {
-            mainLine = `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> accepted your friend request`;
-          } else if (n.type === 'expense_new') {
-            mainLine =
-              `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> added an expense: `
-              + `"${escapeHtml(dat.remarks)}" for <b>${escapeHtml(dat.total)} QAR</b>.<br>`
-              + `Your share: <b>${escapeHtml(dat.share)}</b> QAR. `
-              + `<span style="color:#3a6;font-weight:600;">Awaiting your confirmation.</span>`;
-          } else if (n.type === 'expense_approval_accepted') {
-            mainLine =
-              `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> accepted your expense: `
-              + `"${escapeHtml(dat.remarks)}".`;
-          } else if (n.type === 'expense_approval_disputed') {
-            mainLine =
-              `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> disputed the expense `
-              + `"${escapeHtml(dat.remarks)}". <span style="color:#db4646;font-weight:600;">Requires your attention.</span>`;
-          } else if (n.type === 'expense_approval_fully_accepted') {
-            mainLine =
-              `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> reported the dispute resolved on expense: `
-                + `"${escapeHtml(dat.remarks)}". <span style="color:#2a974e;font-weight:600;">Awaiting your confirmation.</span>`;
-          }
-          if (!mainLine) mainLine = `<i style="color:#a7a9ae;">Unknown notification</i>`;
-          const timeBadge = n.created_at
-            ? `<span class="notif-time">${timeAgo(n.created_at)}</span>` : "";
-          return `
-            <div class="notifyItem notif-card" style="${isUnread ? "background:#f4faff;" : "background:#fff;"}" data-id="${n.id}" data-type="${n.type}">
-              <div class="notif-card-main">
-                <div>
-                  ${mainLine}
-                </div>
-                <div class="notif-card-right">
-                  ${timeBadge}
-                </div>
-              </div>
-            </div>`;
-        }).join("")
-      : `<div style="padding:38px 7px 36px 7px;text-align:center;color:#9aa;font-size:1.07em;">No notifications.</div>`
-    }
-    </div>
-    <style>
-      .notif-card { margin: 0.7em 1em 0.2em 1em; border-radius: 12px; box-shadow: 0 2px 14px #13216911; padding: 12px 13px 9px 13px; display: flex; align-items: flex-start;}
-      .notif-card-main { flex: 1; display: flex; flex-direction: row; justify-content: space-between;}
-      .notif-time { color:#8e99a6; font-size:.96em; white-space:nowrap; margin-left: 0.7em;}
-      .notify-name { font-weight:700; color:#233372; }
-      .notif-card:hover { background:#f1f7fe !important; box-shadow: 0 3px 24px #1372be16; }
-      .notifyItem { cursor:pointer; }
-    </style>
-  `;
 }
 
 export function mountNotifications(parent, user, notificationRedirectCallback) {
