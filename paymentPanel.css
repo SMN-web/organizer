@@ -214,11 +214,13 @@ select option:disabled {
 .dropdown-selected-input::placeholder {
   color: #b1b5be;
   opacity: 1;
+  height: 44px;
 }
 
 .dropdown-selected-input::placeholder {
   color: #b1b5be;
   opacity: 1;
+  height: 44px;
 }
 .custom-dropdown-arrow {
   margin-left: 8px;                 /* Space from input text */
