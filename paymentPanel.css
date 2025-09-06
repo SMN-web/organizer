@@ -1,12 +1,9 @@
 .section-top-spacer {
-  height: 74px;  /* Adjust to give as much space as needed */
+  height: 74px;
 }
-
 .transfers-section {
-  /* Optional: use similar section spacing as payments-section */
   padding-top: 0;
 }
-
 .transfers-subtabs {
   display: flex;
   justify-content: center;
@@ -14,7 +11,6 @@
   margin-bottom: 18px;
   margin-top: 0;
 }
-
 .transfers-subtab {
   background: #f6f8fc;
   color: #25405c;
@@ -31,12 +27,9 @@
   color: #216aff;
   box-shadow: 0 2px 9px #90c8ff15;
 }
+.transfers-sub-content { }
 
-.transfers-sub-content {
-  /* panel content goes here */
-}
-
-/*transfer popup*/
+/* TRANSFER MODAL & DROPDOWN */
 .modal-backdrop {
   position: fixed;
   z-index: 9999;
@@ -51,114 +44,176 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
-
 .modal.transfer-modal {
   background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 10px 45px -12px #39508016, 0 1.5px 0 #eef2fb;
+  border-radius: 18px;
   min-width: 320px;
   max-width: 98vw;
-  padding: 30px 26px 22px 26px;
+  padding: 20px 18px 16px 18px;
   position: relative;
   font-family: inherit;
+  box-shadow: 0 10px 45px -12px #39508016, 0 1.5px 0 #eef2fb;
 }
 .modal.transfer-modal h3 {
-  font-size: 1.38em;
+  font-size: 1.27em;
   font-weight: 700;
-  margin: 0 0 24px 0;
-  letter-spacing: -1px;
+  margin: 0 0 14px 0;
+  letter-spacing: -.5px;
   color: #2d386a;
 }
 .modal-close {
-  position: absolute;
-  right: 13px;
-  top: 13px;
-  background: none;
-  border: none;
-  font-size: 2em;
-  color: #8490ab;
-  cursor: pointer;
-  z-index: 2;
-  padding: 0;
-  line-height: 1;
-  transition: color 0.14s;
+  position: absolute; right: 13px; top: 13px;
+  background: none; border: none;
+  font-size: 2em; color: #8490ab; cursor: pointer; z-index: 2; 
+  line-height: 1; padding: 0;
 }
 .modal-close:hover { color: #d12020; }
 
 .modal-row {
   display: flex;
   align-items: center;
-  margin-bottom: 19px;
+  margin-bottom: 10px;
   gap: 7px;
 }
-.modal-row label {
-  width: 54px;
-  font-weight: 600;
-  color: #415077;
+.modal-row:last-of-type {
+  margin-bottom: 4px;
 }
-.modal-row select {
-  font-size: 1em;
+.modal-label {
+  width: 66px;
+  min-width: 60px;
+  color: #313a5a;
+  font-size: 1.02em;
+  font-weight: 500;
+  margin-right: 7px;
+  text-align: right;
+}
+
+.custom-dropdown-box {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  margin: 0;
+}
+
+.dropdown-selected-input {
+  width: 100%;
   border: 1.3px solid #e5e9f2;
-  background: #f8fafc;
-  padding: 5.5px 12px 5px 9px;
   border-radius: 8px;
-  min-width: 135px;
-  max-width: 100%;
-  outline: none;
+  background: #f8fafc;
   color: #2d386a;
-  margin-left: 2px;
-  transition: border 0.15s;
+  font-weight: 600;
+  font-size: 1.09em;
+  height: 42px;
+  line-height: 42px;
+  margin: 0;
+  padding: 0 9px;
+  outline: none;
+  box-sizing: border-box;
+  appearance: none;
+  font-family: inherit;
 }
-.modal-row select:focus {
-  border-color: #2987e0;
-  background: #f1f6fe;
+.dropdown-selected-input::placeholder {
+  color: #b1b5be; opacity: 1;
 }
-.username-tag {
-  margin-left: 12px;
-  font-size: 0.98em;
-  color: #658;
-  background: #f4f4fa;
-  border-radius: 6px;
-  padding: 1px 7px;
-  font-family: 'Menlo', 'Monaco', monospace;
+
+.dropdown-menu {
+  position: absolute; left: 0; right: 0;
+  top: 42px;
+  background: #fff;
+  border: 1.2px solid #e5e9f2;
+  z-index: 99;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px #9cb8e811;
+  min-width: 120px;
+  padding: 5px 0 4px 0;
+  display: none;
 }
+.dropdown-menu.open { display: block; }
+.dropdown-search {
+  width: 92%; margin: 0 4% 4px 4%;
+  padding: 4.5px 7px;
+  border: 1.1px solid #d7e2ed;
+  border-radius: 7px;
+  font-size: .98em; box-sizing: border-box;
+  font-family: inherit; background: #fcfcff; outline: none;
+  height: 31px;
+}
+.dropdown-options {
+  max-height: 140px; overflow-y: auto;
+}
+.dropdown-option {
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.99em;
+  border-radius: 3px;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+.dropdown-option.selected {
+  background: #e6effe; font-weight: bold;
+}
+.dropdown-option.disabled {
+  color: #bbc0c7 !important; cursor: not-allowed;
+}
+.dropdown-option:hover:not(.disabled) { background: #e4efff; }
+
 #amountInput {
   flex: 1;
-  min-width: 150px;
+  min-width: 145px;
   max-width: 220px;
-  padding: 7.5px 12px;
+  padding: 5.5px 10px;
   border: 1.3px solid #e5e9f2;
   background: #f8fafc;
   border-radius: 8px;
   color: #314261;
-  font-size: 1.1em;
-  transition: border 0.15s;
+  font-size: 1.09em;
+  height: 42px;
+  line-height: 42px;
+  font-family: inherit;
+  box-sizing: border-box;
+  margin-bottom: 0;
 }
-#amountInput:focus {
+#amountInput:focus, .dropdown-selected-input:focus {
   border-color: #2987e0;
   background: #f1f6fe;
 }
+
+.username-display {
+  min-height: 12px;
+  margin-top: -2px;
+  margin-bottom: 7px;
+  padding-left: 72px;
+}
+.username-tag {
+  padding: 2px 9px;
+  font-size: 0.95em;
+  color: #656a80;
+  background: #f4f4fa;
+  border-radius: 7px;
+  font-family: 'Menlo', 'Monaco', monospace;
+}
+
 .error-row {
   font-size: 1em;
   color: #d12020;
-  min-height: 19px;
-  margin-bottom: 13px;
+  min-height: 17px;
+  margin-bottom: 9px;
   font-weight: 600;
 }
 .modal-btn-row {
   display: flex;
   justify-content: flex-end;
-  gap: 17px;
-  margin-top: 11px;
+  gap: 14px;
+  margin-top: 12px;
 }
 .modal-btn {
   background: #2354e4;
   color: #fff;
   font-weight: 600;
-  font-size: 1.1em;
+  font-size: 1.08em;
   border: none;
-  border-radius: 12px;
-  padding: 10px 32px;
+  border-radius: 11px;
+  padding: 9px 27px;
   cursor: pointer;
   transition: background 0.14s;
 }
@@ -172,126 +227,3 @@
 .modal-btn.modal-btn-alt:hover {
   background: #e5eafa;
 }
-select option:disabled {
-  background: #eff1f5;
-  color: #bababc !important;
-}
-
-/* Custom Modal + Dropdown Styles */
-.custom-dropdown-box {
-  width: 100%;
-  position: relative;          /* Needed for absolute positioning of .dropdown-menu */
-  border: none;
-  padding: 0;
-  margin: 0;
-}
-
-.dropdown-selected-input {
-  width: 100%;
-  border: 1.3px solid #e5e9f2;
-  border-radius: 8px;
-  background: #f8fafc;
-  color: #2d386a;
-  font-weight: 600;
-  font-size: 1.08em;
-  height: 44px;
-  line-height: 44px;
-  margin: 0;
-  padding: 0 10px;
-  outline: none;
-  box-sizing: border-box;
-  appearance: none;
-  font-family: inherit;
-}
-
-.dropdown-selected-input::placeholder {
-  color: #b1b5be;
-  opacity: 1;
-}
-
-.dropdown-menu {
-  position: absolute;
-  left: 0; right: 0;
-  top: 44px;                  /* Attach directly below input, same as .dropdown-selected-input height */
-  background: #fff;
-  border: 1.3px solid #e5e9f2;
-  z-index: 99;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px #9cb8e811;
-  min-width: 140px;
-  padding: 7px 0 5px 0;
-  display: none;
-}
-.dropdown-menu.open { display: block; }
-.dropdown-search {
-  width: 92%;
-  margin: 0 4% 4px 4%;
-  padding: 6px 7px;
-  border: 1.2px solid #d7e2ed;
-  border-radius: 7px;
-  outline: none;
-  background: #f7fafd;
-  font-size: 1em;
-  height: 34px;
-  box-sizing: border-box;
-  font-family: inherit;
-}
-.dropdown-options {
-  max-height: 150px;
-  overflow-y: auto;
-}
-.dropdown-option {
-  padding: 8px 18px;
-  cursor: pointer;
-  transition: background 0.14s;
-  font-size: 1em;
-  border-radius: 4px;
-  font-family: inherit;
-}
-.dropdown-option.selected {
-  background: #e6effe;
-  font-weight: bold;
-}
-.dropdown-option.disabled {
-  color: #bbc0c7 !important;
-  cursor: not-allowed;
-}
-.dropdown-option:hover:not(.disabled) { background: #e4efff; }
-
-#amountInput {
-  width: 100%;
-  border: 1.3px solid #e5e9f2;
-  border-radius: 8px;
-  background: #f8fafc;
-  color: #2d386a;
-  font-size: 1.08em;
-  height: 44px;
-  line-height: 44px;
-  padding: 0 10px;
-  font-family: inherit;
-  box-sizing: border-box;
-}
-
-#amountInput:focus, .dropdown-selected-input:focus {
-  border-color: #2987e0;
-  background: #f1f6fe;
-}
-
-.username-display {
-  min-height: 20px;
-  margin: -7px 0 10px 0;
-  padding-left: 88px;
-}
-.username-tag {
-  font-size: 0.96em;
-  color: #666;
-  background: #f4f4fa;
-  border-radius: 8px;
-  padding: 2px 10px 2px 9px;
-  font-family: 'Menlo', 'Monaco', monospace;
-  margin-left: 0;
-}
-
-
-.modal-msg { font-size: 1.08em; }
-
