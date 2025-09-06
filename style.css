@@ -413,12 +413,11 @@ overflow-y: auto;
   padding: 0.4em 0.15em 0.7em 0.15em;
   border: 1px solid #daefff;
 }
-
 .notifyItem {
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 13px;
   border-radius: 13px;
   margin: 0.5em 0.5em 0.2em 0.6em;
   padding: 11px 11px 8px 10px;
@@ -432,9 +431,17 @@ overflow-y: auto;
 .notify-avatar {
   width: 34px; height: 34px; flex-shrink: 0;
   border-radius: 50%;
-  object-fit: cover;
-  background: #dde6f1 url(default-avatar.svg) center/cover no-repeat;
-  border: 1px solid #b4d6fc33;
+  font-weight: 700;
+  font-size: 1.09em;
+  line-height: 34px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #dde6f1;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  user-select: none;
 }
 .notify-icon {
   width: 29px; height: 29px; display: flex; align-items: center; justify-content: center;
@@ -450,4 +457,5 @@ overflow-y: auto;
 .notify-time { color: #8e99a6; font-size:.95em; margin-left: 6px; white-space: nowrap; }
 #notifyDropdown .empty { text-align: center; color: #9aa; padding:38px 8px 34px 8px; }
 #notifyDropdown .notify-badge { min-width: 16px; border-radius: 10px; background:#ef6161; color:#fff; padding:1px 7px; font-size:.94em; position:absolute; right:13px; top:8px; }
+
 
