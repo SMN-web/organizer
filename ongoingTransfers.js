@@ -10,7 +10,7 @@ export async function showOngoingTransfersPanel(container, user) {
       return;
     }
     const token = await user.firebaseUser.getIdToken(/*force*/true);
-    const resp = await fetch('https://your-api.example.com/api/transfers/ongoing', {
+    const resp = await fetch('https://on-tr.nafil-8895-s.workers.dev/api/transfers/ongoing', {
       headers: { Authorization: 'Bearer ' + token }
     });
     const text = await resp.text();
