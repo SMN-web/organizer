@@ -49,22 +49,8 @@ function escapeHtml(str) {
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
 }
 function notificationTypeIcon(type) {
-  switch (type) {
-    case "transfer_send_pending":
-      return `<span class="notify-icon" style="background:#cfe6ff; color:#2970d3;"><i class="fa fa-exchange"></i></span>`;
-    case "transfer_accepted":
-      return `<span class="notify-icon" style="background:#e3ffd6; color:#218c59;"><i class="fa fa-check"></i></span>`;
-    case "transfer_rejected":
-      return `<span class="notify-icon" style="background:#ffe3e3; color:#e13e3e;"><i class="fa fa-times"></i></span>`;
-    case "transfer_cancelled":
-      return `<span class="notify-icon" style="background:#fde4d6; color:#d16c1e;"><i class="fa fa-ban"></i></span>`;
-    case "friend_request":
-      return `<span class="notify-icon" style="background:#ffeeda; color:#d19e21;"><i class="fa fa-user-plus"></i></span>`;
-    case "payment_new":
-      return `<span class="notify-icon" style="background:#e9faee; color:#36ab49;"><i class="fa fa-dollar"></i></span>`;
-    default:
-      return `<span class="notify-icon"><i class="fa fa-bell"></i></span>`;
-  }
+  // Uniform icon style for all notifications now
+  return `<span class="notify-icon"><i class="fa fa-bell"></i></span>`;
 }
 
 function renderDropdown() {
@@ -77,54 +63,58 @@ function renderDropdown() {
           let dat = {};
           try { dat = JSON.parse(n.data || '{}'); } catch { dat = {}; }
           let mainLine = "";
-
+          // ~~~~~ Main Message Styles (UNIFIED) ~~~~~
           // Payment
           if (n.type === 'payment_new') {
-            mainLine = `<b class="notify-name">${escapeHtml(dat.from)}</b> sent you a payment request for <span style="color:#227b2d;font-weight:700;">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>. <span style="color:#cf9901;font-weight:600;">Awaiting your confirmation.</span>`;
+            mainLine = `<span class="notify-title">${escapeHtml(dat.from)}</span>
+              <span class="notify-details">sent you a payment request for <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>.
+              ${dat.status === 'pending' || dat.status === undefined ? `<span class="notify-awaiting">Awaiting your confirmation.</span>` : ''}</span>`;
           } else if (n.type === 'payment_accept') {
-            mainLine = `<b class="notify-name">${escapeHtml(dat.by)}</b> accepted your payment of <span style="color:#1b2d7b;font-weight:700;">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>.`;
+            mainLine = `<span class="notify-title">${escapeHtml(dat.by)}</span>
+              <span class="notify-details">accepted your payment of <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>.</span>`;
           } else if (n.type === 'payment_reject') {
-            mainLine = `<b class="notify-name">${escapeHtml(dat.by)}</b> rejected your payment of <span style="color:#a82020;font-weight:700;">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>.`;
+            mainLine = `<span class="notify-title">${escapeHtml(dat.by)}</span>
+              <span class="notify-details">rejected your payment of <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>.</span>`;
           }
           // Friends
           else if (n.type === 'friend_request') {
-            mainLine = `<b style="font-weight:700;">${escapeHtml(dat.from || dat.sender_name)}</b> sent you a friend request`;
+            mainLine = `<span class="notify-title">${escapeHtml(dat.from || dat.sender_name)}</span>
+              <span class="notify-details">sent you a friend request.</span>`;
           } else if (n.type === 'friend_accept') {
-            mainLine = `<b style="font-weight:700;">${escapeHtml(dat.from || dat.sender_name)}</b> accepted your friend request`;
+            mainLine = `<span class="notify-title">${escapeHtml(dat.from || dat.sender_name)}</span>
+              <span class="notify-details">accepted your friend request.</span>`;
           }
           // Expense
           else if (n.type === 'expense_new') {
             mainLine =
-              `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> added an expense: `
-              + `"${escapeHtml(dat.remarks)}" for <b>${escapeHtml(dat.total)} QAR</b>.<br>`
-              + `Your share: <b>${escapeHtml(dat.share)}</b> QAR. `
-              + `<span style="color:#3a6;font-weight:600;">Awaiting your confirmation.</span>`;
+              `<span class="notify-title">${escapeHtml(dat.from)}</span>
+               <span class="notify-details">added an expense: "<b>${escapeHtml(dat.remarks)}</b>" for <span class="notify-amount">${escapeHtml(dat.total)} QAR</span>.<br>
+               Your share: <span class="notify-amount">${escapeHtml(dat.share)}</span> QAR.
+               <span class="notify-awaiting">Awaiting your confirmation.</span></span>`;
           } else if (n.type === 'expense_approval_accepted') {
-            mainLine =
-              `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> accepted your expense: `
-              + `"${escapeHtml(dat.remarks)}".`;
+            mainLine = `<span class="notify-title">${escapeHtml(dat.from)}</span>
+              <span class="notify-details">accepted your expense: "<b>${escapeHtml(dat.remarks)}</b>".</span>`;
           } else if (n.type === 'expense_approval_disputed') {
-            mainLine =
-              `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> disputed the expense `
-              + `"${escapeHtml(dat.remarks)}". <span style="color:#db4646;font-weight:600;">Requires your attention.</span>`;
+            mainLine = `<span class="notify-title">${escapeHtml(dat.from)}</span>
+              <span class="notify-details">disputed the expense "<b>${escapeHtml(dat.remarks)}</b>".</span>`;
           } else if (n.type === 'expense_approval_fully_accepted') {
-            mainLine =
-              `<b style="font-weight:700;">${escapeHtml(dat.from)}</b> reported the dispute resolved on expense: `
-                + `"${escapeHtml(dat.remarks)}". <span style="color:#2a974e;font-weight:600;">Awaiting your confirmation.</span>`;
+            mainLine = `<span class="notify-title">${escapeHtml(dat.from)}</span>
+              <span class="notify-details">reported the dispute resolved on expense: "<b>${escapeHtml(dat.remarks)}</b>".<span class="notify-awaiting">Awaiting your confirmation.</span></span>`;
           }
-          // Transfer: always use from_name/to_name (personalized at backend)
+          // Transfer (KEY BLOCK)
           else if (n.type === 'transfer_send_pending') {
             mainLine = `<span class="notify-title">${escapeHtml(dat.sender_name)}</span>
-              <span class="notify-details">initiated a transfer of <b>${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</b> from <b>${escapeHtml(dat.from_name)}</b> to <b>${escapeHtml(dat.to_name)}</b>.</span>`;
+              <span class="notify-details">initiated a transfer of <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span> from <b>${escapeHtml(dat.from_name)}</b> to <b>${escapeHtml(dat.to_name)}</b>.
+              <span class="notify-awaiting">Awaiting your confirmation.</span></span>`;
           } else if (n.type === 'transfer_accepted') {
             mainLine = `<span class="notify-title">${escapeHtml(dat.sender_name)}</span>
-              <span class="notify-details">accepted the transfer of <b>${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</b> from <b>${escapeHtml(dat.from_name)}</b> to <b>${escapeHtml(dat.to_name)}</b>.</span>`;
+              <span class="notify-details">accepted the transfer of <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span> from <b>${escapeHtml(dat.from_name)}</b> to <b>${escapeHtml(dat.to_name)}</b>.</span>`;
           } else if (n.type === 'transfer_rejected') {
             mainLine = `<span class="notify-title">${escapeHtml(dat.sender_name)}</span>
-              <span class="notify-details">rejected the transfer of <b>${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</b> from <b>${escapeHtml(dat.from_name)}</b> to <b>${escapeHtml(dat.to_name)}</b>.</span>`;
+              <span class="notify-details">rejected the transfer of <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span> from <b>${escapeHtml(dat.from_name)}</b> to <b>${escapeHtml(dat.to_name)}</b>.</span>`;
           } else if (n.type === 'transfer_cancelled') {
             mainLine = `<span class="notify-title">${escapeHtml(dat.sender_name)}</span>
-              <span class="notify-details">cancelled the transfer of <b>${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</b> from <b>${escapeHtml(dat.from_name)}</b> to <b>${escapeHtml(dat.to_name)}</b>.</span>`;
+              <span class="notify-details">cancelled the transfer of <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span> from <b>${escapeHtml(dat.from_name)}</b> to <b>${escapeHtml(dat.to_name)}</b>.</span>`;
           }
           if (!mainLine) mainLine = `<i style="color:#a7a9ae;">Unknown notification</i>`;
           const initialsBadge = `<span class="notify-avatar" style="background:${nameToColor(dat.sender_name || dat.from || "")};">${initials(dat.sender_name || dat.from || "")}</span>`;
