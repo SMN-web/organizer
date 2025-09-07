@@ -5,7 +5,7 @@ let notifyCount;
 let dropdown;
 let renderingSetupDone = false;
 
-// Helpers
+// Helper: color from sender name
 function nameToColor(name) {
   const colors = [
     "#A569BD", "#5DADE2", "#48C9B0", "#58D68D", "#F4D03F",
@@ -48,10 +48,6 @@ function escapeHtml(str) {
   return String(str).replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
 }
-function notificationTypeIcon(type) {
-  // Uniform icon style for all notifications now
-  return `<span class="notify-icon"><i class="fa fa-bell"></i></span>`;
-}
 
 function renderDropdown() {
   dropdown.innerHTML = `
@@ -63,7 +59,7 @@ function renderDropdown() {
           let dat = {};
           try { dat = JSON.parse(n.data || '{}'); } catch { dat = {}; }
           let mainLine = "";
-          // All notifications styled unified way
+          // Unified display for all notifications below
           if (n.type === 'payment_new') {
             mainLine = `<span class="notify-title">${escapeHtml(dat.from)}</span>
               <span class="notify-details">sent you a payment request for <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>.
@@ -108,12 +104,14 @@ function renderDropdown() {
               <span class="notify-details">cancelled the transfer of <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span> from <b>${escapeHtml(dat.from_name)}</b> to <b>${escapeHtml(dat.to_name)}</b>.</span>`;
           }
           if (!mainLine) mainLine = `<i style="color:#a7a9ae;">Unknown notification</i>`;
-          const initialsBadge = `<span class="notify-avatar" style="background:${nameToColor(dat.sender_name || dat.from || "")};">${initials(dat.sender_name || dat.from || "")}</span>`;
+          // ONLY ONE AVATAR, sender initial:
+          const mainInitial = initials(dat.sender_name || dat.from || "");
+          const avatarColor = nameToColor(dat.sender_name || dat.from || "");
+          const initialsBadge = `<span class="notify-avatar" style="background:${avatarColor};">${mainInitial}</span>`;
           const timeBadge = n.created_at
             ? `<span class="notify-time">${timeAgo(n.created_at)}</span>` : "";
           return `
             <div class="notifyItem${isUnread ? ' unread' : ''}" data-id="${n.id}" data-type="${n.type}">
-              ${notificationTypeIcon(n.type)}
               ${initialsBadge}
               <div class="notify-content">
                 ${mainLine}
