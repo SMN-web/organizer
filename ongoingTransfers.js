@@ -96,8 +96,9 @@ function renderTransfersList(container, transfers) {
         <div style="color:#8a93a8;font-size:0.97em;margin-top:4px;">${timeAgo(t.created_at)}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:7px;margin-left:8px;">
-        <button style="padding:6px 18px;margin-bottom:6px;color:#13a568;background:#e7f6ea;font-weight:700;border-radius:7px;border:1.2px solid #13a568;">Accept</button>
-        <button style="padding:6px 18px;color:#d73323;background:#ffecec;font-weight:700;border-radius:7px;border:1.2px solid #d73323;">Reject</button>
+        ${t.show_accept_button
+          ? `<button style="padding:6px 18px;margin-bottom:6px;color:#13a568;background:#e7f6ea;font-weight:700;border-radius:7px;border:1.2px solid #13a568;">Accept</button>`
+          : ""}
       </div>
     `;
     listArea.appendChild(row);
