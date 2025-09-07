@@ -31,12 +31,6 @@ function timeAgo(dateStr) {
   const years = Math.floor(days / 365);
   return `${years}y ago`;
 }
-function getSelfName(user) {
-  return (user?.firebaseUser?.displayName || user?.name || user?.firebaseUser?.email || "").toLowerCase();
-}
-function displayName(username, realname, currentUsername) {
-  return username && username.toLowerCase() === currentUsername ? '<b>you</b>' : `<b>${escapeHtml(realname || username)}</b>`;
-}
 
 export async function showOngoingTransfersPanel(container, user) {
   container.innerHTML = '';
@@ -73,8 +67,6 @@ export async function showOngoingTransfersPanel(container, user) {
 function renderTransfersList(container, user, transfers) {
   container.innerHTML = `<div style="font-weight:600;font-size:1.05em;margin-bottom:7px;">Ongoing Transfers</div>
     <div class="transfer-folder-list"></div>`;
-  const currentUsername = getSelfName(user);
-
   const listArea = container.querySelector('.transfer-folder-list');
   if (!transfers.length) {
     listArea.innerHTML = `<div style="color:#666;text-align:center;margin:2em 0 1em 0;font-size:0.98em;">
@@ -85,35 +77,20 @@ function renderTransfersList(container, user, transfers) {
 
   let n = 1;
   transfers.forEach((t) => {
-    const isFromUser = t.from_user.toLowerCase() === currentUsername;
-    const isToUser = t.to_user.toLowerCase() === currentUsername;
-    if (!isFromUser && !isToUser) return;
-
-    const showActions = (isFromUser && t.from_user_status === 'pending') || (isToUser && t.to_user_status === 'pending');
-    const fromStr = displayName(t.from_user, t.from_name, currentUsername);
-    const toStr = displayName(t.to_user, t.to_name, currentUsername);
-
-    const statusBlocks = [];
-    if (isFromUser && t.from_user_status === 'accepted')
-      statusBlocks.push(`<span style="color:#188c3d;font-weight:600;">You have accepted this transfer.</span>`);
-    if (isToUser && t.to_user_status === 'accepted')
-      statusBlocks.push(`<span style="color:#188c3d;font-weight:600;">You have accepted this transfer.</span>`);
-    if (!isFromUser && t.from_user_status === 'accepted')
-      statusBlocks.push(`<span style="color:#216aff;font-weight:600;">${escapeHtml(t.from_name)} has accepted (${timeAgo(t.from_user_updated_at)})</span>`);
-    if (!isToUser && t.to_user_status === 'accepted')
-      statusBlocks.push(`<span style="color:#216aff;font-weight:600;">${escapeHtml(t.to_name)} has accepted (${timeAgo(t.to_user_updated_at)})</span>`);
+    const fromStr = `<b>${escapeHtml(t.from_name || t.from_user)}</b>`;
+    const toStr = `<b>${escapeHtml(t.to_name || t.to_user)}</b>`;
 
     const row = document.createElement("div");
     row.className = "transfer-folder";
     row.tabIndex = 0;
     row.style = `display:flex;align-items:flex-start;gap:11px;
       padding:10px 7px 12px 7px;
-      border-bottom:1px solid #eee;font-size:1.04em;transition:background 0.2s;background:#fff;`;
+      border-bottom:1px solid #eee;font-size:1.05em;background:#fff;`;
 
     row.innerHTML = `
       <div class="transfer-main" style="flex:1;">
         <span class="serial-no" style="margin-right:1.4em;color:#4b65a3;font-weight:800;">${n++}.</span>
-        <span style="font-weight:600;font-size:1.06em;color:#193883">
+        <span style="font-weight:600;color:#193883">
           ${escapeHtml(t.sender_name)}
           <span style="font-weight:400;color:#222;">initiated a transfer of</span>
           <span style="font-weight:800; color:#1a1d25;">${escapeHtml(t.amount)} ${escapeHtml(t.currency || CURRENCY)}</span>
@@ -122,69 +99,14 @@ function renderTransfersList(container, user, transfers) {
           <span style="color:#222;font-weight:500;">to</span>
           ${toStr}
         </span>
-        <div style="margin-top:5px;">${statusBlocks.join("<br>")}</div>
-        <div style='color:#d29a07;font-weight:600;font-size:1em;padding-top:3px;'>Awaiting your confirmation.</div>
+        <div style="color:#d29a07;font-weight:600;font-size:1em;padding-top:3px;">Awaiting your confirmation.</div>
         <div style="color:#8a93a8;font-size:0.97em;margin-top:4px;">${timeAgo(t.created_at)}</div>
       </div>
-      ${showActions ? `
       <div class="transfer-actions" style="display:flex;flex-direction:column;gap:7px;margin-left:8px;">
         <button class="transfer-accept-btn" data-id="${t.transfer_id}">Accept</button>
         <button class="transfer-reject-btn" data-id="${t.transfer_id}">Reject</button>
-      </div>` : ""}
+      </div>
     `;
-    row.querySelector('.transfer-accept-btn')?.addEventListener('click', async () => {
-      await handleTransferAction('accept', t.transfer_id, user, container);
-    });
-    row.querySelector('.transfer-reject-btn')?.addEventListener('click', async () => {
-      openRejectModal(t.transfer_id, user, container);
-    });
     listArea.appendChild(row);
   });
-}
-
-async function handleTransferAction(action, transfer_id, user, container, reason = "") {
-  showSpinner(container);
-  try {
-    const token = await user.firebaseUser.getIdToken(true);
-    const resp = await fetch('https://on-tr.nafil-8895-s.workers.dev/api/transfers/action', {
-      method: "POST",
-      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ transfer_id, action, reason })
-    });
-    const result = await resp.json();
-    await delay(350);
-    hideSpinner(container);
-    if (!result.ok) throw new Error(result.error || "Unknown error");
-    await showOngoingTransfersPanel(container, user);
-  } catch (e) {
-    hideSpinner(container);
-    alert(e.message);
-    await showOngoingTransfersPanel(container, user);
-  }
-}
-
-function openRejectModal(transfer_id, user, container) {
-  if (document.getElementById('transfer-reject-modal')) return;
-  const modal = document.createElement('div');
-  modal.id = 'transfer-reject-modal';
-  modal.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(20,24,32,0.28);z-index:1000;display:flex;align-items:center;justify-content:center;';
-  modal.innerHTML = `
-    <div style="background:#fff;padding:25px 23px 20px 23px;border-radius:12px;box-shadow:0 6px 32px #006b9912;max-width:95vw;width:375px;">
-      <div style="font-weight:600;font-size:1.09em;margin-bottom:8px;">Reject Transfer</div>
-      <textarea id="reason" rows="3" style="width:99%;min-height:58px;border:1.2px solid #8ad;border-radius:7px;margin-bottom:14px;font-size:1.03em;padding:6px;"></textarea>
-      <div style="display:flex;gap:17px;justify-content:flex-end;">
-        <button id="cancelReject" style="padding:6px 15px;font-weight:600;">Cancel</button>
-        <button id="submitReject" style="padding:7px 18px;color:#fff;background:#e25535;border:none;font-weight:700;border-radius:7px;">Reject</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  modal.querySelector("#cancelReject").onclick = () => modal.remove();
-  modal.querySelector("#submitReject").onclick = async () => {
-    const val = modal.querySelector("#reason").value.trim();
-    if (!val) { alert("Please enter a rejection reason."); return; }
-    modal.querySelector("#submitReject").disabled = true;
-    await handleTransferAction('reject', transfer_id, user, container, val);
-    modal.remove();
-  };
 }
