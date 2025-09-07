@@ -31,6 +31,7 @@ function timeAgo(dateStr) {
   const years = Math.floor(days / 365);
   return `${years}y ago`;
 }
+
 export async function showOngoingTransfersPanel(container, user) {
   container.innerHTML = '';
   showSpinner(container);
@@ -64,7 +65,6 @@ export async function showOngoingTransfersPanel(container, user) {
 
   renderTransfersList(container, user, transfers);
 }
-
 function getSelfName(user) {
   return (user?.firebaseUser?.displayName || user?.name || user?.firebaseUser?.email || "").toLowerCase();
 }
@@ -77,6 +77,7 @@ function renderTransfersList(container, user, transfers) {
     <div class="transfer-folder-list"></div>
   `;
   const currentUsername = getSelfName(user);
+
   const listArea = container.querySelector('.transfer-folder-list');
   if (!transfers.length) {
     listArea.innerHTML = `<div style="color:#666;text-align:center;margin:2em 0 1em 0;font-size:0.98em;">
@@ -84,7 +85,6 @@ function renderTransfersList(container, user, transfers) {
     </div>`;
     return;
   }
-
   transfers.forEach((t, idx) => {
     const row = document.createElement("div");
     row.className = "transfer-folder";
@@ -92,10 +92,6 @@ function renderTransfersList(container, user, transfers) {
     row.style = `display:flex;align-items:flex-start;gap:11px;
       padding:10px 7px 12px 7px;
       border-bottom:1px solid #eee;font-size:1.04em;transition:background 0.2s;background:#fff;`;
-
-    // Who is the "other" user to display "this guy accepted"?
-    const otherUser = (t.from_user.toLowerCase() !== currentUsername) ? t.from_user : t.to_user;
-    const otherName = (t.from_user.toLowerCase() !== currentUsername) ? (t.from_name || t.from_user) : (t.to_name || t.to_user);
 
     row.innerHTML = `
       <div class="transfer-main" style="flex:1;">
@@ -131,7 +127,6 @@ function renderTransfersList(container, user, transfers) {
         <button class="transfer-reject-btn" data-id="${t.transfer_id}">Reject</button>
       </div>` : ""}
     `;
-    // Accept/Reject logic:
     row.querySelector('.transfer-accept-btn')?.addEventListener('click', async () => {
       await handleTransferAction('accept', t.transfer_id, user, container);
     });
@@ -163,7 +158,6 @@ async function handleTransferAction(action, transfer_id, user, container, reason
   }
 }
 
-// Simple reject modal (barebones, add your styling as desired!)
 function openRejectModal(transfer_id, user, container) {
   if (document.getElementById('transfer-reject-modal')) return;
   const modal = document.createElement('div');
