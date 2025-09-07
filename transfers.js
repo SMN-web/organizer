@@ -4,7 +4,6 @@ import { showCompletedTransfersPanel } from './completedTransfers.js';
 export function showTransfersPanel(container, user) {
   container.innerHTML = `
     <div class="transfers-section">
-      <div class="section-top-spacer"></div>
       <nav class="transfers-subtabs">
         <button data-tab="ongoing" class="transfers-subtab active">Ongoing</button>
         <button data-tab="completed" class="transfers-subtab">Completed</button>
