@@ -55,7 +55,7 @@ function notificationTypeIcon(type) {
 
 function renderDropdown() {
   dropdown.innerHTML = `
-    <div>
+    <div class="notify-scroll-area">
     ${
       notifications.length
       ? notifications.map((n) => {
@@ -63,34 +63,28 @@ function renderDropdown() {
           let dat = {};
           try { dat = JSON.parse(n.data || '{}'); } catch { dat = {}; }
           let mainLine = "";
-          // ~~~~~ Main Message Styles (UNIFIED) ~~~~~
-          // Payment
+          // All notifications styled unified way
           if (n.type === 'payment_new') {
             mainLine = `<span class="notify-title">${escapeHtml(dat.from)}</span>
               <span class="notify-details">sent you a payment request for <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>.
-              ${dat.status === 'pending' || dat.status === undefined ? `<span class="notify-awaiting">Awaiting your confirmation.</span>` : ''}</span>`;
+              <span class="notify-awaiting">Awaiting your confirmation.</span></span>`;
           } else if (n.type === 'payment_accept') {
             mainLine = `<span class="notify-title">${escapeHtml(dat.by)}</span>
               <span class="notify-details">accepted your payment of <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>.</span>`;
           } else if (n.type === 'payment_reject') {
             mainLine = `<span class="notify-title">${escapeHtml(dat.by)}</span>
               <span class="notify-details">rejected your payment of <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>.</span>`;
-          }
-          // Friends
-          else if (n.type === 'friend_request') {
+          } else if (n.type === 'friend_request') {
             mainLine = `<span class="notify-title">${escapeHtml(dat.from || dat.sender_name)}</span>
               <span class="notify-details">sent you a friend request.</span>`;
           } else if (n.type === 'friend_accept') {
             mainLine = `<span class="notify-title">${escapeHtml(dat.from || dat.sender_name)}</span>
               <span class="notify-details">accepted your friend request.</span>`;
-          }
-          // Expense
-          else if (n.type === 'expense_new') {
+          } else if (n.type === 'expense_new') {
             mainLine =
               `<span class="notify-title">${escapeHtml(dat.from)}</span>
                <span class="notify-details">added an expense: "<b>${escapeHtml(dat.remarks)}</b>" for <span class="notify-amount">${escapeHtml(dat.total)} QAR</span>.<br>
-               Your share: <span class="notify-amount">${escapeHtml(dat.share)}</span> QAR.
-               <span class="notify-awaiting">Awaiting your confirmation.</span></span>`;
+               Your share: <span class="notify-amount">${escapeHtml(dat.share)}</span> QAR.<span class="notify-awaiting">Awaiting your confirmation.</span></span>`;
           } else if (n.type === 'expense_approval_accepted') {
             mainLine = `<span class="notify-title">${escapeHtml(dat.from)}</span>
               <span class="notify-details">accepted your expense: "<b>${escapeHtml(dat.remarks)}</b>".</span>`;
@@ -100,12 +94,9 @@ function renderDropdown() {
           } else if (n.type === 'expense_approval_fully_accepted') {
             mainLine = `<span class="notify-title">${escapeHtml(dat.from)}</span>
               <span class="notify-details">reported the dispute resolved on expense: "<b>${escapeHtml(dat.remarks)}</b>".<span class="notify-awaiting">Awaiting your confirmation.</span></span>`;
-          }
-          // Transfer (KEY BLOCK)
-          else if (n.type === 'transfer_send_pending') {
+          } else if (n.type === 'transfer_send_pending') {
             mainLine = `<span class="notify-title">${escapeHtml(dat.sender_name)}</span>
-              <span class="notify-details">initiated a transfer of <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span> from <b>${escapeHtml(dat.from_name)}</b> to <b>${escapeHtml(dat.to_name)}</b>.
-              <span class="notify-awaiting">Awaiting your confirmation.</span></span>`;
+              <span class="notify-details">initiated a transfer of <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span> from <b>${escapeHtml(dat.from_name)}</b> to <b>${escapeHtml(dat.to_name)}</b>.<span class="notify-awaiting">Awaiting your confirmation.</span></span>`;
           } else if (n.type === 'transfer_accepted') {
             mainLine = `<span class="notify-title">${escapeHtml(dat.sender_name)}</span>
               <span class="notify-details">accepted the transfer of <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span> from <b>${escapeHtml(dat.from_name)}</b> to <b>${escapeHtml(dat.to_name)}</b>.</span>`;
