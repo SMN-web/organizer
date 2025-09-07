@@ -2,6 +2,7 @@ import { showSpinner, hideSpinner, delay } from './spinner.js';
 
 const CURRENCY = localStorage.getItem('currency') || "QAR";
 
+// Utility helpers
 function escapeHtml(str) {
   return String(str || "").replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
@@ -31,13 +32,21 @@ function timeAgo(dateStr) {
   const years = Math.floor(days / 365);
   return `${years}y ago`;
 }
+function getSelfName(user) {
+  // Get the normalized (lowercase) "username" for this session
+  return (user?.firebaseUser?.displayName || user?.name || user?.firebaseUser?.email || "").toLowerCase();
+}
+function displayName(username, realname, currentUsername) {
+  // Show 'you' if it matches current user, otherwise show real name or username
+  return username && username.toLowerCase() === currentUsername ? '<b>you</b>' : `<b>${escapeHtml(realname || username)}</b>`;
+}
 
+// Core: show the Ongoing Transfers UI
 export async function showOngoingTransfersPanel(container, user) {
   container.innerHTML = '';
   showSpinner(container);
 
-  let transfers = [];
-  let errMsg = '';
+  let transfers = [], errMsg = '';
   try {
     if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function') {
       container.innerHTML = `<div style="color:#d12020;margin:2em;">You must be logged in to view pending transfers.</div>`;
@@ -65,12 +74,7 @@ export async function showOngoingTransfersPanel(container, user) {
 
   renderTransfersList(container, user, transfers);
 }
-function getSelfName(user) {
-  return (user?.firebaseUser?.displayName || user?.name || user?.firebaseUser?.email || "").toLowerCase();
-}
-function displayName(username, realname, currentUsername) {
-  return username && username.toLowerCase() === currentUsername ? 'you' : escapeHtml(realname || username);
-}
+
 function renderTransfersList(container, user, transfers) {
   container.innerHTML = `
     <div style="font-weight:600;font-size:1.05em;margin-bottom:7px;">Ongoing Transfers</div>
@@ -85,7 +89,33 @@ function renderTransfersList(container, user, transfers) {
     </div>`;
     return;
   }
+
   transfers.forEach((t, idx) => {
+    const isFromUser = t.from_user.toLowerCase() === currentUsername;
+    const isToUser = t.to_user.toLowerCase() === currentUsername;
+    // Only render if the user is actually one of these
+    if (!isFromUser && !isToUser) return;
+
+    // Accept/Reject buttons logic: only show if pending for current user
+    const showActions =
+      (isFromUser && t.from_user_status === 'pending') ||
+      (isToUser && t.to_user_status === 'pending');
+
+    // Mark "you" for from_name/to_name
+    const fromStr = displayName(t.from_user, t.from_name, currentUsername);
+    const toStr = displayName(t.to_user, t.to_name, currentUsername);
+
+    // Status feedback blocks
+    const statusBlocks = [];
+    if (isFromUser && t.from_user_status === 'accepted')
+      statusBlocks.push(`<span style="color:#188c3d;font-weight:600;">You have accepted this transfer.</span>`);
+    if (isToUser && t.to_user_status === 'accepted')
+      statusBlocks.push(`<span style="color:#188c3d;font-weight:600;">You have accepted this transfer.</span>`);
+    if (!isFromUser && t.from_user_status === 'accepted')
+      statusBlocks.push(`<span style="color:#216aff;font-weight:600;">${escapeHtml(t.from_name)} has accepted (${timeAgo(t.from_user_updated_at)})</span>`);
+    if (!isToUser && t.to_user_status === 'accepted')
+      statusBlocks.push(`<span style="color:#216aff;font-weight:600;">${escapeHtml(t.to_name)} has accepted (${timeAgo(t.to_user_updated_at)})</span>`);
+
     const row = document.createElement("div");
     row.className = "transfer-folder";
     row.tabIndex = 0;
@@ -97,46 +127,40 @@ function renderTransfersList(container, user, transfers) {
       <div class="transfer-main" style="flex:1;">
         <span class="serial-no" style="margin-right:1.4em;color:#4b65a3;font-weight:800;">${idx + 1}.</span>
         <span style="font-weight:600;font-size:1.06em;color:#193883">
-          ${escapeHtml(t.sender_name)} 
+          ${escapeHtml(t.sender_name)}
           <span style="font-weight:400;color:#222;">initiated a transfer of</span>
           <span style="font-weight:800; color:#1a1d25;">${escapeHtml(t.amount)} ${escapeHtml(t.currency || CURRENCY)}</span>
           <span style="color:#222;font-weight:500;">from</span>
-          <b>${displayName(t.from_user, t.from_name, currentUsername)}</b>
+          ${fromStr}
           <span style="color:#222;font-weight:500;">to</span>
-          <b>${displayName(t.to_user, t.to_name, currentUsername)}</b>
+          ${toStr}
         </span>
-        <div style="margin-top:5px;">
-          ${t.from_user.toLowerCase() === currentUsername && t.from_user_status === 'accepted' ? `<span style="color:#188c3d;font-weight:600;">You have accepted this transfer.</span>` : ""}
-          ${t.to_user.toLowerCase() === currentUsername && t.to_user_status === 'accepted' ? `<span style="color:#188c3d;font-weight:600;">You have accepted this transfer.</span>` : ""}
-          ${t.from_user_status === 'accepted' && t.from_user.toLowerCase() !== currentUsername
-              ? `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.from_name)} has accepted (${timeAgo(t.from_user_updated_at)})</span>` : ""}
-          ${t.to_user_status === 'accepted' && t.to_user.toLowerCase() !== currentUsername
-              ? `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.to_name)} has accepted (${timeAgo(t.to_user_updated_at)})</span>` : ""}
-        </div>
+        <div style="margin-top:5px;">${statusBlocks.join("<br>")}</div>
         <div style='color:#d29a07;font-weight:600;font-size:1em;padding-top:3px;'>Awaiting your confirmation.</div>
         <div style="color:#8a93a8;font-size:0.97em;margin-top:4px;">
           ${timeAgo(t.created_at)}
         </div>
       </div>
-      ${(t.awaitingAction && (
-        t.from_user_status === 'pending' && t.from_user.toLowerCase() === currentUsername ||
-        t.to_user_status === 'pending' && t.to_user.toLowerCase() === currentUsername
-      )) ? `
+      ${showActions ? `
       <div class="transfer-actions" style="display:flex;flex-direction:column;gap:7px;margin-left:8px;">
         <button class="transfer-accept-btn" data-id="${t.transfer_id}">Accept</button>
         <button class="transfer-reject-btn" data-id="${t.transfer_id}">Reject</button>
       </div>` : ""}
     `;
+
+    // Button handlers
     row.querySelector('.transfer-accept-btn')?.addEventListener('click', async () => {
       await handleTransferAction('accept', t.transfer_id, user, container);
     });
     row.querySelector('.transfer-reject-btn')?.addEventListener('click', async () => {
       openRejectModal(t.transfer_id, user, container);
     });
+
     listArea.appendChild(row);
   });
 }
 
+// POST action handlers
 async function handleTransferAction(action, transfer_id, user, container, reason = "") {
   showSpinner(container);
   try {
@@ -158,6 +182,7 @@ async function handleTransferAction(action, transfer_id, user, container, reason
   }
 }
 
+// Modal for rejection
 function openRejectModal(transfer_id, user, container) {
   if (document.getElementById('transfer-reject-modal')) return;
   const modal = document.createElement('div');
