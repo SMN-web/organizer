@@ -401,18 +401,27 @@ overflow-y: auto;
 #notifyDropdown {
   display: none;
   position: fixed;
-  top: 65px;
+  top: 60px;
   right: 16px;
   min-width: 350px;
   max-width: 96vw;
+  max-height: 80vh;
   background: #f6f9fb;
   border-radius: 20px;
   box-shadow: 0 8px 32px #0c22573a, 0 2px 7px #0c225710;
   z-index: 400;
   overflow: hidden;
-  padding: 0.4em 0.15em 0.7em 0.15em;
   border: 1px solid #daefff;
   font-family: 'Inter', Arial, sans-serif !important;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+#notifyDropdown .notify-scroll-area {
+  overflow-y: auto;
+  padding: 0.6em 0.2em 0.7em 0.2em;
+  max-height: 80vh;
+  min-height: 60px;
 }
 .notifyItem {
   cursor: pointer;
@@ -486,7 +495,12 @@ overflow-y: auto;
   white-space: nowrap;
   font-family: inherit;
 }
-#notifyDropdown .empty { text-align: center; color: #9aa; padding:38px 8px 34px 8px; }
+#notifyDropdown .empty {
+  text-align: center;
+  color: #9aa;
+  padding:38px 8px 34px 8px;
+}
+
 
 
 
