@@ -2,7 +2,6 @@ import { showSpinner, hideSpinner, delay } from './spinner.js';
 
 const CURRENCY = localStorage.getItem('currency') || "QAR";
 
-// Utility helpers
 function escapeHtml(str) {
   return String(str || "").replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
@@ -33,15 +32,12 @@ function timeAgo(dateStr) {
   return `${years}y ago`;
 }
 function getSelfName(user) {
-  // Get the normalized (lowercase) "username" for this session
   return (user?.firebaseUser?.displayName || user?.name || user?.firebaseUser?.email || "").toLowerCase();
 }
 function displayName(username, realname, currentUsername) {
-  // Show 'you' if it matches current user, otherwise show real name or username
   return username && username.toLowerCase() === currentUsername ? '<b>you</b>' : `<b>${escapeHtml(realname || username)}</b>`;
 }
 
-// Core: show the Ongoing Transfers UI
 export async function showOngoingTransfersPanel(container, user) {
   container.innerHTML = '';
   showSpinner(container);
@@ -71,15 +67,12 @@ export async function showOngoingTransfersPanel(container, user) {
       <div style="color:#d12020;font-size:1em;margin:1.3em 0 1em 0;text-align:center;">${escapeHtml(errMsg)}</div>`;
     return;
   }
-
   renderTransfersList(container, user, transfers);
 }
 
 function renderTransfersList(container, user, transfers) {
-  container.innerHTML = `
-    <div style="font-weight:600;font-size:1.05em;margin-bottom:7px;">Ongoing Transfers</div>
-    <div class="transfer-folder-list"></div>
-  `;
+  container.innerHTML = `<div style="font-weight:600;font-size:1.05em;margin-bottom:7px;">Ongoing Transfers</div>
+    <div class="transfer-folder-list"></div>`;
   const currentUsername = getSelfName(user);
 
   const listArea = container.querySelector('.transfer-folder-list');
@@ -90,22 +83,16 @@ function renderTransfersList(container, user, transfers) {
     return;
   }
 
-  transfers.forEach((t, idx) => {
+  let n = 1;
+  transfers.forEach((t) => {
     const isFromUser = t.from_user.toLowerCase() === currentUsername;
     const isToUser = t.to_user.toLowerCase() === currentUsername;
-    // Only render if the user is actually one of these
     if (!isFromUser && !isToUser) return;
 
-    // Accept/Reject buttons logic: only show if pending for current user
-    const showActions =
-      (isFromUser && t.from_user_status === 'pending') ||
-      (isToUser && t.to_user_status === 'pending');
-
-    // Mark "you" for from_name/to_name
+    const showActions = (isFromUser && t.from_user_status === 'pending') || (isToUser && t.to_user_status === 'pending');
     const fromStr = displayName(t.from_user, t.from_name, currentUsername);
     const toStr = displayName(t.to_user, t.to_name, currentUsername);
 
-    // Status feedback blocks
     const statusBlocks = [];
     if (isFromUser && t.from_user_status === 'accepted')
       statusBlocks.push(`<span style="color:#188c3d;font-weight:600;">You have accepted this transfer.</span>`);
@@ -125,7 +112,7 @@ function renderTransfersList(container, user, transfers) {
 
     row.innerHTML = `
       <div class="transfer-main" style="flex:1;">
-        <span class="serial-no" style="margin-right:1.4em;color:#4b65a3;font-weight:800;">${idx + 1}.</span>
+        <span class="serial-no" style="margin-right:1.4em;color:#4b65a3;font-weight:800;">${n++}.</span>
         <span style="font-weight:600;font-size:1.06em;color:#193883">
           ${escapeHtml(t.sender_name)}
           <span style="font-weight:400;color:#222;">initiated a transfer of</span>
@@ -137,9 +124,7 @@ function renderTransfersList(container, user, transfers) {
         </span>
         <div style="margin-top:5px;">${statusBlocks.join("<br>")}</div>
         <div style='color:#d29a07;font-weight:600;font-size:1em;padding-top:3px;'>Awaiting your confirmation.</div>
-        <div style="color:#8a93a8;font-size:0.97em;margin-top:4px;">
-          ${timeAgo(t.created_at)}
-        </div>
+        <div style="color:#8a93a8;font-size:0.97em;margin-top:4px;">${timeAgo(t.created_at)}</div>
       </div>
       ${showActions ? `
       <div class="transfer-actions" style="display:flex;flex-direction:column;gap:7px;margin-left:8px;">
@@ -147,20 +132,16 @@ function renderTransfersList(container, user, transfers) {
         <button class="transfer-reject-btn" data-id="${t.transfer_id}">Reject</button>
       </div>` : ""}
     `;
-
-    // Button handlers
     row.querySelector('.transfer-accept-btn')?.addEventListener('click', async () => {
       await handleTransferAction('accept', t.transfer_id, user, container);
     });
     row.querySelector('.transfer-reject-btn')?.addEventListener('click', async () => {
       openRejectModal(t.transfer_id, user, container);
     });
-
     listArea.appendChild(row);
   });
 }
 
-// POST action handlers
 async function handleTransferAction(action, transfer_id, user, container, reason = "") {
   showSpinner(container);
   try {
@@ -182,7 +163,6 @@ async function handleTransferAction(action, transfer_id, user, container, reason
   }
 }
 
-// Modal for rejection
 function openRejectModal(transfer_id, user, container) {
   if (document.getElementById('transfer-reject-modal')) return;
   const modal = document.createElement('div');
