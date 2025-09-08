@@ -75,18 +75,30 @@ function renderTransfersList(container, user, transfers) {
   let n = 1;
   transfers.forEach((t) => {
     let statusMsg = '';
+
+    // Always show your own status if applicable
     if (t.own_status === 'pending') {
-      statusMsg = '<span style="color:#d29a07;font-weight:600;">Awaiting your confirmation.</span>';
+      statusMsg += '<span style="color:#d29a07;font-weight:600;">Awaiting your confirmation.</span>';
     } else if (t.own_status === 'accepted') {
-      statusMsg = `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span>`;
+      statusMsg += `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span>`;
     } else if (t.own_status === 'rejected') {
-      statusMsg = `<span style="color:#d73323;font-weight:600;">You have rejected this transfer.</span>${t.remarks ? `<br><span style="color:#a13126;">Reason: ${escapeHtml(t.remarks)}</span>` : ""}`;
+      statusMsg += `<span style="color:#d73323;font-weight:600;">You have rejected this transfer.</span>${t.remarks ? `<br><span style="color:#a13126;">Reason: ${escapeHtml(t.remarks)}</span>` : ""}`;
     }
-    if (t.other_status === 'accepted') {
-      statusMsg += `<br><span style="color:#216aff;font-weight:600;">${escapeHtml(t.other_name)} accepted the transfer ${timeAgo(t.other_status_updated_at)}.</span>`;
-    } else if (t.other_status === 'rejected') {
-      statusMsg += `<br><span style="color:#d73323;font-weight:600;">${escapeHtml(t.other_name)} rejected this transfer.</span>`;
+
+    // ALWAYS show both from_user and to_user statuses/times to ALL roles
+    if (t.from_user_status === 'accepted') {
+      statusMsg += `<br><span style="color:#216aff;font-weight:600;">${escapeHtml(t.from_name)} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span>`;
     }
+    if (t.to_user_status === 'accepted') {
+      statusMsg += `<br><span style="color:#216aff;font-weight:600;">${escapeHtml(t.to_name)} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span>`;
+    }
+    if (t.from_user_status === 'rejected') {
+      statusMsg += `<br><span style="color:#d73323;font-weight:600;">${escapeHtml(t.from_name)} rejected this transfer.</span>`;
+    }
+    if (t.to_user_status === 'rejected') {
+      statusMsg += `<br><span style="color:#d73323;font-weight:600;">${escapeHtml(t.to_name)} rejected this transfer.</span>`;
+    }
+
     const row = document.createElement("div");
     row.className = "transfer-folder";
     row.tabIndex = 0;
