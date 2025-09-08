@@ -30,6 +30,7 @@ function timeAgo(dateStr) {
   return `${years}y ago`;
 }
 
+// MAIN EXPORT
 export async function showOngoingTransfersPanel(container, user) {
   container.innerHTML = '';
   showSpinner(container);
@@ -62,6 +63,7 @@ export async function showOngoingTransfersPanel(container, user) {
   renderTransfersList(container, user, transfers);
 }
 
+// Always show acceptance of both participants to everyone, and 'You initiated...' for sender
 function renderTransfersList(container, user, transfers) {
   container.innerHTML = `<div style="font-weight:600;font-size:1.05em;margin-bottom:7px;">Ongoing Transfers</div>
     <div class="transfer-folder-list"></div>`;
@@ -73,20 +75,28 @@ function renderTransfersList(container, user, transfers) {
     return;
   }
   let n = 1;
+  const currUsername = user?.username?.toLowerCase?.() || '';
+
   transfers.forEach((t) => {
+    // Use 'You' instead of sender name if sender is current user
+    const isSender = t.sender_username?.toLowerCase?.() === currUsername;
+    const displaySender = isSender ? "You" : escapeHtml(t.sender_name);
+
+    // Show acceptance status for both from_user and to_user, to everyone (including sender)
     let statusMsg = '';
+    if (t.from_user_status === 'accepted') {
+      statusMsg += `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.from_name)} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span><br>`;
+    }
+    if (t.to_user_status === 'accepted') {
+      statusMsg += `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.to_name)} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span><br>`;
+    }
+    // Own status messages go on top if user is from or to:
     if (t.own_status === 'pending') {
-      statusMsg = '<span style="color:#d29a07;font-weight:600;">Awaiting your confirmation.</span>';
+      statusMsg = '<span style="color:#d29a07;font-weight:600;">Awaiting your confirmation.</span><br>' + statusMsg;
     } else if (t.own_status === 'accepted') {
-      statusMsg = `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span>`;
-    } else if (t.own_status === 'rejected') {
-      statusMsg = `<span style="color:#d73323;font-weight:600;">You have rejected this transfer.</span>${t.remarks ? `<br><span style="color:#a13126;">Reason: ${escapeHtml(t.remarks)}</span>` : ""}`;
+      statusMsg = `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span><br>` + statusMsg;
     }
-    if (t.other_status === 'accepted') {
-      statusMsg += `<br><span style="color:#216aff;font-weight:600;">${escapeHtml(t.other_name)} accepted the transfer ${timeAgo(t.other_status_updated_at)}.</span>`;
-    } else if (t.other_status === 'rejected') {
-      statusMsg += `<br><span style="color:#d73323;font-weight:600;">${escapeHtml(t.other_name)} rejected this transfer.</span>`;
-    }
+
     const row = document.createElement("div");
     row.className = "transfer-folder";
     row.tabIndex = 0;
@@ -97,7 +107,7 @@ function renderTransfersList(container, user, transfers) {
       <div style="flex:1;">
         <span style="margin-right:1.4em;color:#4b65a3;font-weight:800;">${n++}.</span>
         <span style="font-weight:600;color:#193883">
-          ${escapeHtml(t.sender_name)}
+          ${displaySender}
           <span style="font-weight:400;color:#222;">initiated a transfer of</span>
           <span style="font-weight:800; color:#1a1d25;">${escapeHtml(t.amount)} ${escapeHtml(t.currency)}</span>
           <span style="color:#222;font-weight:500;">${escapeHtml(t.direction)}</span>
