@@ -41,7 +41,7 @@ export async function showOngoingTransfersPanel(container, user) {
       return;
     }
     const token = await user.firebaseUser.getIdToken(true);
-    const resp = await fetch('https://on-tr.nafil-8895-s.workers.dev/api/transfers/ongoing', {
+    const resp = await fetch('/api/transfers/ongoing', {
       headers: { Authorization: 'Bearer ' + token }
     });
     const text = await resp.text();
@@ -87,14 +87,12 @@ function renderTransfersList(container, user, transfers) {
     } else if (t.other_status === 'rejected') {
       statusMsg += `<br><span style="color:#d73323;font-weight:600;">${escapeHtml(t.other_name)} rejected this transfer.</span>`;
     }
-
     const row = document.createElement("div");
     row.className = "transfer-folder";
     row.tabIndex = 0;
     row.style = `display:flex;align-items:flex-start;gap:11px;
       padding:10px 7px 12px 7px;
       border-bottom:1px solid #eee;font-size:1.05em;background:#fff;`;
-
     row.innerHTML = `
       <div style="flex:1;">
         <span style="margin-right:1.4em;color:#4b65a3;font-weight:800;">${n++}.</span>
@@ -114,12 +112,17 @@ function renderTransfersList(container, user, transfers) {
         ${t.show_reject_button ?
           `<button class="reject-btn" style="padding:6px 18px;color:#d73323;background:#ffecec;font-weight:700;border-radius:7px;border:1.2px solid #d73323;">Reject</button>`
           : ""}
+        ${t.show_cancel_button ?
+          `<button class="cancel-btn" style="padding:6px 18px;color:#d76213;background:#fff3e3;font-weight:700;border-radius:7px;border:1.2px solid #d76213;">Cancel</button>`
+          : ""}
       </div>
     `;
     if (t.show_accept_button)
       row.querySelector('.accept-btn').onclick = () => handleTransferAction("accept", t.transfer_id, user, container);
     if (t.show_reject_button)
       row.querySelector('.reject-btn').onclick = () => openRejectModal(t.transfer_id, user, container);
+    if (t.show_cancel_button)
+      row.querySelector('.cancel-btn').onclick = () => handleTransferAction("cancel", t.transfer_id, user, container);
     listArea.appendChild(row);
   });
 }
@@ -128,16 +131,17 @@ async function handleTransferAction(action, transfer_id, user, container, reason
   showSpinner(container);
   try {
     const token = await user.firebaseUser.getIdToken(true);
-    const resp = await fetch('https://on-tr.nafil-8895-s.workers.dev/api/transfers/action', {
+    let apiURL = '/api/transfers/action', payload = { transfer_id, action, reason };
+    if (action === "cancel") { apiURL = '/api/transfers/cancel'; payload = { transfer_id }; }
+    const resp = await fetch(apiURL, {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify({ transfer_id, action, reason })
+      body: JSON.stringify(payload)
     });
     const result = await resp.json();
     hideSpinner(container);
     if (!result.ok) throw new Error(result.error || "Unknown error");
-    // Show confirmation modal/message
-    showConfirmationModal(result.confirmation || "Action completed.");
+    showConfirmationModal(result.confirmation || (action==="cancel" ? "Transfer cancelled." : "Action completed."));
     await showOngoingTransfersPanel(container, user);
   } catch (e) {
     hideSpinner(container);
