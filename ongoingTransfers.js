@@ -41,7 +41,7 @@ export async function showOngoingTransfersPanel(container, user) {
       return;
     }
     const token = await user.firebaseUser.getIdToken(true);
-    const resp = await fetch('/api/transfers/ongoing', {
+    const resp = await fetch('https://on-tr.nafil-8895-s.workers.dev/api/transfers/ongoing', {
       headers: { Authorization: 'Bearer ' + token }
     });
     const text = await resp.text();
@@ -131,8 +131,8 @@ async function handleTransferAction(action, transfer_id, user, container, reason
   showSpinner(container);
   try {
     const token = await user.firebaseUser.getIdToken(true);
-    let apiURL = '/api/transfers/action', payload = { transfer_id, action, reason };
-    if (action === "cancel") { apiURL = '/api/transfers/cancel'; payload = { transfer_id }; }
+    let apiURL = 'https://on-tr.nafil-8895-s.workers.dev/api/transfers/action', payload = { transfer_id, action, reason };
+    if (action === "cancel") { apiURL = 'https://on-tr.nafil-8895-s.workers.dev/api/transfers/cancel'; payload = { transfer_id }; }
     const resp = await fetch(apiURL, {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
