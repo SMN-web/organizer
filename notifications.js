@@ -5,7 +5,7 @@ let notifyCount;
 let dropdown;
 let renderingSetupDone = false;
 
-// Helper: color from sender name
+// Simple color from name
 function nameToColor(name) {
   const colors = [
     "#A569BD", "#5DADE2", "#48C9B0", "#58D68D", "#F4D03F",
@@ -16,10 +16,17 @@ function nameToColor(name) {
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   return colors[Math.abs(hash) % colors.length];
 }
+
 function initials(name) {
   if (!name) return "";
   return name.trim().split(/\s+/).map(n => n[0]).join('').substring(0,2).toUpperCase();
 }
+
+function escapeHtml(str) {
+  return String(str).replace(/[<>&"]/g, t =>
+    t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
+}
+
 function timeAgo(dateStr) {
   const then = parseDBDatetimeAsUTC(dateStr);
   const now = new Date();
@@ -39,14 +46,43 @@ function timeAgo(dateStr) {
   const years = Math.floor(days / 365);
   return `${years}y ago`;
 }
+
 function parseDBDatetimeAsUTC(dt) {
   const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
   if (!m) return new Date(dt);
   return new Date(Date.UTC(+m[1], m[2]-1, +m[3], +m[4], +m[5], +m[6]));
 }
-function escapeHtml(str) {
-  return String(str).replace(/[<>&"]/g, t =>
-    t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
+
+// --- Transfer Notification Rendering (modern spec)
+function renderTransferNotification(n, dat) {
+  let mainLine = "";
+  if (n.type === 'transfer_accept') {
+    mainLine = `<span class="notify-details">
+      Your transfer of <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>
+      from <b>${escapeHtml(dat.from_user)}</b> to <b>${escapeHtml(dat.to_user)}</b>
+      was accepted by <b>${escapeHtml(dat.current_user)}</b>.
+    </span>`;
+  } else if (n.type === 'transfer_reject') {
+    if (dat.sender === "you") {
+      mainLine = `<span class="notify-details">
+        Your transfer of <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>
+        from <b>${escapeHtml(dat.from_user)}</b> to <b>${escapeHtml(dat.to_user)}</b>
+        was rejected by <b>${escapeHtml(dat.current_user)}</b>.
+      </span>`;
+    } else {
+      mainLine = `<span class="notify-details">
+        A transfer you were part of (from <b>${escapeHtml(dat.from_user)}</b> to <b>${escapeHtml(dat.to_user)}</b>)
+        was rejected by <b>${escapeHtml(dat.current_user)}</b>.
+      </span>`;
+    }
+  } else if (n.type === 'transfer_complete') {
+    mainLine = `<span class="notify-details">
+      Transfer of <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>
+      from <b>${escapeHtml(dat.from_user)}</b> to <b>${escapeHtml(dat.to_user)}</b>, initiated by <b>${escapeHtml(dat.sender)}</b>,
+      was completed successfully.
+    </span>`;
+  }
+  return mainLine;
 }
 
 function renderDropdown() {
@@ -59,8 +95,12 @@ function renderDropdown() {
           let dat = {};
           try { dat = JSON.parse(n.data || '{}'); } catch { dat = {}; }
           let mainLine = "";
-          // Unified display for all notifications below
-          if (n.type === 'payment_new') {
+          // --- Transfer-based notifications ---
+          if (['transfer_accept', 'transfer_reject', 'transfer_complete'].includes(n.type)) {
+            mainLine = renderTransferNotification(n, dat);
+          }
+          // --- Other notification types (legacy, safe fallback) ---
+          else if (n.type === 'payment_new') {
             mainLine = `<span class="notify-title">${escapeHtml(dat.from)}</span>
               <span class="notify-details">sent you a payment request for <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span>.
               <span class="notify-awaiting">Awaiting your confirmation.</span></span>`;
@@ -104,9 +144,8 @@ function renderDropdown() {
               <span class="notify-details">cancelled the transfer of <span class="notify-amount">${escapeHtml(dat.amount)} ${escapeHtml(dat.currency)}</span> from <b>${escapeHtml(dat.from_name)}</b> to <b>${escapeHtml(dat.to_name)}</b>.</span>`;
           }
           if (!mainLine) mainLine = `<i style="color:#a7a9ae;">Unknown notification</i>`;
-          // ONLY ONE AVATAR, sender initial:
-          const mainInitial = initials(dat.sender_name || dat.from || "");
-          const avatarColor = nameToColor(dat.sender_name || dat.from || "");
+          const mainInitial = initials(dat.sender_name || dat.sender || dat.from || "");
+          const avatarColor = nameToColor(dat.sender_name || dat.sender || dat.from || "");
           const initialsBadge = `<span class="notify-avatar" style="background:${avatarColor};">${mainInitial}</span>`;
           const timeBadge = n.created_at
             ? `<span class="notify-time">${timeAgo(n.created_at)}</span>` : "";
