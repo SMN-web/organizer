@@ -73,30 +73,34 @@ function renderTransfersList(container, user, transfers) {
     return;
   }
   let n = 1;
-  transfers.forEach((t) => {
+  const username = user?.username?.toLowerCase?.() || '';
+
+  transfers.forEach(t => {
+    // Show "You" if current user is sender
+    const displaySender = t.sender_username?.toLowerCase?.() === username ? "You" : escapeHtml(t.sender_name);
     let statusMsg = '';
 
-    // Always show your own status if applicable
-    if (t.own_status === 'pending') {
-      statusMsg += '<span style="color:#d29a07;font-weight:600;">Awaiting your confirmation.</span>';
-    } else if (t.own_status === 'accepted') {
-      statusMsg += `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span>`;
-    } else if (t.own_status === 'rejected') {
-      statusMsg += `<span style="color:#d73323;font-weight:600;">You have rejected this transfer.</span>${t.remarks ? `<br><span style="color:#a13126;">Reason: ${escapeHtml(t.remarks)}</span>` : ""}`;
-    }
-
-    // ALWAYS show both from_user and to_user statuses/times to ALL roles
+    // Always show acceptance/rejection for both participants
     if (t.from_user_status === 'accepted') {
-      statusMsg += `<br><span style="color:#216aff;font-weight:600;">${escapeHtml(t.from_name)} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span>`;
+      statusMsg += `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.from_name)} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span><br>`;
     }
     if (t.to_user_status === 'accepted') {
-      statusMsg += `<br><span style="color:#216aff;font-weight:600;">${escapeHtml(t.to_name)} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span>`;
+      statusMsg += `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.to_name)} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span><br>`;
     }
     if (t.from_user_status === 'rejected') {
-      statusMsg += `<br><span style="color:#d73323;font-weight:600;">${escapeHtml(t.from_name)} rejected this transfer.</span>`;
+      statusMsg += `<span style="color:#d73323;font-weight:600;">${escapeHtml(t.from_name)} rejected this transfer.</span><br>`;
     }
     if (t.to_user_status === 'rejected') {
-      statusMsg += `<br><span style="color:#d73323;font-weight:600;">${escapeHtml(t.to_name)} rejected this transfer.</span>`;
+      statusMsg += `<span style="color:#d73323;font-weight:600;">${escapeHtml(t.to_name)} rejected this transfer.</span><br>`;
+    }
+
+    // If user is from/to, also show their own status at top
+    if (t.own_status === 'pending') {
+      statusMsg = '<span style="color:#d29a07;font-weight:600;">Awaiting your confirmation.</span><br>' + statusMsg;
+    } else if (t.own_status === 'accepted') {
+      statusMsg = `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span><br>` + statusMsg;
+    } else if (t.own_status === 'rejected') {
+      statusMsg = `<span style="color:#d73323;font-weight:600;">You have rejected this transfer.</span>${t.remarks ? `<br><span style="color:#a13126;">Reason: ${escapeHtml(t.remarks)}</span>` : ""}<br>` + statusMsg;
     }
 
     const row = document.createElement("div");
@@ -109,7 +113,7 @@ function renderTransfersList(container, user, transfers) {
       <div style="flex:1;">
         <span style="margin-right:1.4em;color:#4b65a3;font-weight:800;">${n++}.</span>
         <span style="font-weight:600;color:#193883">
-          ${escapeHtml(t.sender_name)}
+          ${displaySender}
           <span style="font-weight:400;color:#222;">initiated a transfer of</span>
           <span style="font-weight:800; color:#1a1d25;">${escapeHtml(t.amount)} ${escapeHtml(t.currency)}</span>
           <span style="color:#222;font-weight:500;">${escapeHtml(t.direction)}</span>
