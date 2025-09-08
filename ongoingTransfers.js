@@ -76,10 +76,11 @@ function renderTransfersList(container, user, transfers) {
   const username = user?.username?.toLowerCase?.() || '';
 
   transfers.forEach(t => {
+    // Show "You initiated..." if current user is sender
     const displaySender = t.sender_username?.toLowerCase?.() === username ? "You" : escapeHtml(t.sender_name);
-    let statusMsg = '';
 
-    // Both parties' status shown for all roles (sender included)
+    // Always show status for both parties to everyone
+    let statusMsg = '';
     if (t.from_user_status === 'accepted') {
       statusMsg += `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.from_name)} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span><br>`;
     }
@@ -92,8 +93,9 @@ function renderTransfersList(container, user, transfers) {
     if (t.to_user_status === 'rejected') {
       statusMsg += `<span style="color:#d73323;font-weight:600;">${escapeHtml(t.to_name)} rejected this transfer.</span><br>`;
     }
+    // If own_status, prepend it
     if (t.own_status === 'pending') {
-      statusMsg = '<span style="color:#d29a07;font-weight:600;">Awaiting your confirmation.</span><br>' + statusMsg;
+      statusMsg = `<span style="color:#d29a07;font-weight:600;">Awaiting your confirmation.</span><br>` + statusMsg;
     } else if (t.own_status === 'accepted') {
       statusMsg = `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span><br>` + statusMsg;
     } else if (t.own_status === 'rejected') {
