@@ -8,11 +8,13 @@ function escapeHtml(str) {
 function trimLower(str) {
   return (str || "").trim().toLowerCase();
 }
+
 function parseDBDatetimeAsUTC(dt) {
   if (!dt) return new Date();
   const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
   return m ? new Date(Date.UTC(+m[1], m[2]-1, +m[3], +m[4], +m[5], +m[6])) : new Date(dt);
 }
+
 function timeAgo(dateStr) {
   if (!dateStr) return "";
   const then = parseDBDatetimeAsUTC(dateStr);
@@ -33,6 +35,7 @@ function timeAgo(dateStr) {
   const years = Math.floor(days / 365);
   return `${years}y ago`;
 }
+
 function formatDateTime(dtStr) {
   if (!dtStr) return "";
   const d = parseDBDatetimeAsUTC(dtStr);
@@ -101,8 +104,7 @@ function renderTransfersList(container, user, transfers) {
     const toUsername     = trimLower(t.to_user_username);
 
     const displaySender = senderUsername === currUsername ? "You" : escapeHtml(t.sender_name || "");
-    const fromDisplay   = fromUsername   === currUsername ? "You" : escapeHtml(t.from_name || "");
-    const toDisplay     = toUsername     === currUsername ? "You" : escapeHtml(t.to_name || "");
+    const directionStr = `from ${fromUsername === currUsername ? "You" : escapeHtml(t.from_name || "")} to ${toUsername === currUsername ? "You" : escapeHtml(t.to_name || "")}`;
 
     let statusMsg = '';
     if (t.own_status === 'pending') {
@@ -110,11 +112,12 @@ function renderTransfersList(container, user, transfers) {
     } else if (t.own_status === 'accepted') {
       statusMsg += `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span><br>`;
     }
+    // Only print acceptance for others, always by name
     if (t.from_user_status === 'accepted' && fromUsername !== currUsername) {
-      statusMsg += `<span style="color:#216aff;font-weight:600;">${fromDisplay} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span><br>`;
+      statusMsg += `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.from_name)} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span><br>`;
     }
     if (t.to_user_status === 'accepted' && toUsername !== currUsername) {
-      statusMsg += `<span style="color:#216aff;font-weight:600;">${toDisplay} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span><br>`;
+      statusMsg += `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.to_name)} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span><br>`;
     }
 
     const row = document.createElement("div");
@@ -126,8 +129,8 @@ function renderTransfersList(container, user, transfers) {
         <span class="transfer-main">
           ${displaySender}
           <span style="font-weight:400;color:#222;">initiated a transfer of</span>
-          <span class="transfer-amount">${escapeHtml(t.amount || "")} ${escapeHtml(t.currency || "")}</span>
-          <span class="transfer-fromto">${escapeHtml(t.direction || "")}</span>
+          <span class="transfer-amount">${escapeHtml(t.amount)} ${escapeHtml(t.currency)}</span>
+          <span class="transfer-fromto">${directionStr}</span>
         </span>
         <div class="transfer-status">${statusMsg}</div>
         <div class="transfer-date">${formatDateTime(t.created_at)}</div>
