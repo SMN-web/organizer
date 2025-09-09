@@ -234,8 +234,7 @@
   font-size:1.05em;
   margin-bottom:7px;
 }
-.transfer-folder-list {
-}
+.transfer-folder-list { }
 .transfer-folder {
   display:flex;
   align-items:flex-start;
@@ -244,6 +243,7 @@
   border-bottom:1px solid #eee;
   font-size:1.05em;
   background:#fff;
+  position:relative;
 }
 .transfer-num {
   margin-right:1.4em;
@@ -269,6 +269,14 @@
   color:#8a93a8;
   font-size:0.97em;
   margin-top:4px;
+}
+.transfer-date {
+  color: #888;
+  font-size: 0.96em;
+  position: relative;
+  left: 0;
+  bottom: 0;
+  margin-top: 1px;
 }
 .btn-accept {
   padding:6px 18px;
