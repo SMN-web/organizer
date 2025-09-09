@@ -1,6 +1,6 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 
-// --- Utility functions ---
+// --- Utility functions (unchanged) ---
 function escapeHtml(str) {
   return String(str || "").replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
@@ -30,24 +30,40 @@ function timeAgo(dateStr) {
   const years = Math.floor(days / 365);
   return `${years}y ago`;
 }
-function formatDateTime(dtStr) {
+function formatTimeOnly(dtStr) {
   if (!dtStr) return "";
   const d = parseDBDatetimeAsUTC(dtStr);
-  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  let hours = d.getHours(), mins = String(d.getMinutes()).padStart(2, "0"), ampm = "AM";
+  let hours = d.getHours(), mins = String(d.getMinutes()).padStart(2,"0"), ampm = "AM";
   if (hours >= 12) { ampm = "PM"; if (hours > 12) hours -= 12; }
   if (hours === 0) hours = 12;
-  return (
-    String(d.getDate()).padStart(2, "0") + "-" +
-    months[d.getMonth()] + "-" +
-    String(d.getFullYear()).slice(-2) +
-    ` (${days[d.getDay()]})` +
-    ", " + hours + ":" + mins + " " + ampm
-  );
+  return `${hours}:${mins} ${ampm}`;
+}
+function formatGroupDate(dObj) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dYesterday = new Date(today); dYesterday.setDate(today.getDate() - 1);
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const dCmp = (d) => d.getFullYear() + '.' + d.getMonth() + '.' + d.getDate();
+  if (dCmp(dObj) === dCmp(today)) return "Today";
+  if (dCmp(dObj) === dCmp(dYesterday)) return "Yesterday";
+  let daysAgo = Math.floor((today - dObj) / (24 * 60 * 60 * 1000));
+  if (daysAgo < 7) return days[dObj.getDay()];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${String(dObj.getDate()).padStart(2, "0")}-${months[dObj.getMonth()]}-${String(dObj.getFullYear()).slice(-2)}`;
 }
 
-// --- Main Entry Point ---
+// --- Keyword Highlight (multi-keyword support) ---
+function highlightKeywords(text, keywords) {
+  let result = escapeHtml(text);
+  keywords.forEach(word => {
+    if (word) {
+      const regex = new RegExp(`(${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, "gi");
+      result = result.replace(regex, '<span style="background:yellow;">$1</span>');
+    }
+  });
+  return result;
+}
+
+// --- Main Entrypoint ---
 export async function showOngoingTransfersPanel(container, user) {
   container.innerHTML = '';
   showSpinner(container);
@@ -79,33 +95,31 @@ export async function showOngoingTransfersPanel(container, user) {
   renderTransfersList(container, user, transfers);
 }
 
-// --- Render Transfers List with All Features and Correct Clearing ---
+// --- Renders All UI/Groups/Filters/Highlighting ---
 function renderTransfersList(container, user, transfers) {
   const senders = Array.from(new Set(transfers.map(t => t.sender_name))).filter(Boolean);
-  const participants = Array.from(new Set([]
-    .concat(...transfers.map(t => [t.from_name, t.to_name]))
-    .filter(Boolean))).filter(name => name !== undefined);
-
+  const participants = Array.from(new Set([].concat(...transfers.map(t => [t.from_name, t.to_name])).filter(Boolean)));
   const currIsSender = senders.includes("You");
-  let senderOptions = "";
-  if (currIsSender) senderOptions += `<option value="me">Created by me</option>`;
+
+  let senderOptions = currIsSender ? `<option value="me">Created by me</option>` : "";
   senderOptions += senders.filter(s => s !== "You").map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
   const currInvolved = participants.includes("You");
-  let partOptions = "";
-  if (currInvolved) partOptions += `<option value="me">Involving me</option>`;
+  let partOptions = currInvolved ? `<option value="me">Involving me</option>` : "";
   partOptions += participants.filter(p => p !== "You").map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
 
+  // --- Header Row (search/date), then Initiator/Participant dropdowns ---
   container.innerHTML = `
-    <div style="display:flex;gap:4vw;padding:8px 4px 13px 4px;">
+    <div style="display:flex; gap:10px; align-items:center; padding-bottom:9px;">
       <input type="text" id="transfer-search" placeholder="Search transfers..." 
-          style="flex:7 1 70%;max-width:70vw;padding:7px;font-size:1.09em;border-radius:7px;border:1.2px solid #c7c9d9;" />
+         style="width:70%;max-width:70vw;padding:7px;font-size:1.09em;border-radius:7px;border:1.2px solid #c7c9d9;">
+      <input type="date" id="date-filter-picker" style="width:30%;max-width:32vw;padding:7px;font-size:1.05em;border-radius:7px;">
     </div>
     <div style="display:flex;gap:4vw;padding:3px 4px 13px 4px;">
-      <select id="transfer-initiator-dd" style="flex:1 1 46%;min-width:135px;max-width:48vw;padding:7px;font-size:1.07em;border-radius:7px;">
+      <select id="transfer-initiator-dd" style="flex:1 1 46%;min-width:135px;max-width:48vw;">
         <option value="all">All Initiators</option>
         ${senderOptions}
       </select>
-      <select id="transfer-participant-dd" style="flex:1 1 46%;min-width:135px;max-width:48vw;padding:7px;font-size:1.07em;border-radius:7px;">
+      <select id="transfer-participant-dd" style="flex:1 1 46%;min-width:135px;max-width:48vw;">
         <option value="all">Any Participant</option>
         ${partOptions}
       </select>
@@ -115,13 +129,8 @@ function renderTransfersList(container, user, transfers) {
   const searchBox = container.querySelector('#transfer-search');
   const initiatorDD = container.querySelector('#transfer-initiator-dd');
   const partDD = container.querySelector('#transfer-participant-dd');
+  const datePicker = container.querySelector('#date-filter-picker');
   const listArea = container.querySelector('.transfer-folder-list');
-
-  function highlight(text, keyword) {
-    if (!keyword) return escapeHtml(text);
-    const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, "gi");
-    return escapeHtml(text).replace(regex, '<span style="background:yellow;">$1</span>');
-  }
 
   function doRender() {
     let arr = [...transfers];
@@ -133,82 +142,106 @@ function renderTransfersList(container, user, transfers) {
       if (partDD.value === "me") arr = arr.filter(t => t.from_name === "You" || t.to_name === "You");
       else arr = arr.filter(t => t.from_name === partDD.value || t.to_name === partDD.value);
     }
-    let normSearch = (searchBox.value || "").trim().toLowerCase();
-    if (normSearch) {
+    let pickedDate = datePicker.value; // YYYY-MM-DD string
+    if (pickedDate) {
+      arr = arr.filter(t => {
+        const d = parseDBDatetimeAsUTC(t.created_at);
+        const yyyy = d.getFullYear(), mm = String(d.getMonth()+1).padStart(2,"0"), dd = String(d.getDate()).padStart(2,"0");
+        return `${yyyy}-${mm}-${dd}` === pickedDate;
+      });
+    }
+    let rawSearch = (searchBox.value || "").trim();
+    let keywords = rawSearch.toLowerCase().split(/\s+/).filter(Boolean);
+
+    if (keywords.length) {
       arr = arr.filter(t =>
-        (t.sender_name && t.sender_name.toLowerCase().includes(normSearch)) ||
-        (t.from_name && t.from_name.toLowerCase().includes(normSearch)) ||
-        (t.to_name && t.to_name.toLowerCase().includes(normSearch)) ||
-        (t.amount && String(t.amount).toLowerCase().includes(normSearch)) ||
-        (t.currency && t.currency.toLowerCase().includes(normSearch)) ||
-        (t.direction && t.direction.toLowerCase().includes(normSearch)) ||
-        (t.remarks && t.remarks.toLowerCase().includes(normSearch)) ||
-        (t.transfer_id && t.transfer_id.toLowerCase().includes(normSearch))
+        keywords.every(word =>
+          (t.sender_name && t.sender_name.toLowerCase().includes(word)) ||
+          (t.from_name && t.from_name.toLowerCase().includes(word)) ||
+          (t.to_name && t.to_name.toLowerCase().includes(word)) ||
+          (t.amount && String(t.amount).toLowerCase().includes(word)) ||
+          (t.currency && t.currency.toLowerCase().includes(word)) ||
+          (t.direction && t.direction.toLowerCase().includes(word)) ||
+          (t.remarks && t.remarks.toLowerCase().includes(word)) ||
+          (t.transfer_id && t.transfer_id.toLowerCase().includes(word))
+        )
       );
     }
-    // CRITICAL FIX: Clear previous content before rendering new!
+    // --- Group by dates as WhatsApp (header logic) ---
+    arr.sort((a, b) => parseDBDatetimeAsUTC(b.created_at) - parseDBDatetimeAsUTC(a.created_at));
+    let groups = {};
+    arr.forEach(t => {
+      const d = parseDBDatetimeAsUTC(t.created_at);
+      const groupKey = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+      if (!groups[groupKey]) groups[groupKey] = [];
+      groups[groupKey].push(t);
+    });
+
     listArea.innerHTML = "";
+
     if (!arr.length) {
       listArea.innerHTML = `<div style="color:#666;text-align:center;margin:2em 0 1em 0;font-size:0.98em;">
         No transfers found.
       </div>`;
       return;
     }
-    let n = 1;
-    arr.forEach(t => {
-      let statusMsg = '';
-      if (t.own_status === 'pending') {
-        statusMsg += '<span style="color:#d29a07;font-weight:600;">Awaiting your confirmation.</span><br>';
-      } else if (t.own_status === 'accepted') {
-        statusMsg += `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span><br>`;
-      }
-      if (t.other_status === 'accepted') {
-        statusMsg += `<span style="color:#216aff;font-weight:600;">${highlight(t.other_name, normSearch)} accepted the transfer ${timeAgo(t.other_status_updated_at)}.</span><br>`;
-      }
-      if (!t.own_status && t.from_user_status === 'accepted') {
-        statusMsg += `<span style="color:#216aff;font-weight:600;">${highlight(t.from_name, normSearch)} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span><br>`;
-      }
-      if (!t.own_status && t.to_user_status === 'accepted') {
-        statusMsg += `<span style="color:#216aff;font-weight:600;">${highlight(t.to_name, normSearch)} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span><br>`;
-      }
-      const row = document.createElement("div");
-      row.className = "transfer-folder";
-      row.tabIndex = 0;
-      row.innerHTML = `
-        <div style="flex:1;">
-          <span class="transfer-num">${n++}.</span>
-          <span class="transfer-main">
-            ${highlight(t.sender_name, normSearch)}
-            <span style="font-weight:400;color:#222;">initiated a transfer of</span>
-            <span class="transfer-amount">${highlight(t.amount, normSearch)} ${highlight(t.currency, normSearch)}</span>
-            <span class="transfer-fromto">${highlight(t.direction, normSearch)}</span>
-          </span>
-          <div class="transfer-status">${statusMsg}</div>
-          <div class="transfer-date">${formatDateTime(t.created_at)}</div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:7px;margin-left:8px;">
-          ${t.show_accept_button ? `<button class="btn-accept accept-btn">Accept</button>` : ""}
-          ${t.show_reject_button ? `<button class="btn-reject reject-btn">Reject</button>` : ""}
-          ${t.show_cancel_button ? `<button class="btn-cancel cancel-btn">Cancel</button>` : ""}
-        </div>
-      `;
-      if (t.show_accept_button)
-        row.querySelector('.accept-btn').onclick = () =>
-          showCustomActionModal("Accept", t.transfer_id, user, container);
-      if (t.show_reject_button)
-        row.querySelector('.reject-btn').onclick = () =>
-          showCustomActionModal("Reject", t.transfer_id, user, container);
-      if (t.show_cancel_button)
-        row.querySelector('.cancel-btn').onclick = () =>
-          showCustomActionModal("Cancel", t.transfer_id, user, container);
-      listArea.appendChild(row);
+    Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(groupKey => {
+      const dObj = new Date(groupKey);
+      listArea.innerHTML += `<div class="transfer-date-header">${formatGroupDate(dObj)}</div>`;
+      groups[groupKey].forEach(t => {
+        let statusMsg = '';
+        if (t.own_status === 'pending') {
+          statusMsg += '<span style="color:#d29a07;font-weight:600;">Awaiting your confirmation.</span><br>';
+        } else if (t.own_status === 'accepted') {
+          statusMsg += `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span><br>`;
+        }
+        if (t.other_status === 'accepted') {
+          statusMsg += `<span style="color:#216aff;font-weight:600;">${highlightKeywords(t.other_name, keywords)} accepted the transfer ${timeAgo(t.other_status_updated_at)}.</span><br>`;
+        }
+        if (!t.own_status && t.from_user_status === 'accepted') {
+          statusMsg += `<span style="color:#216aff;font-weight:600;">${highlightKeywords(t.from_name, keywords)} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span><br>`;
+        }
+        if (!t.own_status && t.to_user_status === 'accepted') {
+          statusMsg += `<span style="color:#216aff;font-weight:600;">${highlightKeywords(t.to_name, keywords)} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span><br>`;
+        }
+        const row = document.createElement("div");
+        row.className = "transfer-folder";
+        row.tabIndex = 0;
+        row.innerHTML = `
+          <div style="flex:1;">
+            <span class="transfer-main">
+              ${highlightKeywords(t.sender_name, keywords)}
+              <span style="font-weight:400;color:#222;">initiated a transfer of</span>
+              <span class="transfer-amount">${highlightKeywords(t.amount, keywords)} ${highlightKeywords(t.currency, keywords)}</span>
+              <span class="transfer-fromto">${highlightKeywords(t.direction, keywords)}</span>
+            </span>
+            <div class="transfer-status">${statusMsg}</div>
+            <div class="transfer-time">${formatTimeOnly(t.created_at)}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px;margin-left:8px;">
+            ${t.show_accept_button ? `<button class="btn-accept accept-btn">Accept</button>` : ""}
+            ${t.show_reject_button ? `<button class="btn-reject reject-btn">Reject</button>` : ""}
+            ${t.show_cancel_button ? `<button class="btn-cancel cancel-btn">Cancel</button>` : ""}
+          </div>
+        `;
+        if (t.show_accept_button)
+          row.querySelector('.accept-btn').onclick = () =>
+            showCustomActionModal("Accept", t.transfer_id, user, container);
+        if (t.show_reject_button)
+          row.querySelector('.reject-btn').onclick = () =>
+            showCustomActionModal("Reject", t.transfer_id, user, container);
+        if (t.show_cancel_button)
+          row.querySelector('.cancel-btn').onclick = () =>
+            showCustomActionModal("Cancel", t.transfer_id, user, container);
+        listArea.appendChild(row);
+      });
     });
   }
+  searchBox.oninput = initiatorDD.onchange = partDD.onchange = datePicker.onchange = doRender;
   doRender();
-  searchBox.oninput = initiatorDD.onchange = partDD.onchange = doRender;
 }
 
-// --- Sleek Accept/Reject/Cancel Modal (as in previous answer) ---
+// --- Modal and Action Code (unchanged, as in previous solutions) ---
 function showCustomActionModal(action, transfer_id, user, container) {
   if (document.getElementById('custom-action-confirm')) return;
   const modal = document.createElement('div');
