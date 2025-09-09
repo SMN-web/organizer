@@ -29,6 +29,15 @@ function timeAgo(dateStr) {
   const years = Math.floor(days / 365);
   return `${years}y ago`;
 }
+function formatDateTime(dtStr) {
+  if (!dtStr) return "";
+  const d = parseDBDatetimeAsUTC(dtStr);
+  return d.getFullYear() + "-" +
+    String(d.getMonth()+1).padStart(2,"0") + "-" +
+    String(d.getDate()).padStart(2,"0") + " " +
+    String(d.getHours()).padStart(2,"0") + ":" +
+    String(d.getMinutes()).padStart(2,"0");
+}
 
 export async function showOngoingTransfersPanel(container, user) {
   container.innerHTML = '';
@@ -76,22 +85,28 @@ function renderTransfersList(container, user, transfers) {
   const currUsername = user?.username?.toLowerCase?.() || '';
 
   transfers.forEach(t => {
-    // Show "You" if sender is current user
+    // Always show "You" for sender if sender is current user
     const displaySender = t.sender_username?.toLowerCase?.() === currUsername ? "You" : escapeHtml(t.sender_name);
 
-    // Status messages for BOTH from_user/to_user acceptance, always visible
+    // Always show "You" for from_user/to_user display when matches current user
+    const fromDisplay = (t.from_user_username?.toLowerCase?.() === currUsername) ? "You" : escapeHtml(t.from_name);
+    const toDisplay   = (t.to_user_username?.toLowerCase?.()   === currUsername) ? "You" : escapeHtml(t.to_name);
+
+    // Status: No duplicate "You accepted" lines
     let statusMsg = '';
-    if (t.from_user_status === 'accepted') {
-      statusMsg += `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.from_name)} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span><br>`;
-    }
-    if (t.to_user_status === 'accepted') {
-      statusMsg += `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.to_name)} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span><br>`;
-    }
-    // For from/to, put own status message first
+    // If current user is from/to and has accepted, only show "You have accepted"
     if (t.own_status === 'pending') {
-      statusMsg = '<span style="color:#d29a07;font-weight:600;">Awaiting your confirmation.</span><br>' + statusMsg;
+      statusMsg += '<span style="color:#d29a07;font-weight:600;">Awaiting your confirmation.</span><br>';
     } else if (t.own_status === 'accepted') {
-      statusMsg = `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span><br>` + statusMsg;
+      statusMsg += `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span><br>`;
+    }
+
+    // Only show the generic "[Name] accepted" status for from_user / to_user if it is NOT the current user (already got "You have accepted" above)
+    if (t.from_user_status === 'accepted' && !(t.from_user_username?.toLowerCase?.() === currUsername && t.own_status === 'accepted')) {
+      statusMsg += `<span style="color:#216aff;font-weight:600;">${fromDisplay} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span><br>`;
+    }
+    if (t.to_user_status === 'accepted' && !(t.to_user_username?.toLowerCase?.() === currUsername && t.own_status === 'accepted')) {
+      statusMsg += `<span style="color:#216aff;font-weight:600;">${toDisplay} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span><br>`;
     }
 
     const row = document.createElement("div");
@@ -108,18 +123,14 @@ function renderTransfersList(container, user, transfers) {
         </span>
         <div class="transfer-status">${statusMsg}</div>
         <div class="transfer-time">${timeAgo(t.created_at)}</div>
+        <div class="transfer-date">${formatDateTime(t.created_at)}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:7px;margin-left:8px;">
-        ${t.show_accept_button ?
-          `<button class="btn-accept accept-btn">Accept</button>` : ""}
-        ${t.show_reject_button ?
-          `<button class="btn-reject reject-btn">Reject</button>` : ""}
-        ${t.show_cancel_button ?
-          `<button class="btn-cancel cancel-btn">Cancel</button>` : ""}
+        ${t.show_accept_button ? `<button class="btn-accept accept-btn">Accept</button>` : ""}
+        ${t.show_reject_button ? `<button class="btn-reject reject-btn">Reject</button>` : ""}
+        ${t.show_cancel_button ? `<button class="btn-cancel cancel-btn">Cancel</button>` : ""}
       </div>
     `;
-
-    // Custom confirmation modal for Accept, Reject, Cancel:
     if (t.show_accept_button)
       row.querySelector('.accept-btn').onclick = () =>
         showCustomActionModal("Accept", t.transfer_id, user, container);
@@ -129,12 +140,11 @@ function renderTransfersList(container, user, transfers) {
     if (t.show_cancel_button)
       row.querySelector('.cancel-btn').onclick = () =>
         showCustomActionModal("Cancel", t.transfer_id, user, container);
-
     listArea.appendChild(row);
   });
 }
 
-// Always use this modal for Accept, Reject, Cancel
+// Custom confirmation modal (used for Accept, Reject, Cancel)
 function showCustomActionModal(action, transfer_id, user, container) {
   if (document.getElementById('custom-action-confirm')) return;
   const modal = document.createElement('div');
