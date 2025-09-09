@@ -85,27 +85,23 @@ function renderTransfersList(container, user, transfers) {
   const currUsername = user?.username?.toLowerCase?.() || '';
 
   transfers.forEach(t => {
-    // Always show "You" for sender if sender is current user
+    // Always "You" for sender/from/to if matches current user
     const displaySender = t.sender_username?.toLowerCase?.() === currUsername ? "You" : escapeHtml(t.sender_name);
+    const fromDisplay = t.from_user_username?.toLowerCase?.() === currUsername ? "You" : escapeHtml(t.from_name);
+    const toDisplay = t.to_user_username?.toLowerCase?.() === currUsername ? "You" : escapeHtml(t.to_name);
 
-    // Always show "You" for from_user/to_user display when matches current user
-    const fromDisplay = (t.from_user_username?.toLowerCase?.() === currUsername) ? "You" : escapeHtml(t.from_name);
-    const toDisplay   = (t.to_user_username?.toLowerCase?.()   === currUsername) ? "You" : escapeHtml(t.to_name);
-
-    // Status: No duplicate "You accepted" lines
     let statusMsg = '';
-    // If current user is from/to and has accepted, only show "You have accepted"
     if (t.own_status === 'pending') {
       statusMsg += '<span style="color:#d29a07;font-weight:600;">Awaiting your confirmation.</span><br>';
     } else if (t.own_status === 'accepted') {
       statusMsg += `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span><br>`;
     }
-
-    // Only show the generic "[Name] accepted" status for from_user / to_user if it is NOT the current user (already got "You have accepted" above)
-    if (t.from_user_status === 'accepted' && !(t.from_user_username?.toLowerCase?.() === currUsername && t.own_status === 'accepted')) {
+    if (t.from_user_status === 'accepted' &&
+        !(t.from_user_username?.toLowerCase?.() === currUsername && t.own_status === 'accepted')) {
       statusMsg += `<span style="color:#216aff;font-weight:600;">${fromDisplay} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span><br>`;
     }
-    if (t.to_user_status === 'accepted' && !(t.to_user_username?.toLowerCase?.() === currUsername && t.own_status === 'accepted')) {
+    if (t.to_user_status === 'accepted' &&
+        !(t.to_user_username?.toLowerCase?.() === currUsername && t.own_status === 'accepted')) {
       statusMsg += `<span style="color:#216aff;font-weight:600;">${toDisplay} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span><br>`;
     }
 
