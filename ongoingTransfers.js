@@ -124,6 +124,7 @@ function renderTransfersList(container, user, transfers) {
 
   // UI: search/date (first line), filters (second line), transfers (list)
   container.innerHTML = `
+          <div class="section-top-spacer-transfer"></div>
     <div style="display:flex; gap:10px; align-items:center; padding-bottom:9px;">
       <input type="text" id="transfer-search" placeholder="Search transfers..." 
          style="width:70%;max-width:70vw;padding:7px;font-size:1.09em;border-radius:7px;border:1.2px solid #c7c9d9;">
