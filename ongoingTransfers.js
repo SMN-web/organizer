@@ -127,8 +127,8 @@ function renderTransfersList(container, user, transfers) {
           <div class="section-top-spacer-transfer"></div>
     <div style="display:flex; gap:10px; align-items:center; padding-bottom:9px;">
       <input type="text" id="transfer-search" placeholder="Search transfers..." 
-         style="width:70%;max-width:70vw;padding:7px;font-size:1.09em;border-radius:7px;border:1.2px solid #c7c9d9;">
-      <input type="date" id="date-filter-picker" style="width:30%;max-width:32vw;padding:7px;font-size:1.05em;border-radius:7px;">
+         style="width:60%;max-width:70vw;padding:7px;font-size:1.09em;border-radius:7px;border:1.2px solid #c7c9d9;">
+      <input type="date" id="date-filter-picker" style="width:40%;max-width:32vw;padding:7px;font-size:1.05em;border-radius:7px;">
     </div>
     <div style="display:flex;gap:4vw;padding:3px 4px 13px 4px;">
       <select id="transfer-initiator-dd" style="flex:1 1 46%;min-width:135px;max-width:48vw;">
