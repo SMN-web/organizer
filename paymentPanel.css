@@ -1,9 +1,12 @@
 .section-top-spacer {
   height: 74px;
 }
+.section-top-spacer-transfer {
+  height: 10px;
+}
 .transfers-section {
   padding-top: 0;
-  margin-bottom: 10;
+  margin-bottom: 0;
 }
 .transfers-subtabs {
   display: flex;
