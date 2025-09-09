@@ -32,11 +32,18 @@ function timeAgo(dateStr) {
 function formatDateTime(dtStr) {
   if (!dtStr) return "";
   const d = parseDBDatetimeAsUTC(dtStr);
-  return d.getFullYear() + "-" +
-    String(d.getMonth()+1).padStart(2,"0") + "-" +
-    String(d.getDate()).padStart(2,"0") + " " +
-    String(d.getHours()).padStart(2,"0") + ":" +
-    String(d.getMinutes()).padStart(2,"0");
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  let hours = d.getHours(), mins = String(d.getMinutes()).padStart(2,"0"), ampm = "AM";
+  if (hours >= 12) { ampm = "PM"; if (hours > 12) hours -= 12; }
+  if (hours === 0) hours = 12;
+  return (
+    String(d.getDate()).padStart(2,"0") + "-" +
+    months[d.getMonth()] + "-" +
+    String(d.getFullYear()).slice(-2) +
+    ` (${days[d.getDay()]})` +
+    ", " + hours + ":" + mins + " " + ampm
+  );
 }
 
 export async function showOngoingTransfersPanel(container, user) {
@@ -82,13 +89,13 @@ function renderTransfersList(container, user, transfers) {
     return;
   }
   let n = 1;
-  const currUsername = user?.username?.toLowerCase?.() || '';
+  const currUsername = user?.username?.toLowerCase?.() || "";
 
   transfers.forEach(t => {
-    // Always "You" for sender/from/to if matches current user
-    const displaySender = t.sender_username?.toLowerCase?.() === currUsername ? "You" : escapeHtml(t.sender_name);
-    const fromDisplay = t.from_user_username?.toLowerCase?.() === currUsername ? "You" : escapeHtml(t.from_name);
-    const toDisplay = t.to_user_username?.toLowerCase?.() === currUsername ? "You" : escapeHtml(t.to_name);
+    // For all roles, display as name, logic by username
+    const displaySender = t.sender_username === currUsername ? "You" : escapeHtml(t.sender_name || "");
+    const fromDisplay   = t.from_user_username === currUsername ? "You" : escapeHtml(t.from_name || "");
+    const toDisplay     = t.to_user_username === currUsername ? "You" : escapeHtml(t.to_name || "");
 
     let statusMsg = '';
     if (t.own_status === 'pending') {
@@ -96,12 +103,13 @@ function renderTransfersList(container, user, transfers) {
     } else if (t.own_status === 'accepted') {
       statusMsg += `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span><br>`;
     }
+    // Only show "X accepted" for others, never for current user action
     if (t.from_user_status === 'accepted' &&
-        !(t.from_user_username?.toLowerCase?.() === currUsername && t.own_status === 'accepted')) {
+        !(t.from_user_username === currUsername && t.own_status === 'accepted')) {
       statusMsg += `<span style="color:#216aff;font-weight:600;">${fromDisplay} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span><br>`;
     }
     if (t.to_user_status === 'accepted' &&
-        !(t.to_user_username?.toLowerCase?.() === currUsername && t.own_status === 'accepted')) {
+        !(t.to_user_username === currUsername && t.own_status === 'accepted')) {
       statusMsg += `<span style="color:#216aff;font-weight:600;">${toDisplay} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span><br>`;
     }
 
@@ -114,11 +122,10 @@ function renderTransfersList(container, user, transfers) {
         <span class="transfer-main">
           ${displaySender}
           <span style="font-weight:400;color:#222;">initiated a transfer of</span>
-          <span class="transfer-amount">${escapeHtml(t.amount)} ${escapeHtml(t.currency)}</span>
-          <span class="transfer-fromto">${escapeHtml(t.direction)}</span>
+          <span class="transfer-amount">${escapeHtml(t.amount || "")} ${escapeHtml(t.currency || "")}</span>
+          <span class="transfer-fromto">${escapeHtml(t.direction || "")}</span>
         </span>
         <div class="transfer-status">${statusMsg}</div>
-        <div class="transfer-time">${timeAgo(t.created_at)}</div>
         <div class="transfer-date">${formatDateTime(t.created_at)}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:7px;margin-left:8px;">
@@ -138,81 +145,4 @@ function renderTransfersList(container, user, transfers) {
         showCustomActionModal("Cancel", t.transfer_id, user, container);
     listArea.appendChild(row);
   });
-}
-
-// Custom confirmation modal (used for Accept, Reject, Cancel)
-function showCustomActionModal(action, transfer_id, user, container) {
-  if (document.getElementById('custom-action-confirm')) return;
-  const modal = document.createElement('div');
-  modal.id = 'custom-action-confirm';
-  modal.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(64,64,64,0.23);z-index:1100;display:flex;align-items:center;justify-content:center;';
-  const isReject = action === "Reject";
-  const isCancel = action === "Cancel";
-  modal.innerHTML = `
-    <div style="background:#fff;padding:26px 24px 22px 24px;border-radius:11px;box-shadow:0 0 26px #1232;max-width:95vw;">
-      <div style="font-weight:600;font-size:1.09em;margin-bottom:13px;">
-        Confirm ${escapeHtml(action)}
-      </div>
-      ${isReject ? `<textarea id="reject-reason-confirm" style="width:97%;min-height:54px;margin-bottom:13px;font-size:1.07em;padding:6px;"></textarea>` : ""}
-      <div style="display:flex;gap:20px;justify-content:flex-end;">
-        <button id="cancel-action-confirm" style="padding:6px 15px;font-weight:500;">No</button>
-        <button id="ok-action-confirm" style="padding:7px 20px;color:#fff;background:#2146cc;border:none;border-radius:7px;font-weight:700;">Yes</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  modal.querySelector("#cancel-action-confirm").onclick = () => modal.remove();
-  modal.querySelector("#ok-action-confirm").onclick = async () => {
-    if (isReject) {
-      const reason = modal.querySelector("#reject-reason-confirm").value.trim();
-      if (!reason) { alert("Please enter a reason for rejection."); return; }
-      modal.remove();
-      await handleTransferAction("reject", transfer_id, user, container, reason);
-    } else if (isCancel) {
-      modal.remove();
-      await handleTransferAction("cancel", transfer_id, user, container, "");
-    } else {
-      modal.remove();
-      await handleTransferAction("accept", transfer_id, user, container, "");
-    }
-  };
-}
-
-async function handleTransferAction(action, transfer_id, user, container, reason="") {
-  showSpinner(container);
-  try {
-    const token = await user.firebaseUser.getIdToken(true);
-    let apiURL = 'https://on-tr.nafil-8895-s.workers.dev/api/transfers/action', payload = { transfer_id, action, reason };
-    if (action === "cancel") { apiURL = 'https://on-tr.nafil-8895-s.workers.dev/api/transfers/cancel'; payload = { transfer_id }; }
-    const resp = await fetch(apiURL, {
-      method: "POST",
-      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    const result = await resp.json();
-    hideSpinner(container);
-    if (!result.ok) throw new Error(result.error || "Unknown error");
-    showConfirmationModal(result.confirmation || (action==="cancel" ? "Transfer cancelled." : "Action completed."));
-    await showOngoingTransfersPanel(container, user);
-  } catch (e) {
-    hideSpinner(container);
-    alert(e.message || String(e));
-  }
-}
-
-function showConfirmationModal(message) {
-  const id = "transfer-confirmation-modal";
-  if (document.getElementById(id)) document.getElementById(id).remove();
-  const modal = document.createElement('div');
-  modal.id = id;
-  modal.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(20,24,32,0.23);z-index:1015;display:flex;align-items:center;justify-content:center;';
-  modal.innerHTML = `
-    <div style="background:#fff;padding:22px 32px 15px 29px;border-radius:10px;box-shadow:0 0 24px #13628224;max-width:92vw;min-width:175px;min-height:38px;font-size:1.06em;">
-      <div style="margin-bottom:9px;color:#1a4d26;font-weight:600;">${escapeHtml(message)}</div>
-      <center><button id="close-ok" style="margin-top:8px;border:none;background:#118041;color:#fff;padding:7px 24px 8px;border-radius:6px;font-size:1em;font-weight:600;">OK</button></center>
-    </div>
-  `;
-  document.body.appendChild(modal);
-  modal.querySelector("#close-ok").onclick = () => modal.remove();
-  setTimeout(() => { if (modal) modal.remove(); }, 6200);
 }
