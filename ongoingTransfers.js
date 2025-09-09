@@ -5,10 +5,6 @@ function escapeHtml(str) {
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
 }
 
-function trimLower(str) {
-  return (str || "").trim().toLowerCase();
-}
-
 function parseDBDatetimeAsUTC(dt) {
   if (!dt) return new Date();
   const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
@@ -96,27 +92,23 @@ function renderTransfersList(container, user, transfers) {
     return;
   }
   let n = 1;
-  const currUsername = trimLower(user?.username);
 
   transfers.forEach(t => {
-    const senderUsername = trimLower(t.sender_username);
-    const fromUsername   = trimLower(t.from_user_username);
-    const toUsername     = trimLower(t.to_user_username);
-
-    const displaySender = senderUsername === currUsername ? "You" : escapeHtml(t.sender_name || "");
-    const directionStr = `from ${fromUsername === currUsername ? "You" : escapeHtml(t.from_name || "")} to ${toUsername === currUsername ? "You" : escapeHtml(t.to_name || "")}`;
-
     let statusMsg = '';
+    // Only for from_user/to_user: personalized "You have accepted...", otherwise by-name for both for sender
     if (t.own_status === 'pending') {
       statusMsg += '<span style="color:#d29a07;font-weight:600;">Awaiting your confirmation.</span><br>';
     } else if (t.own_status === 'accepted') {
       statusMsg += `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span><br>`;
     }
-    // Only print acceptance for others, always by name
-    if (t.from_user_status === 'accepted' && fromUsername !== currUsername) {
+    if (t.other_status === 'accepted') {
+      statusMsg += `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.other_name)} accepted the transfer ${timeAgo(t.other_status_updated_at)}.</span><br>`;
+    }
+    // If sender (not from/to), show both acceptances by name
+    if (!t.own_status && t.from_user_status === 'accepted') {
       statusMsg += `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.from_name)} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span><br>`;
     }
-    if (t.to_user_status === 'accepted' && toUsername !== currUsername) {
+    if (!t.own_status && t.to_user_status === 'accepted') {
       statusMsg += `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.to_name)} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span><br>`;
     }
 
@@ -127,10 +119,10 @@ function renderTransfersList(container, user, transfers) {
       <div style="flex:1;">
         <span class="transfer-num">${n++}.</span>
         <span class="transfer-main">
-          ${displaySender}
+          ${escapeHtml(t.sender_name)}
           <span style="font-weight:400;color:#222;">initiated a transfer of</span>
           <span class="transfer-amount">${escapeHtml(t.amount)} ${escapeHtml(t.currency)}</span>
-          <span class="transfer-fromto">${directionStr}</span>
+          <span class="transfer-fromto">${escapeHtml(t.direction)}</span>
         </span>
         <div class="transfer-status">${statusMsg}</div>
         <div class="transfer-date">${formatDateTime(t.created_at)}</div>
