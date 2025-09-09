@@ -3,14 +3,14 @@
 }
 .transfers-section {
   padding-top: 0;
-  margin-bottom: 0;
+  margin-bottom: 10;
 }
 .transfers-subtabs {
   display: flex;
   justify-content: center;
   gap: 10px;
   margin-bottom: 0;
-  margin-top: 10;
+  margin-top: 0;
 }
 .transfers-subtab {
   background: #f6f8fc;
