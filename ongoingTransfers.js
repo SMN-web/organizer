@@ -73,98 +73,180 @@ export async function showOngoingTransfersPanel(container, user) {
   hideSpinner(container);
 
   if (errMsg) {
-    container.innerHTML = `<div class="transfer-header">Ongoing Transfers</div>
-      <div style="color:#d12020;font-size:1em;margin:1.3em 0 1em 0;text-align:center;">${escapeHtml(errMsg)}</div>`;
+    container.innerHTML = `<div style="color:#d12020;font-size:1em;margin:1.3em 0 1em 0;text-align:center;">${escapeHtml(errMsg)}</div>`;
     return;
   }
   renderTransfersList(container, user, transfers);
 }
 
-// --- Render Transfers List ---
+// --- Enhanced Render Transfers List with Filter/Search/Highlight ---
 function renderTransfersList(container, user, transfers) {
-  container.innerHTML = `<div class="transfer-header">Ongoing Transfers</div>
-    <div class="transfer-folder-list"></div>`;
+  // --- Extract for dropdowns ---
+  const senders = Array.from(new Set(transfers.map(t => t.sender_name))).filter(Boolean);
+  const participants = Array.from(new Set([]
+    .concat(...transfers.map(t => [t.from_name, t.to_name]))
+    .filter(Boolean)))
+    .filter(name => name !== undefined);
+
+  const currIsSender = senders.includes("You");
+  let senderOptions = "";
+  if (currIsSender) senderOptions += `<option value="me">Created by me</option>`;
+  senderOptions += senders.filter(s => s !== "You").map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
+
+  const currInvolved = participants.includes("You");
+  let partOptions = "";
+  if (currInvolved) partOptions += `<option value="me">Involving me</option>`;
+  partOptions += participants.filter(p => p !== "You").map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
+
+  // --- UI: search and dropdowns
+  container.innerHTML = `
+    <div style="display:flex;gap:4vw;padding:8px 4px 13px 4px;">
+      <input type="text" id="transfer-search" placeholder="Search transfers..." 
+          style="flex:7 1 70%;max-width:70vw;padding:7px;font-size:1.09em;border-radius:7px;border:1.2px solid #c7c9d9;" />
+    </div>
+    <div style="display:flex;gap:4vw;padding:3px 4px 13px 4px;">
+      <select id="transfer-initiator-dd" style="flex:1 1 46%;min-width:135px;max-width:48vw;padding:7px;font-size:1.07em;border-radius:7px;">
+        <option value="all">All Initiators</option>
+        ${senderOptions}
+      </select>
+      <select id="transfer-participant-dd" style="flex:1 1 46%;min-width:135px;max-width:48vw;padding:7px;font-size:1.07em;border-radius:7px;">
+        <option value="all">Any Participant</option>
+        ${partOptions}
+      </select>
+    </div>
+    <div class="transfer-folder-list"></div>
+  `;
+  const searchBox = container.querySelector('#transfer-search');
+  const initiatorDD = container.querySelector('#transfer-initiator-dd');
+  const partDD = container.querySelector('#transfer-participant-dd');
   const listArea = container.querySelector('.transfer-folder-list');
-  if (!transfers.length) {
-    listArea.innerHTML = `<div style="color:#666;text-align:center;margin:2em 0 1em 0;font-size:0.98em;">
-      There are no ongoing transfers at the moment.
-    </div>`;
-    return;
+
+  function highlight(text, keyword) {
+    if (!keyword) return escapeHtml(text);
+    const regex = new RegExp(`(${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, "gi");
+    return escapeHtml(text).replace(regex, '<span style="background:yellow;">$1</span>');
   }
-  let n = 1;
 
-  transfers.forEach(t => {
-    let statusMsg = '';
-    // Personalized acceptance line for self, by-name for others; sender: both by name
-    if (t.own_status === 'pending') {
-      statusMsg += '<span style="color:#d29a07;font-weight:600;">Awaiting your confirmation.</span><br>';
-    } else if (t.own_status === 'accepted') {
-      statusMsg += `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span><br>`;
-    }
-    if (t.other_status === 'accepted') {
-      statusMsg += `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.other_name)} accepted the transfer ${timeAgo(t.other_status_updated_at)}.</span><br>`;
-    }
-    if (!t.own_status && t.from_user_status === 'accepted') {
-      statusMsg += `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.from_name)} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span><br>`;
-    }
-    if (!t.own_status && t.to_user_status === 'accepted') {
-      statusMsg += `<span style="color:#216aff;font-weight:600;">${escapeHtml(t.to_name)} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span><br>`;
-    }
+  // --- Filtered/nested render ---
+  function doRender() {
+    let arr = [...transfers];
 
-    const row = document.createElement("div");
-    row.className = "transfer-folder";
-    row.tabIndex = 0;
-    row.innerHTML = `
-      <div style="flex:1;">
-        <span class="transfer-num">${n++}.</span>
-        <span class="transfer-main">
-          ${escapeHtml(t.sender_name)}
-          <span style="font-weight:400;color:#222;">initiated a transfer of</span>
-          <span class="transfer-amount">${escapeHtml(t.amount)} ${escapeHtml(t.currency)}</span>
-          <span class="transfer-fromto">${escapeHtml(t.direction)}</span>
-        </span>
-        <div class="transfer-status">${statusMsg}</div>
-        <div class="transfer-date">${formatDateTime(t.created_at)}</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:7px;margin-left:8px;">
-        ${t.show_accept_button ? `<button class="btn-accept accept-btn">Accept</button>` : ""}
-        ${t.show_reject_button ? `<button class="btn-reject reject-btn">Reject</button>` : ""}
-        ${t.show_cancel_button ? `<button class="btn-cancel cancel-btn">Cancel</button>` : ""}
-      </div>
-    `;
-
-    // --- Button handlers (uses your existing modal/handler logic) ---
-    if (t.show_accept_button)
-      row.querySelector('.accept-btn').onclick = () =>
-        showCustomActionModal("Accept", t.transfer_id, user, container);
-    if (t.show_reject_button)
-      row.querySelector('.reject-btn').onclick = () =>
-        showCustomActionModal("Reject", t.transfer_id, user, container);
-    if (t.show_cancel_button)
-      row.querySelector('.cancel-btn').onclick = () =>
-        showCustomActionModal("Cancel", t.transfer_id, user, container);
-
-    listArea.appendChild(row);
-  });
+    if (initiatorDD.value !== "all") {
+      if (initiatorDD.value === "me") arr = arr.filter(t => t.sender_name === "You");
+      else arr = arr.filter(t => t.sender_name === initiatorDD.value);
+    }
+    if (partDD.value !== "all") {
+      if (partDD.value === "me") arr = arr.filter(t => t.from_name === "You" || t.to_name === "You");
+      else arr = arr.filter(t => t.from_name === partDD.value || t.to_name === partDD.value);
+    }
+    let normSearch = (searchBox.value || "").trim().toLowerCase();
+    if (normSearch) {
+      arr = arr.filter(t =>
+        (t.sender_name && t.sender_name.toLowerCase().includes(normSearch)) ||
+        (t.from_name && t.from_name.toLowerCase().includes(normSearch)) ||
+        (t.to_name && t.to_name.toLowerCase().includes(normSearch)) ||
+        (t.amount && String(t.amount).toLowerCase().includes(normSearch)) ||
+        (t.currency && t.currency.toLowerCase().includes(normSearch)) ||
+        (t.direction && t.direction.toLowerCase().includes(normSearch)) ||
+        (t.remarks && t.remarks.toLowerCase().includes(normSearch)) ||
+        (t.transfer_id && t.transfer_id.toLowerCase().includes(normSearch))
+      );
+    }
+    if (!arr.length) {
+      listArea.innerHTML = `<div style="color:#666;text-align:center;margin:2em 0 1em 0;font-size:0.98em;">
+        No transfers found.
+      </div>`;
+      return;
+    }
+    let n = 1;
+    arr.forEach(t => {
+      let statusMsg = '';
+      if (t.own_status === 'pending') {
+        statusMsg += '<span style="color:#d29a07;font-weight:600;">Awaiting your confirmation.</span><br>';
+      } else if (t.own_status === 'accepted') {
+        statusMsg += `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span><br>`;
+      }
+      if (t.other_status === 'accepted') {
+        statusMsg += `<span style="color:#216aff;font-weight:600;">${highlight(t.other_name, normSearch)} accepted the transfer ${timeAgo(t.other_status_updated_at)}.</span><br>`;
+      }
+      if (!t.own_status && t.from_user_status === 'accepted') {
+        statusMsg += `<span style="color:#216aff;font-weight:600;">${highlight(t.from_name, normSearch)} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span><br>`;
+      }
+      if (!t.own_status && t.to_user_status === 'accepted') {
+        statusMsg += `<span style="color:#216aff;font-weight:600;">${highlight(t.to_name, normSearch)} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span><br>`;
+      }
+      const row = document.createElement("div");
+      row.className = "transfer-folder";
+      row.tabIndex = 0;
+      row.innerHTML = `
+        <div style="flex:1;">
+          <span class="transfer-num">${n++}.</span>
+          <span class="transfer-main">
+            ${highlight(t.sender_name, normSearch)}
+            <span style="font-weight:400;color:#222;">initiated a transfer of</span>
+            <span class="transfer-amount">${highlight(t.amount, normSearch)} ${highlight(t.currency, normSearch)}</span>
+            <span class="transfer-fromto">${highlight(t.direction, normSearch)}</span>
+          </span>
+          <div class="transfer-status">${statusMsg}</div>
+          <div class="transfer-date">${formatDateTime(t.created_at)}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;margin-left:8px;">
+          ${t.show_accept_button ? `<button class="btn-accept accept-btn">Accept</button>` : ""}
+          ${t.show_reject_button ? `<button class="btn-reject reject-btn">Reject</button>` : ""}
+          ${t.show_cancel_button ? `<button class="btn-cancel cancel-btn">Cancel</button>` : ""}
+        </div>
+      `;
+      if (t.show_accept_button)
+        row.querySelector('.accept-btn').onclick = () =>
+          showCustomActionModal("Accept", t.transfer_id, user, container);
+      if (t.show_reject_button)
+        row.querySelector('.reject-btn').onclick = () =>
+          showCustomActionModal("Reject", t.transfer_id, user, container);
+      if (t.show_cancel_button)
+        row.querySelector('.cancel-btn').onclick = () =>
+          showCustomActionModal("Cancel", t.transfer_id, user, container);
+      listArea.appendChild(row);
+    });
+  }
+  doRender();
+  searchBox.oninput = initiatorDD.onchange = partDD.onchange = doRender;
 }
 
-// --- Modal confirmation for Accept, Reject, Cancel ---
+// --- Sleek, briefly worded Accept/Reject/Cancellation Modal ---
 function showCustomActionModal(action, transfer_id, user, container) {
   if (document.getElementById('custom-action-confirm')) return;
   const modal = document.createElement('div');
   modal.id = 'custom-action-confirm';
-  modal.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(64,64,64,0.23);z-index:1100;display:flex;align-items:center;justify-content:center;';
+  modal.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(42,54,77,0.32);z-index:1100;display:flex;align-items:center;justify-content:center;';
   const isReject = action === "Reject";
   const isCancel = action === "Cancel";
   modal.innerHTML = `
-    <div style="background:#fff;padding:26px 24px 22px 24px;border-radius:11px;box-shadow:0 0 26px #1232;max-width:95vw;">
-      <div style="font-weight:600;font-size:1.09em;margin-bottom:13px;">
-        Confirm ${escapeHtml(action)}
+    <div style="background:#fff;padding:34px 22px 24px 22px;border-radius:13px;box-shadow:0 2px 28px #183f8e33;max-width:97vw;min-width:210px;">
+      <div style="font-weight:700;font-size:1.14em;margin-bottom:10px;color:#183;">
+        ${action === "Accept"
+          ? "Accept this transfer?"
+          : isReject
+            ? "Reject this transfer?"
+            : "Cancel this transfer?"}
       </div>
-      ${isReject ? `<textarea id="reject-reason-confirm" style="width:97%;min-height:54px;margin-bottom:13px;font-size:1.07em;padding:6px;"></textarea>` : ""}
-      <div style="display:flex;gap:20px;justify-content:flex-end;">
-        <button id="cancel-action-confirm" style="padding:6px 15px;font-weight:500;">No</button>
-        <button id="ok-action-confirm" style="padding:7px 20px;color:#fff;background:#2146cc;border:none;border-radius:7px;font-weight:700;">Yes</button>
+      ${
+        action === "Accept"
+         ? `<div style="color:#174514;font-size:0.99em;font-weight:400;background:#e6f7e1;padding:8px 10px 7px 10px;margin:0 0 16px 0;border-radius:8px;">
+                Accepting means you agree to complete this transaction.<br>
+                <b>This cannot be undone.</b>
+            </div>`
+         : ""
+      }
+      ${
+        isReject
+         ? `<div style="font-size:0.98em;font-weight:400;color:#7b3e2e;background:#fff7ee;padding:6px 3px 8px 6px;border-radius:5px;margin-bottom:7px;">Please provide a brief reason for rejection:</div>
+            <textarea id="reject-reason-confirm"
+                style="width:99%;min-height:46px;max-width:99%;margin-bottom:16px;font-size:1.09em;resize:vertical;padding:9px 7px;border-radius:8px;border:1.1px solid #eed7bb;background:#fffcf8;"></textarea>`
+         : ""
+      }
+      <div style="display:flex;gap:18px;justify-content:flex-end;margin-top:2px;">
+        <button id="cancel-action-confirm" style="padding:8px 22px;font-weight:500;border-radius:8px;border:1.1px solid #d7d4d3;background:#f6f6fc;">No</button>
+        <button id="ok-action-confirm" style="padding:8px 24px 8px;color:#fff;background:#217a30;border:none;border-radius:8px;font-weight:700;">Yes</button>
       </div>
     </div>
   `;
@@ -196,7 +278,6 @@ async function handleTransferAction(action, transfer_id, user, container, reason
       apiURL = 'https://on-tr.nafil-8895-s.workers.dev/api/transfers/cancel';
       payload = { transfer_id };
     }
-
     const resp = await fetch(apiURL, {
       method: "POST",
       headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
