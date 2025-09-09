@@ -1,6 +1,6 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 
-// --- Utilities ---
+// --- Utility functions ---
 function escapeHtml(str) {
   return String(str || "").replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
@@ -79,26 +79,22 @@ export async function showOngoingTransfersPanel(container, user) {
   renderTransfersList(container, user, transfers);
 }
 
-// --- Enhanced Render Transfers List with Filter/Search/Highlight ---
+// --- Render Transfers List with All Features and Correct Clearing ---
 function renderTransfersList(container, user, transfers) {
-  // --- Extract for dropdowns ---
   const senders = Array.from(new Set(transfers.map(t => t.sender_name))).filter(Boolean);
   const participants = Array.from(new Set([]
     .concat(...transfers.map(t => [t.from_name, t.to_name]))
-    .filter(Boolean)))
-    .filter(name => name !== undefined);
+    .filter(Boolean))).filter(name => name !== undefined);
 
   const currIsSender = senders.includes("You");
   let senderOptions = "";
   if (currIsSender) senderOptions += `<option value="me">Created by me</option>`;
   senderOptions += senders.filter(s => s !== "You").map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
-
   const currInvolved = participants.includes("You");
   let partOptions = "";
   if (currInvolved) partOptions += `<option value="me">Involving me</option>`;
   partOptions += participants.filter(p => p !== "You").map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
 
-  // --- UI: search and dropdowns
   container.innerHTML = `
     <div style="display:flex;gap:4vw;padding:8px 4px 13px 4px;">
       <input type="text" id="transfer-search" placeholder="Search transfers..." 
@@ -127,10 +123,8 @@ function renderTransfersList(container, user, transfers) {
     return escapeHtml(text).replace(regex, '<span style="background:yellow;">$1</span>');
   }
 
-  // --- Filtered/nested render ---
   function doRender() {
     let arr = [...transfers];
-
     if (initiatorDD.value !== "all") {
       if (initiatorDD.value === "me") arr = arr.filter(t => t.sender_name === "You");
       else arr = arr.filter(t => t.sender_name === initiatorDD.value);
@@ -152,6 +146,8 @@ function renderTransfersList(container, user, transfers) {
         (t.transfer_id && t.transfer_id.toLowerCase().includes(normSearch))
       );
     }
+    // CRITICAL FIX: Clear previous content before rendering new!
+    listArea.innerHTML = "";
     if (!arr.length) {
       listArea.innerHTML = `<div style="color:#666;text-align:center;margin:2em 0 1em 0;font-size:0.98em;">
         No transfers found.
@@ -212,7 +208,7 @@ function renderTransfersList(container, user, transfers) {
   searchBox.oninput = initiatorDD.onchange = partDD.onchange = doRender;
 }
 
-// --- Sleek, briefly worded Accept/Reject/Cancellation Modal ---
+// --- Sleek Accept/Reject/Cancel Modal (as in previous answer) ---
 function showCustomActionModal(action, transfer_id, user, container) {
   if (document.getElementById('custom-action-confirm')) return;
   const modal = document.createElement('div');
