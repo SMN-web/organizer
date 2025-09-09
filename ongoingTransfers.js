@@ -51,20 +51,22 @@ function formatGroupDate(dObj) {
   return `${String(dObj.getDate()).padStart(2, "0")}-${months[dObj.getMonth()]}-${String(dObj.getFullYear()).slice(-2)}`;
 }
 
-// --- Highlighting on plain text, preserving nested <b> for bolds ---
+// --- Highlighting (safe, maintains bold, avoids markup bug) ---
 function keywordSafeBold(text, keywords, isBold) {
   let safe = escapeHtml(text);
   if (isBold) safe = `<b>${safe}</b>`;
   if (!keywords.length) return safe;
+  // highlight inside the (maybe bolded) string:
+  // works even inside <b>...</b>
   keywords.forEach(word => {
     if (word) {
       const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "gi");
+      // allow highlight even if inside <b>..</b>
       safe = safe.replace(regex, '<span style="background:yellow;">$&</span>');
     }
   });
   return safe;
 }
-
 function highlightKeywords(text, keywords) {
   let safe = escapeHtml(text);
   if (!keywords.length) return safe;
@@ -77,7 +79,7 @@ function highlightKeywords(text, keywords) {
   return safe;
 }
 
-// --- Main Entrypoint ---
+// --- Entrypoint ---
 export async function showOngoingTransfersPanel(container, user) {
   container.innerHTML = '';
   showSpinner(container);
@@ -109,7 +111,7 @@ export async function showOngoingTransfersPanel(container, user) {
   renderTransfersList(container, user, transfers);
 }
 
-// --- Main Render Function ---
+// --- Render List: BUTTON FIX VERSION ---
 function renderTransfersList(container, user, transfers) {
   const senders = Array.from(new Set(transfers.map(t => t.sender_name))).filter(Boolean);
   const participants = Array.from(new Set([].concat(...transfers.map(t => [t.from_name, t.to_name])).filter(Boolean)));
@@ -200,7 +202,12 @@ function renderTransfersList(container, user, transfers) {
     }
     Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(groupKey => {
       const dObj = new Date(groupKey);
-      listArea.innerHTML += `<div class="transfer-date-header">${formatGroupDate(dObj)}</div>`;
+      // Use appendChild, never innerHTML, for header:
+      const headerDiv = document.createElement("div");
+      headerDiv.className = "transfer-date-header";
+      headerDiv.textContent = formatGroupDate(dObj);
+      listArea.appendChild(headerDiv);
+
       groups[groupKey].forEach(t => {
         let statusMsg = '';
         if (t.own_status === 'pending') {
@@ -217,8 +224,6 @@ function renderTransfersList(container, user, transfers) {
         if (!t.own_status && t.to_user_status === 'accepted') {
           statusMsg += `<span style="color:#216aff;font-weight:600;">${highlightKeywords(t.to_name, keywords)} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span><br>`;
         }
-
-        // --- Safe "main statement" in all black, bolding key parts, highlights preserved ---
         let sender = keywordSafeBold(t.sender_name, keywords, t.sender_name === "You");
         let amount = keywordSafeBold(t.amount, keywords, true);
         let curr = keywordSafeBold(t.currency, keywords, true);
@@ -263,7 +268,7 @@ function renderTransfersList(container, user, transfers) {
   doRender();
 }
 
-// --- Modal and Action Code unchanged as before ---
+// --- Modal and Action Code (unchanged from before) ---
 function showCustomActionModal(action, transfer_id, user, container) {
   if (document.getElementById('custom-action-confirm')) return;
   const modal = document.createElement('div');
