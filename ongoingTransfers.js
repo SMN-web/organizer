@@ -1,6 +1,6 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 
-// --- Utility functions (unchanged) ---
+// --- Utilities ---
 function escapeHtml(str) {
   return String(str || "").replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
@@ -51,16 +51,30 @@ function formatGroupDate(dObj) {
   return `${String(dObj.getDate()).padStart(2, "0")}-${months[dObj.getMonth()]}-${String(dObj.getFullYear()).slice(-2)}`;
 }
 
-// --- Keyword Highlight (multi-keyword support) ---
-function highlightKeywords(text, keywords) {
-  let result = escapeHtml(text);
+// --- Highlighting on plain text, preserving nested <b> for bolds ---
+function keywordSafeBold(text, keywords, isBold) {
+  let safe = escapeHtml(text);
+  if (isBold) safe = `<b>${safe}</b>`;
+  if (!keywords.length) return safe;
   keywords.forEach(word => {
     if (word) {
-      const regex = new RegExp(`(${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, "gi");
-      result = result.replace(regex, '<span style="background:yellow;">$1</span>');
+      const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "gi");
+      safe = safe.replace(regex, '<span style="background:yellow;">$&</span>');
     }
   });
-  return result;
+  return safe;
+}
+
+function highlightKeywords(text, keywords) {
+  let safe = escapeHtml(text);
+  if (!keywords.length) return safe;
+  keywords.forEach(word => {
+    if (word) {
+      const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "gi");
+      safe = safe.replace(regex, '<span style="background:yellow;">$&</span>');
+    }
+  });
+  return safe;
 }
 
 // --- Main Entrypoint ---
@@ -95,19 +109,18 @@ export async function showOngoingTransfersPanel(container, user) {
   renderTransfersList(container, user, transfers);
 }
 
-// --- Renders All UI/Groups/Filters/Highlighting ---
+// --- Main Render Function ---
 function renderTransfersList(container, user, transfers) {
   const senders = Array.from(new Set(transfers.map(t => t.sender_name))).filter(Boolean);
   const participants = Array.from(new Set([].concat(...transfers.map(t => [t.from_name, t.to_name])).filter(Boolean)));
   const currIsSender = senders.includes("You");
-
   let senderOptions = currIsSender ? `<option value="me">Created by me</option>` : "";
   senderOptions += senders.filter(s => s !== "You").map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
   const currInvolved = participants.includes("You");
   let partOptions = currInvolved ? `<option value="me">Involving me</option>` : "";
   partOptions += participants.filter(p => p !== "You").map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
 
-  // --- Header Row (search/date), then Initiator/Participant dropdowns ---
+  // UI: search/date (first line), filters (second line), transfers (list)
   container.innerHTML = `
     <div style="display:flex; gap:10px; align-items:center; padding-bottom:9px;">
       <input type="text" id="transfer-search" placeholder="Search transfers..." 
@@ -167,7 +180,7 @@ function renderTransfersList(container, user, transfers) {
         )
       );
     }
-    // --- Group by dates as WhatsApp (header logic) ---
+
     arr.sort((a, b) => parseDBDatetimeAsUTC(b.created_at) - parseDBDatetimeAsUTC(a.created_at));
     let groups = {};
     arr.forEach(t => {
@@ -204,19 +217,28 @@ function renderTransfersList(container, user, transfers) {
         if (!t.own_status && t.to_user_status === 'accepted') {
           statusMsg += `<span style="color:#216aff;font-weight:600;">${highlightKeywords(t.to_name, keywords)} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span><br>`;
         }
+
+        // --- Safe "main statement" in all black, bolding key parts, highlights preserved ---
+        let sender = keywordSafeBold(t.sender_name, keywords, t.sender_name === "You");
+        let amount = keywordSafeBold(t.amount, keywords, true);
+        let curr = keywordSafeBold(t.currency, keywords, true);
+        let from = keywordSafeBold(t.from_name, keywords, true);
+        let to = keywordSafeBold(t.to_name, keywords, true);
+
         const row = document.createElement("div");
         row.className = "transfer-folder";
         row.tabIndex = 0;
         row.innerHTML = `
           <div style="flex:1;">
-            <span class="transfer-main">
-              ${highlightKeywords(t.sender_name, keywords)}
-              <span style="font-weight:400;color:#222;">initiated a transfer of</span>
-              <span class="transfer-amount">${highlightKeywords(t.amount, keywords)} ${highlightKeywords(t.currency, keywords)}</span>
-              <span class="transfer-fromto">${highlightKeywords(t.direction, keywords)}</span>
+            <span class="transfer-main" style="color:#111;">
+              ${sender}
+              <span style="font-weight:400;">initiated a transfer of</span>
+              ${amount} ${curr}
+              <span style="font-weight:400;">from</span> ${from}
+              <span style="font-weight:400;">to</span> ${to}
             </span>
             <div class="transfer-status">${statusMsg}</div>
-            <div class="transfer-time">${formatTimeOnly(t.created_at)}</div>
+            <div class="transfer-time" style="color:#222;">${formatTimeOnly(t.created_at)}</div>
           </div>
           <div style="display:flex;flex-direction:column;gap:7px;margin-left:8px;">
             ${t.show_accept_button ? `<button class="btn-accept accept-btn">Accept</button>` : ""}
@@ -241,7 +263,7 @@ function renderTransfersList(container, user, transfers) {
   doRender();
 }
 
-// --- Modal and Action Code (unchanged, as in previous solutions) ---
+// --- Modal and Action Code unchanged as before ---
 function showCustomActionModal(action, transfer_id, user, container) {
   if (document.getElementById('custom-action-confirm')) return;
   const modal = document.createElement('div');
