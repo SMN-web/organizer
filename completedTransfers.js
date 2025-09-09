@@ -1,6 +1,5 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 
-// --- Utility Functions ---
 function escapeHtml(str) {
   return String(str || "").replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
@@ -42,18 +41,8 @@ function keywordSafeBold(text, keywords, isBold) {
   });
   return safe;
 }
-function highlightKeywords(text, keywords) {
-  let safe = escapeHtml(text);
-  if (!keywords.length) return safe;
-  keywords.forEach(word => {
-    if (word) {
-      const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "gi");
-      safe = safe.replace(regex, '<span style="background:yellow;">$&</span>');
-    }
-  });
-  return safe;
-}
-// --- Status pill (right aligned) ---
+
+// Pill always right
 function statusPill(status) {
   let color = "#727272", label = "";
   if (status === "accepted") { color = "#107c41"; label = "Accepted"; }
@@ -73,7 +62,6 @@ function statusPill(status) {
       ">${label}</span>`;
 }
 
-// --- Main Entrypoint ---
 export async function showCompletedTransfersPanel(container, user) {
   container.innerHTML = '';
   showSpinner(container);
@@ -88,6 +76,9 @@ export async function showCompletedTransfersPanel(container, user) {
     const resp = await fetch('https://co-tr.nafil-8895-s.workers.dev/api/transfers/completed', {
       headers: { Authorization: 'Bearer ' + token }
     });
+    if (!resp.ok) {
+      throw `Completed API error: ${resp.status} ${resp.statusText}`;
+    }
     const text = await resp.text();
     try { transfers = JSON.parse(text); }
     catch (e) { errMsg = "Invalid backend response: " + text; }
@@ -95,7 +86,9 @@ export async function showCompletedTransfersPanel(container, user) {
       if (transfers && transfers.error) errMsg = "Backend error: " + transfers.error;
       else errMsg = "Unexpected backend error: " + text;
     }
-  } catch (e) { errMsg = "Network error: " + e.message; }
+  } catch (e) {
+    errMsg = "Network error: " + (e && e.message ? e.message : e);
+  }
   hideSpinner(container);
 
   if (errMsg) {
@@ -182,9 +175,7 @@ function renderCompletedTransfersList(container, user, transfers) {
 
     listArea.innerHTML = "";
     if (!arr.length) {
-      listArea.innerHTML = `<div style="color:#666;text-align:center;margin:2em 0 1em 0;font-size:0.98em;">
-        No completed transfers found.
-      </div>`;
+      listArea.innerHTML = `<div style="color:#666;text-align:center;margin:2em 0 1em 0;font-size:0.98em;">No completed transfers found.</div>`;
       return;
     }
     Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(groupKey => {
@@ -205,7 +196,6 @@ function renderCompletedTransfersList(container, user, transfers) {
         row.className = "transfer-folder";
         row.tabIndex = 0;
         row.style = "display:flex;align-items:center;justify-content:space-between;gap:6px;cursor:pointer;";
-
         row.innerHTML = `
           <div style="flex:1;">
             <span class="transfer-main" style="color:#111;">
