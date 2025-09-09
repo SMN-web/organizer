@@ -1,5 +1,6 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 
+// --- Utilities ---
 function escapeHtml(str) {
   return String(str || "").replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
@@ -42,13 +43,13 @@ function keywordSafeBold(text, keywords, isBold) {
   return safe;
 }
 
-// Pill always right
+// Pill: accepted green, rejected red, cancelled gray
 function statusPill(status) {
   let color = "#727272", label = "";
   if (status === "accepted") { color = "#107c41"; label = "Accepted"; }
   else if (status === "rejected") { color = "#e23434"; label = "Rejected"; }
   else if (status === "cancelled") { color = "#82909a"; label = "Cancelled"; }
-  return `<span class="status-pill" style="
+  return `<span style="
       display:inline-block;
       background:${color};color:#fff;
       font-size:0.98em;
@@ -62,6 +63,7 @@ function statusPill(status) {
       ">${label}</span>`;
 }
 
+// --- Entrypoint ---
 export async function showCompletedTransfersPanel(container, user) {
   container.innerHTML = '';
   showSpinner(container);
@@ -76,9 +78,6 @@ export async function showCompletedTransfersPanel(container, user) {
     const resp = await fetch('https://co-tr.nafil-8895-s.workers.dev/api/transfers/completed', {
       headers: { Authorization: 'Bearer ' + token }
     });
-    if (!resp.ok) {
-      throw `Completed API error: ${resp.status} ${resp.statusText}`;
-    }
     const text = await resp.text();
     try { transfers = JSON.parse(text); }
     catch (e) { errMsg = "Invalid backend response: " + text; }
@@ -86,9 +85,7 @@ export async function showCompletedTransfersPanel(container, user) {
       if (transfers && transfers.error) errMsg = "Backend error: " + transfers.error;
       else errMsg = "Unexpected backend error: " + text;
     }
-  } catch (e) {
-    errMsg = "Network error: " + (e && e.message ? e.message : e);
-  }
+  } catch (e) { errMsg = "Network error: " + e.message; }
   hideSpinner(container);
 
   if (errMsg) {
@@ -108,21 +105,23 @@ function renderCompletedTransfersList(container, user, transfers) {
   container.innerHTML = `
     <div style="display:flex;gap:10px;align-items:center; padding-bottom:7px;">
       <input type="text" id="transfer-search" placeholder="Search transfers..." 
-         style="width:44%;max-width:44vw;padding:7px;font-size:1.09em;border-radius:7px;border:1.2px solid #c7c9d9;">
-      <input type="date" id="date-filter-picker" style="width:30%;max-width:32vw;padding:7px;font-size:1.05em;border-radius:7px;">
-      <select id="status-filter" style="width:26%;max-width:27vw;padding:7px;font-size:1.07em;border-radius:7px;">
+         style="width:65%;max-width:70vw;padding:7px;font-size:1.09em;border-radius:7px;border:1.2px solid #c7c9d9;">
+      <input type="date" id="date-filter-picker" style="width:35%;max-width:37vw;padding:7px;font-size:1.05em;border-radius:7px;">
+    </div>
+    <div style="display:flex;gap:4vw;padding:3px 4px 13px 4px;">
+      <select id="transfer-initiator-dd" style="flex:1 1 46%;min-width:135px;max-width:48vw;">
+        <option value="all">All Initiators</option>
+        ${senderOptions}
+      </select>
+      <select id="transfer-participant-dd" style="flex:1 1 46%;min-width:135px;max-width:48vw;">
+        <option value="all">Any Participant</option>
+        ${partOptions}
+      </select>
+      <select id="status-filter" style="flex:1 1 46%;min-width:135px;max-width:48vw;">
         <option value="all">All Statuses</option>
         <option value="accepted">Accepted</option>
         <option value="rejected">Rejected</option>
         <option value="cancelled">Cancelled</option>
-      </select>
-    </div>
-    <div style="display:flex;gap:4vw;padding:3px 4px 13px 4px;">
-      <select id="transfer-initiator-dd" style="flex:1 1 46%;min-width:135px;max-width:48vw;">
-        <option value="all">All Initiators</option>${senderOptions}
-      </select>
-      <select id="transfer-participant-dd" style="flex:1 1 46%;min-width:135px;max-width:48vw;">
-        <option value="all">Any Participant</option>${partOptions}
       </select>
     </div>
     <div class="transfer-folder-list"></div>
@@ -130,25 +129,34 @@ function renderCompletedTransfersList(container, user, transfers) {
   const searchBox = container.querySelector('#transfer-search');
   const initiatorDD = container.querySelector('#transfer-initiator-dd');
   const partDD = container.querySelector('#transfer-participant-dd');
-  const datePicker = container.querySelector('#date-filter-picker');
   const statusFilter = container.querySelector('#status-filter');
+  const datePicker = container.querySelector('#date-filter-picker');
   const listArea = container.querySelector('.transfer-folder-list');
 
   function doRender() {
     let arr = [...transfers];
-    if (initiatorDD.value !== "all") arr = initiatorDD.value === "me" ? arr.filter(t => t.sender_name === "You") : arr.filter(t => t.sender_name === initiatorDD.value);
-    if (partDD.value !== "all") arr = partDD.value === "me" ? arr.filter(t => t.from_name === "You" || t.to_name === "You") : arr.filter(t => t.from_name === partDD.value || t.to_name === partDD.value);
-    if (datePicker.value) {
+    if (initiatorDD.value !== "all") {
+      if (initiatorDD.value === "me") arr = arr.filter(t => t.sender_name === "You");
+      else arr = arr.filter(t => t.sender_name === initiatorDD.value);
+    }
+    if (partDD.value !== "all") {
+      if (partDD.value === "me") arr = arr.filter(t => t.from_name === "You" || t.to_name === "You");
+      else arr = arr.filter(t => t.from_name === partDD.value || t.to_name === partDD.value);
+    }
+    if (statusFilter.value !== "all") {
+      arr = arr.filter(t => t.status === statusFilter.value);
+    }
+    let pickedDate = datePicker.value;
+    if (pickedDate) {
       arr = arr.filter(t => {
         const d = parseDBDatetimeAsUTC(t.created_at);
         const yyyy = d.getFullYear(), mm = String(d.getMonth()+1).padStart(2,"0"), dd = String(d.getDate()).padStart(2,"0");
-        return `${yyyy}-${mm}-${dd}` === datePicker.value;
+        return `${yyyy}-${mm}-${dd}` === pickedDate;
       });
     }
-    if (statusFilter.value !== "all") arr = arr.filter(t => t.status === statusFilter.value);
-
     let rawSearch = (searchBox.value || "").trim();
     let keywords = rawSearch.toLowerCase().split(/\s+/).filter(Boolean);
+
     if (keywords.length) {
       arr = arr.filter(t =>
         keywords.every(word =>
@@ -174,8 +182,11 @@ function renderCompletedTransfersList(container, user, transfers) {
     });
 
     listArea.innerHTML = "";
+
     if (!arr.length) {
-      listArea.innerHTML = `<div style="color:#666;text-align:center;margin:2em 0 1em 0;font-size:0.98em;">No completed transfers found.</div>`;
+      listArea.innerHTML = `<div style="color:#666;text-align:center;margin:2em 0 1em 0;font-size:0.98em;">
+        No completed transfers found.
+      </div>`;
       return;
     }
     Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(groupKey => {
@@ -218,7 +229,7 @@ function renderCompletedTransfersList(container, user, transfers) {
       });
     });
   }
-  searchBox.oninput = initiatorDD.onchange = partDD.onchange = datePicker.onchange = statusFilter.onchange = doRender;
+  searchBox.oninput = initiatorDD.onchange = partDD.onchange = statusFilter.onchange = datePicker.onchange = doRender;
   doRender();
 }
 
