@@ -4,6 +4,10 @@ function escapeHtml(str) {
   return String(str || "").replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
 }
+
+function trimLower(str) {
+  return (str || "").trim().toLowerCase();
+}
 function parseDBDatetimeAsUTC(dt) {
   if (!dt) return new Date();
   const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
@@ -33,12 +37,12 @@ function formatDateTime(dtStr) {
   if (!dtStr) return "";
   const d = parseDBDatetimeAsUTC(dtStr);
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  let hours = d.getHours(), mins = String(d.getMinutes()).padStart(2,"0"), ampm = "AM";
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  let hours = d.getHours(), mins = String(d.getMinutes()).padStart(2, "0"), ampm = "AM";
   if (hours >= 12) { ampm = "PM"; if (hours > 12) hours -= 12; }
   if (hours === 0) hours = 12;
   return (
-    String(d.getDate()).padStart(2,"0") + "-" +
+    String(d.getDate()).padStart(2, "0") + "-" +
     months[d.getMonth()] + "-" +
     String(d.getFullYear()).slice(-2) +
     ` (${days[d.getDay()]})` +
@@ -89,13 +93,16 @@ function renderTransfersList(container, user, transfers) {
     return;
   }
   let n = 1;
-  const currUsername = user?.username?.toLowerCase?.() || "";
+  const currUsername = trimLower(user?.username);
 
   transfers.forEach(t => {
-    // For all roles, display as name, logic by username
-    const displaySender = t.sender_username === currUsername ? "You" : escapeHtml(t.sender_name || "");
-    const fromDisplay   = t.from_user_username === currUsername ? "You" : escapeHtml(t.from_name || "");
-    const toDisplay     = t.to_user_username === currUsername ? "You" : escapeHtml(t.to_name || "");
+    const senderUsername = trimLower(t.sender_username);
+    const fromUsername   = trimLower(t.from_user_username);
+    const toUsername     = trimLower(t.to_user_username);
+
+    const displaySender = senderUsername === currUsername ? "You" : escapeHtml(t.sender_name || "");
+    const fromDisplay   = fromUsername   === currUsername ? "You" : escapeHtml(t.from_name || "");
+    const toDisplay     = toUsername     === currUsername ? "You" : escapeHtml(t.to_name || "");
 
     let statusMsg = '';
     if (t.own_status === 'pending') {
@@ -103,13 +110,10 @@ function renderTransfersList(container, user, transfers) {
     } else if (t.own_status === 'accepted') {
       statusMsg += `<span style="color:#118041;font-weight:600;">You have accepted the transfer ${timeAgo(t.own_status_updated_at)}.</span><br>`;
     }
-    // Only show "X accepted" for others, never for current user action
-    if (t.from_user_status === 'accepted' &&
-        !(t.from_user_username === currUsername && t.own_status === 'accepted')) {
+    if (t.from_user_status === 'accepted' && fromUsername !== currUsername) {
       statusMsg += `<span style="color:#216aff;font-weight:600;">${fromDisplay} accepted the transfer ${timeAgo(t.from_user_updated_at)}.</span><br>`;
     }
-    if (t.to_user_status === 'accepted' &&
-        !(t.to_user_username === currUsername && t.own_status === 'accepted')) {
+    if (t.to_user_status === 'accepted' && toUsername !== currUsername) {
       statusMsg += `<span style="color:#216aff;font-weight:600;">${toDisplay} accepted the transfer ${timeAgo(t.to_user_updated_at)}.</span><br>`;
     }
 
