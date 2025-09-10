@@ -14,6 +14,8 @@ function formatDisplayDate(dateStr) {
 }
 
 export async function showNewSpend(container, user) {
+  showSpinner(container);
+    await delay(1200);
   // --- Fetch dynamic friends & user ---
   let FRIENDS = [];
   let loggedInUsername = null;
@@ -23,8 +25,7 @@ export async function showNewSpend(container, user) {
   async function getUserProfileAndFriends() {
     if (!user?.firebaseUser) throw new Error("Not logged in");
     await user.firebaseUser.reload();
-    showSpinner(container);
-    await delay(1200);
+    
     token = await user.firebaseUser.getIdToken(true);
     
     const profileResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/userpanel", { headers: { Authorization: "Bearer " + token } });
