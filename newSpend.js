@@ -23,17 +23,19 @@ export async function showNewSpend(container, user) {
   async function getUserProfileAndFriends() {
     if (!user?.firebaseUser) throw new Error("Not logged in");
     await user.firebaseUser.reload();
-    token = await user.firebaseUser.getIdToken(true);
     showSpinner(container);
+    await delay(1200);
+    token = await user.firebaseUser.getIdToken(true);
+    
     const profileResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/userpanel", { headers: { Authorization: "Bearer " + token } });
    hideSpinner(container);
     const profile = await profileResp.json();
     if (!profile.username) throw new Error("User profile incomplete");
     loggedInUsername = profile.username;
     loggedInName = profile.name || profile.username;
-    showSpinner(container);
+    
     const frResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/friends/list", { headers: { Authorization: "Bearer " + token } });
-   hideSpinner(container);
+   
     if (!frResp.ok) throw new Error("Failed to fetch friend list");
     const allFriends = await frResp.json();
     return [
