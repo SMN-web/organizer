@@ -1,5 +1,6 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 
+// --- Utilities ---
 function escapeHtml(str) {
   return String(str || "").replace(/[<>&"]/g, t =>
     t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
@@ -8,6 +9,26 @@ function parseDBDatetimeAsUTC(dt) {
   if (!dt) return new Date();
   const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
   return m ? new Date(Date.UTC(+m[1], m[2]-1, +m[3], +m[4], +m[5], +m[6])) : new Date(dt);
+}
+function formatTimeOnly(dtStr) {
+  if (!dtStr) return "";
+  const d = parseDBDatetimeAsUTC(dtStr);
+  let hours = d.getHours(), mins = String(d.getMinutes()).padStart(2,"0"), ampm = "AM";
+  if (hours >= 12) { ampm = "PM"; if (hours > 12) hours -= 12; }
+  if (hours === 0) hours = 12;
+  return `${hours}:${mins} ${ampm}`;
+}
+function formatGroupDate(dObj) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dYesterday = new Date(today); dYesterday.setDate(today.getDate() - 1);
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const dCmp = (d) => d.getFullYear() + '.' + d.getMonth() + '.' + d.getDate();
+  if (dCmp(dObj) === dCmp(today)) return "Today";
+  if (dCmp(dObj) === dCmp(dYesterday)) return "Yesterday";
+  let daysAgo = Math.floor((today - dObj) / (24 * 60 * 60 * 1000));
+  if (daysAgo < 7) return days[dObj.getDay()];
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${String(dObj.getDate()).padStart(2, "0")}-${months[dObj.getMonth()]}-${String(dObj.getFullYear()).slice(-2)}`;
 }
 function formatDateWithWeekday(dtStr) {
   const d = parseDBDatetimeAsUTC(dtStr);
@@ -53,6 +74,7 @@ function statusPill(status) {
       ">${label}</span>`;
 }
 
+// --- Entrypoint ---
 export async function showCompletedTransfersPanel(container, user) {
   container.innerHTML = '';
   showSpinner(container);
@@ -85,15 +107,144 @@ export async function showCompletedTransfersPanel(container, user) {
 }
 
 function renderCompletedTransfersList(container, user, transfers) {
-  // ...existing list rendering and filters...
-  // This part is unchanged from previous, so omit for brevity unless you need full copy.
-  // On row click, call showCompletedTransferDetail(...)
-  // See previous code blocks for that part
-  // (Retain filters/search/pill styles).
+  const senders = Array.from(new Set(transfers.map(t => t.sender_name))).filter(Boolean);
+  const participants = Array.from(new Set([].concat(...transfers.map(t => [t.from_name, t.to_name])).filter(Boolean)));
+  let senderOptions = senders.includes("You") ? `<option value="me">Created by me</option>` : "";
+  senderOptions += senders.filter(s => s !== "You").map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
+  let partOptions = participants.includes("You") ? `<option value="me">Involving me</option>` : "";
+  partOptions += participants.filter(p => p !== "You").map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join("");
+  container.innerHTML = `
+    <div style="display:flex;gap:10px;align-items:center; padding-bottom:7px;">
+      <input type="text" id="transfer-search" placeholder="Search transfers..." 
+         style="width:65%;max-width:70vw;padding:7px;font-size:1.09em;border-radius:7px;border:1.2px solid #c7c9d9;">
+      <input type="date" id="date-filter-picker" style="width:35%;max-width:37vw;padding:7px;font-size:1.05em;border-radius:7px;">
+    </div>
+    <div style="display:flex;gap:4vw;padding:3px 4px 13px 4px;">
+      <select id="transfer-initiator-dd" style="flex:1 1 46%;min-width:135px;max-width:48vw;">
+        <option value="all">All Initiators</option>
+        ${senderOptions}
+      </select>
+      <select id="transfer-participant-dd" style="flex:1 1 46%;min-width:135px;max-width:48vw;">
+        <option value="all">Any Participant</option>
+        ${partOptions}
+      </select>
+      <select id="status-filter" style="flex:1 1 46%;min-width:135px;max-width:48vw;">
+        <option value="all">All Statuses</option>
+        <option value="accepted">Accepted</option>
+        <option value="rejected">Rejected</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+    </div>
+    <div class="transfer-folder-list"></div>
+  `;
+  const searchBox = container.querySelector('#transfer-search');
+  const initiatorDD = container.querySelector('#transfer-initiator-dd');
+  const partDD = container.querySelector('#transfer-participant-dd');
+  const statusFilter = container.querySelector('#status-filter');
+  const datePicker = container.querySelector('#date-filter-picker');
+  const listArea = container.querySelector('.transfer-folder-list');
+
+  function doRender() {
+    let arr = [...transfers];
+    if (initiatorDD.value !== "all") {
+      if (initiatorDD.value === "me") arr = arr.filter(t => t.sender_name === "You");
+      else arr = arr.filter(t => t.sender_name === initiatorDD.value);
+    }
+    if (partDD.value !== "all") {
+      if (partDD.value === "me") arr = arr.filter(t => t.from_name === "You" || t.to_name === "You");
+      else arr = arr.filter(t => t.from_name === partDD.value || t.to_name === partDD.value);
+    }
+    if (statusFilter.value !== "all") {
+      arr = arr.filter(t => t.status === statusFilter.value);
+    }
+    let pickedDate = datePicker.value;
+    if (pickedDate) {
+      arr = arr.filter(t => {
+        const d = parseDBDatetimeAsUTC(t.created_at);
+        const yyyy = d.getFullYear(), mm = String(d.getMonth()+1).padStart(2,"0"), dd = String(d.getDate()).padStart(2,"0");
+        return `${yyyy}-${mm}-${dd}` === pickedDate;
+      });
+    }
+    let rawSearch = (searchBox.value || "").trim();
+    let keywords = rawSearch.toLowerCase().split(/\s+/).filter(Boolean);
+
+    if (keywords.length) {
+      arr = arr.filter(t =>
+        keywords.every(word =>
+          (t.sender_name && t.sender_name.toLowerCase().includes(word)) ||
+          (t.from_name && t.from_name.toLowerCase().includes(word)) ||
+          (t.to_name && t.to_name.toLowerCase().includes(word)) ||
+          (t.amount && String(t.amount).toLowerCase().includes(word)) ||
+          (t.currency && t.currency.toLowerCase().includes(word)) ||
+          (t.status && t.status.toLowerCase().includes(word)) ||
+          (t.remarks && t.remarks.toLowerCase().includes(word)) ||
+          (t.transfer_id && String(t.transfer_id).toLowerCase().includes(word))
+        )
+      );
+    }
+
+    arr.sort((a, b) => parseDBDatetimeAsUTC(b.created_at) - parseDBDatetimeAsUTC(a.created_at));
+    let groups = {};
+    arr.forEach(t => {
+      const d = parseDBDatetimeAsUTC(t.created_at);
+      const groupKey = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+      if (!groups[groupKey]) groups[groupKey] = [];
+      groups[groupKey].push(t);
+    });
+
+    listArea.innerHTML = "";
+
+    if (!arr.length) {
+      listArea.innerHTML = `<div style="color:#666;text-align:center;margin:2em 0 1em 0;font-size:0.98em;">
+        No completed transfers found.
+      </div>`;
+      return;
+    }
+    Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(groupKey => {
+      const dObj = new Date(groupKey);
+      const headerDiv = document.createElement("div");
+      headerDiv.className = "transfer-date-header";
+      headerDiv.textContent = formatGroupDate(dObj);
+      listArea.appendChild(headerDiv);
+
+      groups[groupKey].forEach(t => {
+        let sender = keywordSafeBold(t.sender_name, keywords, t.sender_name === "You");
+        let amount = keywordSafeBold(t.amount, keywords, true);
+        let curr = keywordSafeBold(t.currency, keywords, true);
+        let from = keywordSafeBold(t.from_name, keywords, true);
+        let to = keywordSafeBold(t.to_name, keywords, true);
+
+        const row = document.createElement("div");
+        row.className = "transfer-folder";
+        row.tabIndex = 0;
+        row.style = "display:flex;align-items:center;justify-content:space-between;gap:6px;cursor:pointer;";
+        row.innerHTML = `
+          <div style="flex:1;">
+            <span class="transfer-main" style="color:#111;">
+              ${sender}
+              <span style="font-weight:400;">initiated a transfer of</span>
+              ${amount} ${curr}
+              <span style="font-weight:400;">from</span> ${from}
+              <span style="font-weight:400;">to</span> ${to}
+            </span>
+            <div class="transfer-time" style="color:#222;font-size:0.99em;margin-top:4px;">
+              ${formatTimeOnly(t.created_at)}
+            </div>
+          </div>
+          <div style="align-self:flex-start;">
+            ${statusPill(t.status)}
+          </div>
+        `;
+        row.onclick = () => showCompletedTransferDetail(container, user, t, () => renderCompletedTransfersList(container, user, transfers));
+        listArea.appendChild(row);
+      });
+    });
+  }
+  searchBox.oninput = initiatorDD.onchange = partDD.onchange = statusFilter.onchange = datePicker.onchange = doRender;
+  doRender();
 }
 
 function showCompletedTransferDetail(container, user, t, onBack) {
-  // Compute accepted/rejected details
   let statusDetails = "";
   if (t.status === "rejected") {
     if (t.from_user_status === "rejected") statusDetails = `Rejected by ${escapeHtml(t.from_name)}`;
@@ -103,7 +254,7 @@ function showCompletedTransferDetail(container, user, t, onBack) {
     if (t.from_user_status === "accepted") accepted.push(escapeHtml(t.from_name));
     if (t.to_user_status === "accepted") accepted.push(escapeHtml(t.to_name));
     if (accepted.length === 1) statusDetails = `Accepted by ${accepted[0]}`;
-    // if both, no need to show
+    // both accepted? Show nothing extra
   }
 
   container.innerHTML = `
@@ -143,7 +294,9 @@ function showCompletedTransferDetail(container, user, t, onBack) {
       <div style="margin-bottom:9px;">
         <b>Status:</b> <span style="font-weight:500;">${t.status.charAt(0).toUpperCase()+t.status.slice(1)}</span>
       </div>
-      <div style="font-size:1.01em;color:#555;margin:8px 0 2px 0;"><b>Date:</b> ${formatDateWithWeekday(t.created_at)}</div>
+      <div style="font-size:1.01em;color:#555;margin:8px 0 2px 0;">
+        <b>Date:</b> ${formatDateWithWeekday(t.created_at)}
+      </div>
       ${t.remarks ? `<div style="margin-top:11px;font-size:1.01em;"><b>Remarks:</b> <span style="font-weight:400;">${escapeHtml(t.remarks)}</span></div>` : ""}
       ${statusDetails ? `<div style="margin-top:11px;font-size:1.01em;color:#954;"><b>${statusDetails}</b></div>` : ""}
     </div>
