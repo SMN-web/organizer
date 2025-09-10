@@ -1,3 +1,5 @@
+import { showSpinner, hideSpinner, delay } from './spinner.js'; 
+
 const CURRENCY = localStorage.getItem('currency') || "QAR";
 
 function formatDisplayDate(dateStr) {
@@ -27,7 +29,9 @@ export async function showNewSpend(container, user) {
     if (!profile.username) throw new Error("User profile incomplete");
     loggedInUsername = profile.username;
     loggedInName = profile.name || profile.username;
+    showSpinner(container);
     const frResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/friends/list", { headers: { Authorization: "Bearer " + token } });
+   hideSpinner(container);
     if (!frResp.ok) throw new Error("Failed to fetch friend list");
     const allFriends = await frResp.json();
     return [
