@@ -117,7 +117,7 @@ export async function showPaymentsPanel(container, user) {
     showSpinner(container);
     try {
       const token = await user.firebaseUser.getIdToken(true);
-      const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment', {
+      const resp = await fetch('https://pa-fr.nafil-8895-s.workers.dev/api/expense_payment', {
         method: "POST",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({ to_user: toUsername, amount, currency })
@@ -154,7 +154,7 @@ export async function showPaymentsPanel(container, user) {
     let ok = false, err = "";
     try {
       const token = await user.firebaseUser.getIdToken(true);
-      const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment_action', {
+      const resp = await fetch('https://pa-fr.nafil-8895-s.workers.dev/api/expense_payment_action', {
         method: "POST",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({ payment_id, action })
