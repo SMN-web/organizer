@@ -24,7 +24,9 @@ export async function showNewSpend(container, user) {
     if (!user?.firebaseUser) throw new Error("Not logged in");
     await user.firebaseUser.reload();
     token = await user.firebaseUser.getIdToken(true);
+    showSpinner(container);
     const profileResp = await fetch("https://ne-sp.nafil-8895-s.workers.dev/api/userpanel", { headers: { Authorization: "Bearer " + token } });
+   hideSpinner(container);
     const profile = await profileResp.json();
     if (!profile.username) throw new Error("User profile incomplete");
     loggedInUsername = profile.username;
