@@ -80,7 +80,7 @@ export async function showPaymentsPanel(container, user) {
       if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function')
         throw new Error("Not logged in");
       const token = await user.firebaseUser.getIdToken(true);
-      const resp = await fetch('https://pa-fr.nafil-8895-s.workers.dev/api/settlements/friends', { headers: { Authorization: "Bearer " + token } });
+      const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/settlements/friends', { headers: { Authorization: "Bearer " + token } });
       const data = await resp.json();
       friends = Array.isArray(data) ? data : [];
       if (!Array.isArray(data) && data.error) errMsg = data.error;
@@ -99,7 +99,7 @@ export async function showPaymentsPanel(container, user) {
     timeline = [];
     try {
       const token = await user.firebaseUser.getIdToken(true);
-      const url = `https://pa-fr.nafil-8895-s.workers.dev/api/transactions?friend=${encodeURIComponent(friendUsername)}`;
+      const url = `https://pa-ca.nafil-8895-s.workers.dev/api/transactions?friend=${encodeURIComponent(friendUsername)}`;
       const resp = await fetch(url, { headers: { Authorization: "Bearer " + token } });
       const data = await resp.json();
       if (!Array.isArray(data)) throw new Error((data && data.error) ? data.error : "Invalid timeline");
@@ -117,7 +117,7 @@ export async function showPaymentsPanel(container, user) {
     showSpinner(container);
     try {
       const token = await user.firebaseUser.getIdToken(true);
-      const resp = await fetch('https://pa-fr.nafil-8895-s.workers.dev/api/expense_payment', {
+      const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment', {
         method: "POST",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({ to_user: toUsername, amount, currency })
@@ -154,7 +154,7 @@ export async function showPaymentsPanel(container, user) {
     let ok = false, err = "";
     try {
       const token = await user.firebaseUser.getIdToken(true);
-      const resp = await fetch('https://pa-fr.nafil-8895-s.workers.dev/api/expense_payment_action', {
+      const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment_action', {
         method: "POST",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({ payment_id, action })
