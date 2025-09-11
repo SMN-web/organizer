@@ -106,11 +106,12 @@ export async function showPaymentsPanel(container, user) {
       if (!Array.isArray(data)) throw new Error((data && data.error) ? data.error : "Invalid timeline");
       // Map backend "direction" to frontend "dir"
       timeline = data.map(ev => ({
-        ...ev,
-        dir: ev.direction === "sender" || ev.direction === "initiator" ? "from"
-             : ev.direction === "receiver" ? "to"
-             : ""
-      }));
+  ...ev,
+  dir: (ev.sender === user.username) ? "from"
+       : (ev.from_user === user.username) ? "from"
+       : (ev.to_user === user.username) ? "to"
+       : ""
+}));
     } catch (e) {
       timeline = [];
       container.innerHTML = `<div style="color:#d12020;padding:2em;">${e.message||e}</div>`;
