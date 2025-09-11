@@ -309,7 +309,8 @@ export async function showPaymentsPanel(container, user) {
       }
 
       let statusPill =
-        isTransfer ? `<span class="status-pill transfer-pill">Transfer</span>`
+        // Always show transfer as accepted green
+        isTransfer ? `<span class="status-pill accepted">Transfer</span>`
         : ev.status === "accepted"  ? `<span class="status-pill accepted">Accepted</span>`
         : ev.status === "rejected"  ? `<span class="status-pill rejected">Rejected</span>`
         : ev.status === "pending"   ? `<span class="status-pill pending">Pending</span>`
@@ -317,6 +318,7 @@ export async function showPaymentsPanel(container, user) {
         : "";
 
       let actions = "";
+      // No actions for transfer bubbles
       if (!isTransfer && ev.status === "pending") {
         if (ev.direction === "sender") {
           actions = `<button class="bubble-cancel" data-idx="${idx}">Cancel</button>`;
