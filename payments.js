@@ -262,54 +262,30 @@ export async function showPaymentsPanel(container, user) {
       const displaySender = ev.sender_name || ev.sender || '';
 
       const isTransfer = ev.status === "transfer_settled" && ev.sender;
-      let heading = "", label = "";
+      let heading = "";
       let bubbleSide = ev.direction === "sender" ? "bubble-right" : "bubble-left";
       let bubbleExtra = isTransfer ? "transfer-bubble" : "";
 
       if (isTransfer) {
         if (ev.sender === me) {
           bubbleSide = "bubble-right";
-          heading = `<span class="bubble-title">Transfer for <b>${displayFrom}</b> to <b>${displayTo}</b></span>`;
-          label = `You initiated and settled this transfer from ${displayFrom} to ${displayTo}.`;
+          heading = `Transfer from <b>${displayFrom}</b> to <b>${displayTo}</b>`;
         } else if (ev.from_user === me) {
           bubbleSide = "bubble-left";
-          heading = `<span class="bubble-title">Transfer to <b>${displayTo}</b>, initiated by ${displaySender}</span>`;
-          label = `Amount transferred to ${displayTo}, initiated by ${displaySender}.`;
+          heading = `Transfer to <b>${displayTo}</b> (initiated by ${displaySender})`;
         } else if (ev.to_user === me) {
           bubbleSide = "bubble-left";
-          heading = `<span class="bubble-title">Transfer received from <b>${displayFrom}</b>, paid by ${displaySender}</span>`;
-          label = `Amount received from ${displayFrom}, paid on your behalf by ${displaySender}.`;
+          heading = `Transfer received from <b>${displayFrom}</b> (paid by ${displaySender})`;
         }
-      } else {
-        if (ev.direction === "sender") {
-          bubbleSide = "bubble-right";
-          heading = `<span class="bubble-title">You sent a payment to <b>${displayTo}</b></span>`;
-          label = ev.status === "pending"
-              ? "Your payment is awaiting the recipient’s approval."
-              : ev.status === "accepted"
-                ? "Your payment was accepted and credited to the recipient."
-                : ev.status === "rejected"
-                  ? "Your payment was rejected by the recipient."
-                  : ev.status === "canceled"
-                    ? "You canceled this payment before it was acted on."
-                    : "Payment update.";
-        } else if (ev.direction === "receiver") {
-          bubbleSide = "bubble-left";
-          heading = `<span class="bubble-title"><b>${displayFrom}</b> sent you a payment</span>`;
-          label = ev.status === "pending"
-              ? "This payment is pending your review and acceptance."
-              : ev.status === "accepted"
-                ? "You have accepted and received the payment."
-                : ev.status === "rejected"
-                  ? "You rejected this payment."
-                  : ev.status === "canceled"
-                    ? "The sender canceled this payment."
-                    : "Payment update.";
-        }
+      } else if (ev.direction === "sender") {
+        bubbleSide = "bubble-right";
+        heading = `You sent a payment to <b>${displayTo}</b>`;
+      } else if (ev.direction === "receiver") {
+        bubbleSide = "bubble-left";
+        heading = `<b>${displayFrom}</b> sent you a payment`;
       }
 
       let statusPill =
-        // Always show transfer as accepted green
         isTransfer ? `<span class="status-pill accepted">Transfer</span>`
         : ev.status === "accepted"  ? `<span class="status-pill accepted">Accepted</span>`
         : ev.status === "rejected"  ? `<span class="status-pill rejected">Rejected</span>`
@@ -318,7 +294,6 @@ export async function showPaymentsPanel(container, user) {
         : "";
 
       let actions = "";
-      // No actions for transfer bubbles
       if (!isTransfer && ev.status === "pending") {
         if (ev.direction === "sender") {
           actions = `<button class="bubble-cancel" data-idx="${idx}">Cancel</button>`;
@@ -331,8 +306,7 @@ export async function showPaymentsPanel(container, user) {
       timelineRows.push(`
         <div class="paypage-bubble-row ${bubbleSide}">
           <div class="paypage-bubble ${bubbleExtra} ${bubbleSide === "bubble-right" ? "bubble-send" : ""}">
-            ${heading}
-            <div class="bubble-label">${label}</div>
+            <div class="bubble-title">${heading}</div>
             <div class="bubble-amount-row">
               <span class="bubble-amount">${ev.amount} ${ev.currency || CURRENCY}</span>
               ${statusPill}
