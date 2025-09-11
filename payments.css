@@ -280,4 +280,16 @@ body { background: #f7f9fc; margin:0; font-family: "Inter", Arial, sans-serif;}
 .modal-profile-label {color:#718299;font-size:.99em;}
 .modal-profile-value { font-size:1.11em; font-weight:700; color:#293161; margin-bottom:1em; word-break:break-all;}
 
+.transfer-bubble {
+  background: linear-gradient(92deg, #e2fcf7 0%, #eaf2fe 100%);
+  border: 2px solid #93c9f7;
+  color: #143b47;
+}
+.status-pill.transfer-pill {
+  background: #eaf7f3;
+  color: #13814b;
+  border: 1.2px solid #6bdbc2;
+}
+.bubble-title { display:block; font-weight:600; color:#284b89; margin-bottom:2px;}
+
 
