@@ -113,12 +113,7 @@ export async function showPaymentsPanel(container, user) {
         container.innerHTML = `<div style="color:#d12020;padding:2em;">${msg}</div>`;
         return;
       }
-      timeline = data.map(ev => ({
-        ...ev,
-        dir: ev.direction === "sender" ? "from"
-            : ev.direction === "receiver" ? "to"
-            : ""
-      }));
+      timeline = data; // Each entry now has from_user, to_user, sender, direction
     } catch (e) {
       timeline = [];
       container.innerHTML = `<div style="color:#d12020;padding:2em;">${e.message||e}</div>`;
@@ -246,7 +241,6 @@ export async function showPaymentsPanel(container, user) {
     let timelineRows = [];
     let lastDate = null;
 
-    // UI Message if timeline is empty
     if (!timeline.length) {
       container.innerHTML = `<div class="paypage-wrap"><div class="paypage-chat">
         <div class="paypage-empty">No transactions found for this friend.</div>
@@ -255,51 +249,61 @@ export async function showPaymentsPanel(container, user) {
     }
 
     timeline.forEach((ev, idx) => {
-      const dtObj = parseDBDatetimeAsUTC(ev.last_updated);
+      const dtObj = parseDBDatetimeAsUTC(ev.last_updated ?? ev.updated_at ?? ev.created_at ?? "");
       const groupLabel = getDateLabel(dtObj);
       if (groupLabel !== lastDate) {
         timelineRows.push(`<div class="paypage-date-divider pay-date-header">${groupLabel}</div>`);
         lastDate = groupLabel;
       }
 
-      // Validate direction
-      if (ev.dir !== "from" && ev.dir !== "to") {
-        timelineRows.push(`<div style="color:#d12020;font-size:1em;margin:1.2em 0;">This transaction cannot be displayed (invalid direction field).</div>`);
-        return;
+      // Actor display for transfer/settled: all parties, otherwise two
+      let actorInfo = "";
+      if (ev.sender && ev.status === "transfer_settled") {
+        actorInfo = `<div style="color:#738;font-size:0.93em;">
+          <span>Transfer: <b>${ev.sender}</b> <span style="font-weight: 300;">(initiator)</span><br>Debtor: <b>${ev.from_user}</b> → Receiver: <b>${ev.to_user}</b></span>
+        </div>`;
+      } else if (ev.from_user && ev.to_user) {
+        actorInfo = `<div style="color:#738;font-size:0.93em;">
+          <b>${ev.from_user}</b> → <b>${ev.to_user}</b>
+        </div>`;
+      } else {
+        actorInfo = `<div style="color:#b22;font-size:0.95em;">User info missing!</div>`;
       }
-      
+
+      let rowClass = (ev.direction === "sender") ? "bubble-left" :
+                     (ev.direction === "receiver") ? "bubble-right" : "";
       let label =
-        ev.dir === "to"
-          ? ev.status === "pending"    ? "Payment sent, awaiting approval."
-            : ev.status === "accepted" ? "Payment sent & accepted."
-            : ev.status === "rejected" ? "Payment sent & rejected!"
-            : "Payment cancelled."
-          : ev.status === "pending"    ? "Payment received, awaiting your approval."
-            : ev.status === "accepted" ? "Payment received and accepted."
-            : ev.status === "rejected" ? "Payment received but you rejected!"
-            : "Payment cancelled.";
+        ev.status === "pending"    ? "Pending approval." :
+        ev.status === "accepted"   ? "Accepted." :
+        ev.status === "rejected"   ? "Rejected!" :
+        ev.status === "canceled"   ? "Cancelled." :
+        ev.status === "transfer_settled" ? "Transfer completed." : "Payment update.";
 
       let statusPill =
-        ev.status === "accepted" ? `<span class="status-pill accepted">Accepted</span>`
-        : ev.status === "rejected" ? `<span class="status-pill rejected">Rejected</span>`
-        : ev.status === "pending"  ? `<span class="status-pill pending">Pending</span>`
-        : `<span class="status-pill cancelled">Cancelled</span>`;
+        ev.status === "accepted"  ? `<span class="status-pill accepted">Accepted</span>`
+      : ev.status === "rejected"  ? `<span class="status-pill rejected">Rejected</span>`
+      : ev.status === "pending"   ? `<span class="status-pill pending">Pending</span>`
+      : ev.status === "canceled"  ? `<span class="status-pill cancelled">Cancelled</span>`
+      : ev.status === "transfer_settled" ? `<span class="status-pill accepted">Settled</span>`
+      : "";
 
       let actions = "";
       if (ev.status === "pending") {
-        actions =
-          ev.dir === "to" ?
-            `<button class="bubble-cancel" data-idx="${idx}">Cancel</button>` :
-            `<button class="bubble-accept" data-idx="${idx}">Accept</button>
-             <button class="bubble-reject" data-idx="${idx}">Reject</button>`;
+        if (ev.direction === "sender") {
+          actions = `<button class="bubble-cancel" data-idx="${idx}">Cancel</button>`;
+        } else if (ev.direction === "receiver") {
+          actions = `<button class="bubble-accept" data-idx="${idx}">Accept</button>
+                     <button class="bubble-reject" data-idx="${idx}">Reject</button>`;
+        }
       }
 
       timelineRows.push(`
-        <div class="paypage-bubble-row ${ev.dir === "from" ? "bubble-left" : "bubble-right"}">
-          <div class="paypage-bubble ${ev.dir === "from" ? "" : "bubble-send"}">
+        <div class="paypage-bubble-row ${rowClass}">
+          <div class="paypage-bubble ${rowClass === "bubble-left" ? "" : "bubble-send"}">
+            ${actorInfo}
             <div class="bubble-label">${label}</div>
             <div class="bubble-amount-row">
-              <span class="bubble-amount">${ev.amount} ${CURRENCY}</span>
+              <span class="bubble-amount">${ev.amount} ${ev.currency || CURRENCY}</span>
               ${statusPill}
             </div>
             <div class="bubble-meta">
@@ -331,7 +335,7 @@ export async function showPaymentsPanel(container, user) {
       </div>
     `;
 
-    // Profile modal
+    // Three-dot menu (unchanged)
     const menuBtn = container.querySelector('.paypage-menu-3dots');
     const dropdown = container.querySelector('.paypage-menu-dropdown');
     dropdown.innerHTML = `<div>Profile</div>`;
@@ -373,7 +377,7 @@ export async function showPaymentsPanel(container, user) {
     if (payBtn) {
       payBtn.onclick = () => {
         if (currentFriend.net >= 0) {
-          showModal({ content: "You owed nothing to this person.", okText: "OK", showCancel: false });
+          showModal({ content: "You owe nothing to this person.", okText: "OK", showCancel: false });
           return;
         }
         const maxOwed = Math.abs(currentFriend.net);
