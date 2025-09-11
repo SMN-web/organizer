@@ -1,19 +1,87 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Generate AES-256 Key</title>
+<html lang="en">
+<head> 
+  <meta charset="UTF-8">
+  <title>Transaction API Debug Quick Test</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <style>
+    body { background: #222; color: #fff; font-family: sans-serif; padding: 2em; }
+    input, button { font-size: 1em; padding: 0.6em; margin: 0.5em 0; border-radius: 3px; }
+    input { width: 230px; border: 1px solid #888; background: #181818; color: #fff; }
+    button { background: #1976d2; border: none; color: #fff; }
+    #out { background: #101010; padding: 1em; border-radius: 8px; margin-top: 2em; white-space: pre; max-width: 99vw; overflow-x: auto;}
+  </style>
 </head>
 <body>
-  <h2>Secure 256-bit Key Generator</h2>
-  <button onclick="genKey()">Generate Key</button>
-  <pre id="output" style="margin-top:1.5em;font-size:1.14em;line-break:anywhere;background:#f2f2f2;padding:1em;border-radius:8px;min-height:40px;"></pre>
+  <div id="app"></div>
+  <pre id="out"></pre>
   <script>
-    function genKey() {
-      const arr = crypto.getRandomValues(new Uint8Array(32));
-      const key = btoa(String.fromCharCode(...arr));
-      document.getElementById('output').textContent = key;
+    // -- Firebase config (update with your actual settings!) --
+    firebase.initializeApp({
+      apiKey: "AIzaSyAWphaG1_4n1i3F9kY_TrMdvjVQomu7OtQ",
+      authDomain: "organizer-359e3.firebaseapp.com",
+      projectId: "organizer-359e3",
+      storageBucket: "organizer-359e3.appspot.com",
+      messagingSenderId: "223125946708",
+      appId: "1:223125946708:web:17850e13399725533288c1",
+      measurementId: "G-R9GMNJ5Q7T"
+    });
+    const auth = firebase.auth();
+    const appDiv = document.getElementById('app');
+    const outDiv = document.getElementById('out');
+
+    function showLogin() {
+      appDiv.innerHTML = `
+        <h2>Login</h2>
+        <input id="email" type="email" placeholder="Email"><br>
+        <input id="password" type="password" placeholder="Password"><br>
+        <button id="loginBtn">Sign In</button>
+        <div id="authErr" style="color:#e44;margin-top:1em;"></div>
+      `;
+      document.getElementById('loginBtn').onclick = async () => {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
+        try {
+          await auth.signInWithEmailAndPassword(email, password);
+        } catch (e) {
+          document.getElementById('authErr').innerText = e.message;
+        }
+      };
     }
+
+    function showApp(user) {
+      appDiv.innerHTML = `
+        <div>
+          <h3>Welcome, ${user.email}</h3>
+          <button id="fetchBtn">Show Transactions</button>
+          <button id="logoutBtn" style="background:#444;margin-left:2em;">Logout</button>
+        </div>
+      `;
+      document.getElementById('fetchBtn').onclick = async () => {
+        outDiv.innerText = "Loading...";
+        try {
+          const idToken = await user.getIdToken(true);
+          const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/transactions', {
+            headers: { Authorization: "Bearer " + idToken }
+          });
+          const txt = await resp.text();
+          outDiv.innerText = txt;
+        } catch(e) {
+          outDiv.innerText = "Error: " + e.message;
+        }
+      };
+      document.getElementById('logoutBtn').onclick = () => {
+        auth.signOut();
+        outDiv.innerText = "";
+      };
+    }
+
+    auth.onAuthStateChanged(user => {
+      if (user) showApp(user);
+      else showLogin();
+    });
   </script>
 </body>
 </html>
