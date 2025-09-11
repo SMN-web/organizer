@@ -33,7 +33,6 @@ function showModal({title, content, inputType, inputPlaceholder, inputValue, onO
   if (inputType) modal.querySelector('#modal-input').focus();
 }
 
-// --- Utility date functions ---
 function parseDBDatetimeAsUTC(dt) {
   const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
   if (!m) return new Date(dt);
@@ -55,7 +54,7 @@ function getTimeLocalAMPM(date) {
   return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-// --- Main Payments Panel Logic ---
+// --- Main Payments Panel ---
 export async function showPaymentsPanel(container, user) {
   const FILTERS = [
     { value: "all", label: "All" },
@@ -72,9 +71,11 @@ export async function showPaymentsPanel(container, user) {
   let errMsg = "";
   const CURRENCY = localStorage.getItem('currency') || "QAR";
 
+  // Initial load
   await loadFriends();
   renderMain();
 
+  // --- Friend list loading ---
   async function loadFriends() {
     showSpinner(container);
     errMsg = '';
@@ -96,6 +97,7 @@ export async function showPaymentsPanel(container, user) {
     }
   }
 
+  // --- Timeline loading ---
   async function loadTimeline(friendUsername) {
     showSpinner(container);
     timeline = [];
@@ -125,6 +127,7 @@ export async function showPaymentsPanel(container, user) {
     hideSpinner(container);
   }
 
+  // --- Payment send ---
   async function sendPayment(toUsername, amount) {
     showSpinner(container);
     try {
@@ -160,6 +163,7 @@ export async function showPaymentsPanel(container, user) {
     hideSpinner(container);
   }
 
+  // --- Payment action (accept, reject, cancel) ---
   async function paymentAction(payment_id, action) {
     showSpinner(container);
     let ok = false, err = "";
@@ -200,6 +204,7 @@ export async function showPaymentsPanel(container, user) {
     });
   }
 
+  // --- UI helpers ---
   function netPill(net) {
     if (net === 0) return `<span class="net-pill settled">Settled</span>`;
     return `<span class="net-pill ${net > 0 ? "plus" : "minus"}">${Math.abs(net)} ${CURRENCY}</span>`;
@@ -240,6 +245,7 @@ export async function showPaymentsPanel(container, user) {
     );
   }
 
+  // --- Main user timeline view ---
   function renderUserView() {
     let timelineRows = [];
     let lastDate = null;
@@ -367,8 +373,124 @@ export async function showPaymentsPanel(container, user) {
       </div>
     `;
 
-    // Menu and actions as in previous completions...
-    // (Truncated to focus on core chat/timeline features)
+    // --- Profile modal in menu ---
+    const menuBtn = container.querySelector('.paypage-menu-3dots');
+    const dropdown = container.querySelector('.paypage-menu-dropdown');
+    dropdown.innerHTML = `<div>Profile</div>`;
+    if (menuBtn) {
+      menuBtn.onclick = function (e) {
+        dropdown.style.display = 'block';
+        dropdown.style.top = (menuBtn.offsetTop + menuBtn.offsetHeight) + 'px';
+        dropdown.style.right = '0px';
+        document.addEventListener('click', function closeMenu(ev) {
+          if (!dropdown.contains(ev.target) && ev.target !== menuBtn) {
+            dropdown.style.display = 'none';
+            document.removeEventListener('click', closeMenu);
+          }
+        });
+      };
+    }
+    dropdown.querySelector('div').onclick = () => {
+      dropdown.style.display = 'none';
+      showModal({
+        title: "Profile",
+        content: `
+          <div class="modal-profile-label">Username</div>
+          <div class="modal-profile-value">${currentFriend.username || ''}</div>
+          <div class="modal-profile-label">Name</div>
+          <div class="modal-profile-value">${currentFriend.name || ''}</div>
+        `,
+        okText: "Close",
+        showCancel: false
+      });
+    };
+
+    // --- Back (to friends list) ---
+    container.querySelector('.paypage-back').onclick = async () => {
+      await loadFriends();
+      view = "friends";
+      renderMain();
+    };
+
+    // --- Pay Button ---
+    const payBtn = container.querySelector('.paypage-btn.pay');
+    if (payBtn) {
+      payBtn.onclick = () => {
+        if (currentFriend.net >= 0) {
+          showModal({ content: "You owe nothing to this person.", okText: "OK", showCancel: false });
+          return;
+        }
+        const maxOwed = Math.abs(currentFriend.net);
+        showModal({
+          title: "Send Payment",
+          inputType: "number",
+          inputPlaceholder: `Amount (max ${maxOwed})`,
+          inputValue: maxOwed,
+          okText: "Pay",
+          cancelText: "Cancel",
+          onOk: (v) => {
+            const amount = Math.round(Number(v));
+            if (isNaN(amount) || amount <= 0 || amount > maxOwed) {
+              showModal({ title: "Error", content: "Enter a valid positive amount within max limit.", okText:"OK", showCancel: false });
+              return;
+            }
+            sendPayment(currentFriend.username, amount);
+          }
+        });
+      };
+    }
+
+    // --- Transfer Button ---
+    const transferBtn = container.querySelector('.paypage-btn.transfer');
+    if (transferBtn) {
+      transferBtn.onclick = () => {
+        showTransferPopup(container, user, currentFriend.username);
+      };
+    }
+
+    // --- Bubble Action Buttons ---
+    container.querySelectorAll('.bubble-cancel').forEach(btn =>
+      btn.onclick = async () => {
+        const idx = Number(btn.dataset.idx);
+        const paymentId = timeline[idx].payment_id;
+        showModal({
+          title: "Cancel Payment",
+          content: "Are you sure you want to cancel this payment?",
+          okText: "Yes", cancelText: "No",
+          onOk: async () => {
+            await paymentAction(paymentId, "cancel");
+          }
+        });
+      }
+    );
+    container.querySelectorAll('.bubble-accept').forEach(btn =>
+      btn.onclick = async () => {
+        const idx = Number(btn.dataset.idx);
+        const paymentId = timeline[idx].payment_id;
+        showModal({
+          title: "Accept Payment",
+          content: "Do you want to accept this payment?",
+          okText: "Yes", cancelText: "No",
+          onOk: async () => {
+            await paymentAction(paymentId, "accept");
+          }
+        });
+      }
+    );
+    container.querySelectorAll('.bubble-reject').forEach(btn =>
+      btn.onclick = async () => {
+        const idx = Number(btn.dataset.idx);
+        const paymentId = timeline[idx].payment_id;
+        showModal({
+          title: "Reject Payment",
+          content: "Do you want to reject this payment?",
+          okText: "Yes", cancelText: "No",
+          onOk: async () => {
+            await paymentAction(paymentId, "reject");
+          }
+        });
+      }
+    );
   }
 
   function renderMain() {
