@@ -1,6 +1,7 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 import { showTransferPopup } from './transfer.js';
 
+// --- Modal Utility ---
 function showModal({title, content, inputType, inputPlaceholder, inputValue, onOk, onCancel, okText="OK", cancelText="Cancel", showCancel=true}) {
   let modal = document.createElement('div');
   modal.className = "modal-backdrop";
@@ -113,7 +114,7 @@ export async function showPaymentsPanel(container, user) {
         container.innerHTML = `<div style="color:#d12020;padding:2em;">${msg}</div>`;
         return;
       }
-      timeline = data; // Each entry now has from_user, to_user, sender, direction
+      timeline = data;
     } catch (e) {
       timeline = [];
       container.innerHTML = `<div style="color:#d12020;padding:2em;">${e.message||e}</div>`;
@@ -256,51 +257,81 @@ export async function showPaymentsPanel(container, user) {
         lastDate = groupLabel;
       }
 
-      // Actor display for transfer/settled: all parties, otherwise two
-      let actorInfo = "";
-      if (ev.sender && ev.status === "transfer_settled") {
-        actorInfo = `<div style="color:#738;font-size:0.93em;">
-          <span>Transfer: <b>${ev.sender}</b> <span style="font-weight: 300;">(initiator)</span><br>Debtor: <b>${ev.from_user}</b> → Receiver: <b>${ev.to_user}</b></span>
-        </div>`;
-      } else if (ev.from_user && ev.to_user) {
-        actorInfo = `<div style="color:#738;font-size:0.93em;">
-          <b>${ev.from_user}</b> → <b>${ev.to_user}</b>
-        </div>`;
+      const displayFrom = ev.from_user_name || ev.from_user || '';
+      const displayTo = ev.to_user_name || ev.to_user || '';
+      const displaySender = ev.sender_name || ev.sender || '';
+
+      const isTransfer = ev.status === "transfer_settled" && ev.sender;
+      const rowClass =
+        isTransfer
+          ? (ev.direction === "sender" ? "bubble-right" : "bubble-left")
+          : (ev.direction === "sender" ? "bubble-left" : "bubble-right");
+      const specialClass = isTransfer ? "transfer-bubble" : "";
+
+      let heading = "";
+      if (isTransfer) {
+        if (ev.direction === "sender") {
+          heading = `<span class="bubble-title">Transfer initiated by you for <b>${displayFrom}</b> to <b>${displayTo}</b></span>`;
+        } else {
+          heading = `<span class="bubble-title">Transfer as <b>${displayFrom === user.username ? 'debtor' : 'receiver'}</b> (Initiated by ${displaySender})</span>`;
+        }
       } else {
-        actorInfo = `<div style="color:#b22;font-size:0.95em;">User info missing!</div>`;
+        if (ev.direction === "sender") {
+          heading = `<span class="bubble-title">You sent a payment to <b>${displayTo}</b></span>`;
+        } else if (ev.direction === "receiver") {
+          heading = `<span class="bubble-title"><b>${displayFrom}</b> sent you a payment</span>`;
+        } else {
+          heading = `<span class="bubble-title">Payment activity</span>`;
+        }
       }
 
-      let rowClass = (ev.direction === "sender") ? "bubble-left" :
-                     (ev.direction === "receiver") ? "bubble-right" : "";
-      let label =
-        ev.status === "pending"    ? "Pending approval." :
-        ev.status === "accepted"   ? "Accepted." :
-        ev.status === "rejected"   ? "Rejected!" :
-        ev.status === "canceled"   ? "Cancelled." :
-        ev.status === "transfer_settled" ? "Transfer completed." : "Payment update.";
+      let label = "";
+      if (isTransfer) {
+        label = "This transfer was processed and settled successfully.";
+      } else if (ev.direction === "sender") {
+        label = ev.status === "pending"
+          ? "Your payment is awaiting the recipient’s approval."
+          : ev.status === "accepted"
+            ? "Your payment was accepted and credited to the recipient."
+            : ev.status === "rejected"
+              ? "Your payment was rejected by the recipient."
+              : ev.status === "canceled"
+                ? "You canceled this payment before it was acted on."
+                : "Payment update.";
+      } else if (ev.direction === "receiver") {
+        label = ev.status === "pending"
+          ? "This payment is pending your review and acceptance."
+          : ev.status === "accepted"
+            ? "You have accepted and received the payment."
+            : ev.status === "rejected"
+              ? "You rejected this payment."
+              : ev.status === "canceled"
+                ? "The sender canceled this payment."
+                : "Payment update.";
+      }
 
       let statusPill =
-        ev.status === "accepted"  ? `<span class="status-pill accepted">Accepted</span>`
-      : ev.status === "rejected"  ? `<span class="status-pill rejected">Rejected</span>`
-      : ev.status === "pending"   ? `<span class="status-pill pending">Pending</span>`
-      : ev.status === "canceled"  ? `<span class="status-pill cancelled">Cancelled</span>`
-      : ev.status === "transfer_settled" ? `<span class="status-pill accepted">Settled</span>`
-      : "";
+        isTransfer ? `<span class="status-pill transfer-pill">Transfer</span>`
+        : ev.status === "accepted"  ? `<span class="status-pill accepted">Accepted</span>`
+        : ev.status === "rejected"  ? `<span class="status-pill rejected">Rejected</span>`
+        : ev.status === "pending"   ? `<span class="status-pill pending">Pending</span>`
+        : ev.status === "canceled"  ? `<span class="status-pill cancelled">Cancelled</span>`
+        : "";
 
       let actions = "";
-      if (ev.status === "pending") {
+      if (!isTransfer && ev.status === "pending") {
         if (ev.direction === "sender") {
           actions = `<button class="bubble-cancel" data-idx="${idx}">Cancel</button>`;
         } else if (ev.direction === "receiver") {
           actions = `<button class="bubble-accept" data-idx="${idx}">Accept</button>
-                     <button class="bubble-reject" data-idx="${idx}">Reject</button>`;
+                    <button class="bubble-reject" data-idx="${idx}">Reject</button>`;
         }
       }
 
       timelineRows.push(`
         <div class="paypage-bubble-row ${rowClass}">
-          <div class="paypage-bubble ${rowClass === "bubble-left" ? "" : "bubble-send"}">
-            ${actorInfo}
+          <div class="paypage-bubble ${specialClass} ${rowClass === "bubble-right" ? "bubble-send" : ""}">
+            ${heading}
             <div class="bubble-label">${label}</div>
             <div class="bubble-amount-row">
               <span class="bubble-amount">${ev.amount} ${ev.currency || CURRENCY}</span>
@@ -335,7 +366,7 @@ export async function showPaymentsPanel(container, user) {
       </div>
     `;
 
-    // Three-dot menu (unchanged)
+    // Three-dot menu
     const menuBtn = container.querySelector('.paypage-menu-3dots');
     const dropdown = container.querySelector('.paypage-menu-dropdown');
     dropdown.innerHTML = `<div>Profile</div>`;
