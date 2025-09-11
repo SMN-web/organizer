@@ -240,7 +240,7 @@ export async function showPaymentsPanel(container, user) {
   function renderUserView() {
     let timelineRows = [];
     let lastDate = null;
-    const me = user.username; // Always use username for logic
+    const me = user.username; // must strictly match backend for transfer logic
 
     if (!timeline.length) {
       container.innerHTML = `<div class="paypage-wrap"><div class="paypage-chat">
@@ -260,8 +260,11 @@ export async function showPaymentsPanel(container, user) {
       let bubbleSide = ev.direction === "sender" ? "bubble-right" : "bubble-left";
       let bubbleExtra = isTransfer ? "transfer-bubble" : "";
 
-      // Key: logic always by username, only display uses name
+      // --- Robust transfer heading and debug fallback ---
       if (isTransfer) {
+        // Debug values for troubleshooting
+        // Uncomment for debugging:
+        // console.log("[TRANSFER DEBUG]", {me, sender: ev.sender, from_user: ev.from_user, to_user: ev.to_user});
         if (ev.sender === me) {
           bubbleSide = "bubble-right";
           heading = `Transfer from <b>${displayFrom}</b> to <b>${displayTo}</b>`;
@@ -272,7 +275,8 @@ export async function showPaymentsPanel(container, user) {
           bubbleSide = "bubble-left";
           heading = `Transfer received from <b>${displayFrom}</b> (paid by ${displaySender})`;
         } else {
-          heading = "Transfer";
+          // fallback for any mismatch/unexpected record; helps debugging
+          heading = `Transfer <small>(Debug: me=${me}, sender=${ev.sender}, from=${ev.from_user}, to=${ev.to_user})</small>`;
         }
       } else if (ev.direction === "sender") {
         bubbleSide = "bubble-right";
@@ -337,14 +341,13 @@ export async function showPaymentsPanel(container, user) {
       </div>
     `;
 
-    // Menu/profile, back, pay/transfer handlers, actions... all as previously covered!
-    // (Same as prior full code version)
+    // Actions and modals (pay/transfer/accept/reject/cancel/profile/back) unchanged...
     container.querySelector('.paypage-back').onclick = async () => {
       await loadFriends();
       view = "friends";
       renderMain();
     };
-    // ...rest of handlers here...
+    // ...remaining handler setup unchanged...
     container.querySelectorAll('.bubble-cancel').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
@@ -387,7 +390,6 @@ export async function showPaymentsPanel(container, user) {
         });
       }
     );
-    // ...etc.
   }
 
   function renderMain() {
