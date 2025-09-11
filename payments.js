@@ -1,7 +1,6 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 import { showTransferPopup } from './transfer.js';
 
-// --- Modal Logic ---
 function showModal({title, content, inputType, inputPlaceholder, inputValue, onOk, onCancel, okText="OK", cancelText="Cancel", showCancel=true}) {
   let modal = document.createElement('div');
   modal.className = "modal-backdrop";
@@ -54,7 +53,6 @@ function getTimeLocalAMPM(date) {
   return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-// --- Main Payments Panel ---
 export async function showPaymentsPanel(container, user) {
   const FILTERS = [
     { value: "all", label: "All" },
@@ -71,11 +69,9 @@ export async function showPaymentsPanel(container, user) {
   let errMsg = "";
   const CURRENCY = localStorage.getItem('currency') || "QAR";
 
-  // Initial load
   await loadFriends();
   renderMain();
 
-  // --- Friend list loading ---
   async function loadFriends() {
     showSpinner(container);
     errMsg = '';
@@ -97,7 +93,6 @@ export async function showPaymentsPanel(container, user) {
     }
   }
 
-  // --- Timeline loading ---
   async function loadTimeline(friendUsername) {
     showSpinner(container);
     timeline = [];
@@ -127,7 +122,6 @@ export async function showPaymentsPanel(container, user) {
     hideSpinner(container);
   }
 
-  // --- Payment send ---
   async function sendPayment(toUsername, amount) {
     showSpinner(container);
     try {
@@ -163,7 +157,6 @@ export async function showPaymentsPanel(container, user) {
     hideSpinner(container);
   }
 
-  // --- Payment action (accept, reject, cancel) ---
   async function paymentAction(payment_id, action) {
     showSpinner(container);
     let ok = false, err = "";
@@ -204,7 +197,6 @@ export async function showPaymentsPanel(container, user) {
     });
   }
 
-  // --- UI helpers ---
   function netPill(net) {
     if (net === 0) return `<span class="net-pill settled">Settled</span>`;
     return `<span class="net-pill ${net > 0 ? "plus" : "minus"}">${Math.abs(net)} ${CURRENCY}</span>`;
@@ -245,7 +237,6 @@ export async function showPaymentsPanel(container, user) {
     );
   }
 
-  // --- Main user timeline view ---
   function renderUserView() {
     let timelineRows = [];
     let lastDate = null;
@@ -271,50 +262,50 @@ export async function showPaymentsPanel(container, user) {
       const displaySender = ev.sender_name || ev.sender || '';
 
       const isTransfer = ev.status === "transfer_settled" && ev.sender;
-      // Bubble side: right for sender, left for receiver
-      const bubbleSide = ev.direction === "sender" ? "bubble-right" : "bubble-left";
-      const bubbleExtra = isTransfer ? "transfer-bubble" : "";
+      let heading = "", label = "";
+      let bubbleSide = ev.direction === "sender" ? "bubble-right" : "bubble-left";
+      let bubbleExtra = isTransfer ? "transfer-bubble" : "";
 
-      let heading = "";
       if (isTransfer) {
-        if (ev.direction === "sender") {
-          heading = `<span class="bubble-title">Transfer initiated by you for <b>${displayFrom}</b> to <b>${displayTo}</b></span>`;
-        } else {
-          heading = `<span class="bubble-title">Transfer you participated in as <b>${displayFrom === me ? 'debtor' : 'receiver'}</b> (Initiated by ${displaySender})</span>`;
+        if (ev.sender === me) {
+          bubbleSide = "bubble-right";
+          heading = `<span class="bubble-title">Transfer for <b>${displayFrom}</b> to <b>${displayTo}</b></span>`;
+          label = `You initiated and settled this transfer from ${displayFrom} to ${displayTo}.`;
+        } else if (ev.from_user === me) {
+          bubbleSide = "bubble-left";
+          heading = `<span class="bubble-title">Transfer to <b>${displayTo}</b>, initiated by ${displaySender}</span>`;
+          label = `Amount transferred to ${displayTo}, initiated by ${displaySender}.`;
+        } else if (ev.to_user === me) {
+          bubbleSide = "bubble-left";
+          heading = `<span class="bubble-title">Transfer received from <b>${displayFrom}</b>, paid by ${displaySender}</span>`;
+          label = `Amount received from ${displayFrom}, paid on your behalf by ${displaySender}.`;
         }
       } else {
         if (ev.direction === "sender") {
+          bubbleSide = "bubble-right";
           heading = `<span class="bubble-title">You sent a payment to <b>${displayTo}</b></span>`;
+          label = ev.status === "pending"
+              ? "Your payment is awaiting the recipient’s approval."
+              : ev.status === "accepted"
+                ? "Your payment was accepted and credited to the recipient."
+                : ev.status === "rejected"
+                  ? "Your payment was rejected by the recipient."
+                  : ev.status === "canceled"
+                    ? "You canceled this payment before it was acted on."
+                    : "Payment update.";
         } else if (ev.direction === "receiver") {
+          bubbleSide = "bubble-left";
           heading = `<span class="bubble-title"><b>${displayFrom}</b> sent you a payment</span>`;
-        } else {
-          heading = `<span class="bubble-title">Payment activity</span>`;
+          label = ev.status === "pending"
+              ? "This payment is pending your review and acceptance."
+              : ev.status === "accepted"
+                ? "You have accepted and received the payment."
+                : ev.status === "rejected"
+                  ? "You rejected this payment."
+                  : ev.status === "canceled"
+                    ? "The sender canceled this payment."
+                    : "Payment update.";
         }
-      }
-
-      let label = "";
-      if (isTransfer) {
-        label = "This transfer was processed and settled successfully.";
-      } else if (ev.direction === "sender") {
-        label = ev.status === "pending"
-          ? "Your payment is awaiting the recipient’s approval."
-          : ev.status === "accepted"
-            ? "Your payment was accepted and credited to the recipient."
-            : ev.status === "rejected"
-              ? "Your payment was rejected by the recipient."
-              : ev.status === "canceled"
-                ? "You canceled this payment before it was acted on."
-                : "Payment update.";
-      } else if (ev.direction === "receiver") {
-        label = ev.status === "pending"
-          ? "This payment is pending your review and acceptance."
-          : ev.status === "accepted"
-            ? "You have accepted and received the payment."
-            : ev.status === "rejected"
-              ? "You rejected this payment."
-              : ev.status === "canceled"
-                ? "The sender canceled this payment."
-                : "Payment update.";
       }
 
       let statusPill =
@@ -373,7 +364,7 @@ export async function showPaymentsPanel(container, user) {
       </div>
     `;
 
-    // --- Profile modal in menu ---
+    // Three-dot menu
     const menuBtn = container.querySelector('.paypage-menu-3dots');
     const dropdown = container.querySelector('.paypage-menu-dropdown');
     dropdown.innerHTML = `<div>Profile</div>`;
@@ -405,14 +396,12 @@ export async function showPaymentsPanel(container, user) {
       });
     };
 
-    // --- Back (to friends list) ---
     container.querySelector('.paypage-back').onclick = async () => {
       await loadFriends();
       view = "friends";
       renderMain();
     };
 
-    // --- Pay Button ---
     const payBtn = container.querySelector('.paypage-btn.pay');
     if (payBtn) {
       payBtn.onclick = () => {
@@ -439,8 +428,6 @@ export async function showPaymentsPanel(container, user) {
         });
       };
     }
-
-    // --- Transfer Button ---
     const transferBtn = container.querySelector('.paypage-btn.transfer');
     if (transferBtn) {
       transferBtn.onclick = () => {
@@ -448,7 +435,6 @@ export async function showPaymentsPanel(container, user) {
       };
     }
 
-    // --- Bubble Action Buttons ---
     container.querySelectorAll('.bubble-cancel').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
