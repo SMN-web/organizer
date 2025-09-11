@@ -94,31 +94,30 @@ export async function showPaymentsPanel(container, user) {
     }
   }
 
-  // Revised loadTimeline and mapping for direction → dir
-async function loadTimeline(friendUsername) {
-  showSpinner(container);
-  timeline = [];
-  try {
-    const token = await user.firebaseUser.getIdToken(true);
-    const url = `https://pa-ca.nafil-8895-s.workers.dev/api/transactions?friend=${encodeURIComponent(friendUsername)}`;
-    const resp = await fetch(url, { headers: { Authorization: "Bearer " + token } });
-    const data = await resp.json();
-    if (!Array.isArray(data)) throw new Error((data && data.error) ? data.error : "Invalid timeline");
-    // Map backend's direction field to dir ("from"/"to")
-    timeline = data.map(ev => ({
-      ...ev,
-      dir: ev.direction === "sender" || ev.direction === "initiator" ? "from"
-           : ev.direction === "receiver" ? "to"
-           : ""
-    }));
-  } catch (e) {
+  // >>>>>>> REVISED FUNCTION <<<<<<<
+  async function loadTimeline(friendUsername) {
+    showSpinner(container);
     timeline = [];
-    container.innerHTML = `<div style="color:#d12020;padding:2em;">${e.message||e}</div>`;
-    return;
+    try {
+      const token = await user.firebaseUser.getIdToken(true);
+      const url = `https://pa-ca.nafil-8895-s.workers.dev/api/transactions?friend=${encodeURIComponent(friendUsername)}`;
+      const resp = await fetch(url, { headers: { Authorization: "Bearer " + token } });
+      const data = await resp.json();
+      if (!Array.isArray(data)) throw new Error((data && data.error) ? data.error : "Invalid timeline");
+      // Map backend "direction" to frontend "dir"
+      timeline = data.map(ev => ({
+        ...ev,
+        dir: ev.direction === "sender" || ev.direction === "initiator" ? "from"
+             : ev.direction === "receiver" ? "to"
+             : ""
+      }));
+    } catch (e) {
+      timeline = [];
+      container.innerHTML = `<div style="color:#d12020;padding:2em;">${e.message||e}</div>`;
+      return;
+    }
+    hideSpinner(container);
   }
-  hideSpinner(container);
-}
-
 
   async function sendPayment(toUsername, amount) {
     const currency = localStorage.getItem('currency') || "QAR";
@@ -144,7 +143,6 @@ async function loadTimeline(friendUsername) {
         onOk: async () => {
           await loadTimeline(currentFriend.username);
           await loadFriends();
-          // Update currentFriend reference so badge/amount is live
           const updated = friends.find(f => f.username === currentFriend.username);
           if (updated) currentFriend = updated;
           renderUserView();
@@ -190,7 +188,6 @@ async function loadTimeline(friendUsername) {
       onOk: async () => {
         await loadTimeline(currentFriend.username);
         await loadFriends();
-        // Update currentFriend reference so badge/amount is live
         const updated = friends.find(f => f.username === currentFriend.username);
         if (updated) currentFriend = updated;
         renderUserView();
@@ -213,41 +210,6 @@ async function loadTimeline(friendUsername) {
         if (filter === "settled") return f.net === 0;
         return true;
       });
-  }
-
-  function renderMain() {
-    if (view === "friends") {
-      container.innerHTML = `
-        <div class="paypage-wrap">
-          <div class="paypage-padding-top"></div>
-          <div class="paypage-searchbar-row">
-            <input class="paypage-search" autocomplete="off" placeholder="Search friends..." value="${searchTerm}">
-            <select class="paypage-filter">
-              ${FILTERS.map(f => `<option value="${f.value}">${f.label}</option>`).join("")}
-            </select>
-          </div>
-          <div class="paypage-friend-list"></div>
-        </div>
-      `;
-      const searchEl = container.querySelector('.paypage-search');
-      searchEl.value = searchTerm;
-      setTimeout(() => { searchEl.focus(); searchEl.setSelectionRange(searchEl.value.length, searchEl.value.length); }, 5);
-      searchEl.addEventListener("input", e => {
-        searchTerm = e.target.value;
-        updateFriendList();
-      });
-      searchEl.addEventListener("focus", e => {
-        setTimeout(() => { searchEl.setSelectionRange(searchEl.value.length, searchEl.value.length); }, 3);
-      });
-      container.querySelector('.paypage-filter').value = filter;
-      container.querySelector('.paypage-filter').addEventListener("change", e => {
-        filter = e.target.value;
-        updateFriendList();
-      });
-      updateFriendList();
-    } else {
-      renderUserView();
-    }
   }
 
   function updateFriendList() {
@@ -283,8 +245,8 @@ async function loadTimeline(friendUsername) {
         timelineRows.push(`<div class="paypage-date-divider pay-date-header">${groupLabel}</div>`);
         lastDate = groupLabel;
       }
-      if (ev.status === 'canceled' && ev.dir === 'from') return;
-
+      // IMPORTANT: No longer filter by canceled/from, let all allowed by backend appear
+      
       let label =
         ev.dir === "to"
           ? ev.status === "pending"    ? "Payment sent, awaiting approval."
@@ -386,7 +348,6 @@ async function loadTimeline(friendUsername) {
       renderMain();
     };
 
-    // Pay button with modal, not prompt
     const payBtn = container.querySelector('.paypage-btn.pay');
     if (payBtn) {
       payBtn.onclick = () => {
@@ -413,16 +374,13 @@ async function loadTimeline(friendUsername) {
         });
       };
     }
-    // Inside showPaymentsPanel(), when user clicks "Transfer"
-const transferBtn = container.querySelector('.paypage-btn.transfer');
-if (transferBtn) {
-  transferBtn.onclick = () => {
-    showTransferPopup(container, user, currentFriend.username);
-  };
-}
+    const transferBtn = container.querySelector('.paypage-btn.transfer');
+    if (transferBtn) {
+      transferBtn.onclick = () => {
+        showTransferPopup(container, user, currentFriend.username);
+      };
+    }
 
-
-    // Confirmation modals now for all actions
     container.querySelectorAll('.bubble-cancel').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
@@ -465,5 +423,40 @@ if (transferBtn) {
         });
       }
     );
+  }
+
+  function renderMain() {
+    if (view === "friends") {
+      container.innerHTML = `
+        <div class="paypage-wrap">
+          <div class="paypage-padding-top"></div>
+          <div class="paypage-searchbar-row">
+            <input class="paypage-search" autocomplete="off" placeholder="Search friends..." value="${searchTerm}">
+            <select class="paypage-filter">
+              ${FILTERS.map(f => `<option value="${f.value}">${f.label}</option>`).join("")}
+            </select>
+          </div>
+          <div class="paypage-friend-list"></div>
+        </div>
+      `;
+      const searchEl = container.querySelector('.paypage-search');
+      searchEl.value = searchTerm;
+      setTimeout(() => { searchEl.focus(); searchEl.setSelectionRange(searchEl.value.length, searchEl.value.length); }, 5);
+      searchEl.addEventListener("input", e => {
+        searchTerm = e.target.value;
+        updateFriendList();
+      });
+      searchEl.addEventListener("focus", e => {
+        setTimeout(() => { searchEl.setSelectionRange(searchEl.value.length, searchEl.value.length); }, 3);
+      });
+      container.querySelector('.paypage-filter').value = filter;
+      container.querySelector('.paypage-filter').addEventListener("change", e => {
+        filter = e.target.value;
+        updateFriendList();
+      });
+      updateFriendList();
+    } else {
+      renderUserView();
+    }
   }
 }
