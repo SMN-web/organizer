@@ -1,5 +1,5 @@
 body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
-.manage-spend-wrapper { max-width: 430px; margin: 44px auto 0 auto; background: #fff; border-radius:14px; box-shadow: 0 10px 30px #c3dae41a; padding:22px 8px 38px 8px; min-height: 70vh; }
+.manage-spend-wrapper { max-width: 430px; margin: 44px auto 0 auto; background: #fff; border-radius:14px; box-shadow: 0 10px 30px #c3dae41a; padding:22px 8px 38px 8px; min-height: 0; }
 .spend-header { margin-top:32px; }
 .centered-title { text-align:center; margin:0 0 .11em 0; font-size:2em; font-weight:700;}
 .spend-desc { text-align:center; margin-bottom:1em; font-size:1.07em; color:#5f627c;}
