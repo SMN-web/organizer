@@ -1,7 +1,7 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 import { showTransferPopup } from './transfer.js';
 
-// --- Custom Modal Utility ---
+// --- Modal Utility ---
 function showModal({title, content, inputType, inputPlaceholder, inputValue, onOk, onCancel, okText="OK", cancelText="Cancel", showCancel=true}) {
   let modal = document.createElement('div');
   modal.className = "modal-backdrop";
@@ -94,7 +94,6 @@ export async function showPaymentsPanel(container, user) {
     }
   }
 
-  // >>>>>>> REVISED FUNCTION <<<<<<<
   async function loadTimeline(friendUsername) {
     showSpinner(container);
     timeline = [];
@@ -104,14 +103,13 @@ export async function showPaymentsPanel(container, user) {
       const resp = await fetch(url, { headers: { Authorization: "Bearer " + token } });
       const data = await resp.json();
       if (!Array.isArray(data)) throw new Error((data && data.error) ? data.error : "Invalid timeline");
-      // Map backend "direction" to frontend "dir"
       timeline = data.map(ev => ({
-  ...ev,
-  dir: (ev.sender === user.username) ? "from"
-       : (ev.from_user === user.username) ? "from"
-       : (ev.to_user === user.username) ? "to"
-       : ""
-}));
+        ...ev,
+        dir: ev.sender === user.username ? "from"
+            : ev.from_user === user.username ? "from"
+            : ev.to_user === user.username ? "to"
+            : "",
+      }));
     } catch (e) {
       timeline = [];
       container.innerHTML = `<div style="color:#d12020;padding:2em;">${e.message||e}</div>`;
@@ -121,14 +119,13 @@ export async function showPaymentsPanel(container, user) {
   }
 
   async function sendPayment(toUsername, amount) {
-    const currency = localStorage.getItem('currency') || "QAR";
     showSpinner(container);
     try {
       const token = await user.firebaseUser.getIdToken(true);
       const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment', {
         method: "POST",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ to_user: toUsername, amount, currency })
+        body: JSON.stringify({ to_user: toUsername, amount, currency: CURRENCY })
       });
       const result = await resp.json();
       if (!result.ok && result.error) {
@@ -246,8 +243,6 @@ export async function showPaymentsPanel(container, user) {
         timelineRows.push(`<div class="paypage-date-divider pay-date-header">${groupLabel}</div>`);
         lastDate = groupLabel;
       }
-      // IMPORTANT: No longer filter by canceled/from, let all allowed by backend appear
-      
       let label =
         ev.dir === "to"
           ? ev.status === "pending"    ? "Payment sent, awaiting approval."
