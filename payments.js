@@ -110,7 +110,6 @@ export async function showPaymentsPanel(container, user) {
         container.innerHTML = `<div style="color:#d12020;padding:2em;">Failed to read transactions. [Parse error]</div>`;
         return;
       }
-      // --- NEW: grab explicit me field from backend for all logic ---
       backendMe = data.me;
       timeline = Array.isArray(data.transactions) ? data.transactions : [];
     } catch (e) {
@@ -269,15 +268,15 @@ export async function showPaymentsPanel(container, user) {
       if (isTransfer) {
         if (ev.sender === me) {
           bubbleSide = "bubble-right";
-          heading = `Transfer from <b>${displayFrom}</b> to <b>${displayTo}</b>`;
+          heading = `Transfer from <b>${displayFrom}</b> to <b>${displayTo}</b>, initiated by you`;
         } else if (ev.from_user === me) {
           bubbleSide = "bubble-left";
           heading = `Transfer to <b>${displayTo}</b> (initiated by ${displaySender})`;
         } else if (ev.to_user === me) {
           bubbleSide = "bubble-left";
-          heading = `Transfer received from <b>${displayFrom}</b> (paid by ${displaySender})`;
+          heading = `Payment received from <b>${displayFrom}</b> (transferred by ${displaySender})`;
         } else {
-          heading = "Transfer"; // fallback, should never occur now
+          heading = "Transfer"; // Should never hit
         }
       } else if (ev.from_user === me) {
         bubbleSide = "bubble-right";
@@ -342,12 +341,31 @@ export async function showPaymentsPanel(container, user) {
       </div>
     `;
 
-    // Standard event handlers for modals/actions remain unchanged.
+    // All event handlers, for full UI/UX:
     container.querySelector('.paypage-back').onclick = async () => {
       await loadFriends();
       view = "friends";
       renderMain();
     };
+
+    // Three dots menu (profile dropdown/open user actions)
+    container.querySelector('.paypage-menu-3dots').onclick = e => {
+      e.stopPropagation();
+      const menu = container.querySelector('.paypage-menu-dropdown');
+      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+      menu.innerHTML = `
+        <div class="menu-row" id="profile-view">👤 View Profile</div>
+        <div class="menu-row" id="add-note">📝 Add Note</div>
+        <div class="menu-row" id="report-user">🚩 Report User</div>
+      `;
+      document.addEventListener('click', () => { menu.style.display = 'none'; }, { once: true });
+      menu.querySelector('#profile-view').onclick = () => showModal({title:"Profile",content:`Name: ${currentFriend.name}<br>Username: ${currentFriend.username}`,okText:"Close"});
+      // Add other menu actions as needed
+    };
+
+    // Notification bell (if present in header)
+    const notifBell = document.querySelector('.notif-bell');
+    if (notifBell) notifBell.onclick = () => showModal({title:"Notifications",content:"You have no new notifications.",okText:"Close"});
 
     container.querySelectorAll('.bubble-cancel').forEach(btn =>
       btn.onclick = async () => {
@@ -391,7 +409,29 @@ export async function showPaymentsPanel(container, user) {
         });
       }
     );
-    // ...Add all unchanged event/modal/etc logic here as needed...
+
+    // Actions bar buttons
+    container.querySelector('.paypage-btn.pay').onclick = () => {
+      showModal({
+        title: "Send Payment",
+        inputType: "number",
+        inputPlaceholder: "Amount to send",
+        okText: "Send",
+        onOk: async (value) => {
+          let amount = Math.round(Number(value));
+          if (!amount) { showModal({content:"Enter a valid amount",okText:"OK",showCancel:false}); return; }
+          await sendPayment(currentFriend.username, amount);
+        }
+      });
+    };
+
+    container.querySelector('.paypage-btn.transfer').onclick = () => {
+      showTransferPopup(currentFriend.username, CURRENCY, user, async () => {
+        await loadTimeline(currentFriend.username);
+        await loadFriends();
+        renderUserView();
+      });
+    };
   }
 
   function renderMain() {
