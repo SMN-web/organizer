@@ -65,6 +65,7 @@ export async function showPaymentsPanel(container, user) {
   let filter = "all";
   let friends = [];
   let currentFriend = null;
+  let backendMe = null;
   let timeline = [];
   let errMsg = "";
   const CURRENCY = localStorage.getItem('currency') || "QAR";
@@ -96,6 +97,7 @@ export async function showPaymentsPanel(container, user) {
   async function loadTimeline(friendUsername) {
     showSpinner(container);
     timeline = [];
+    backendMe = null;
     try {
       const token = await user.firebaseUser.getIdToken(true);
       const url = `https://pa-ca.nafil-8895-s.workers.dev/api/transactions?friend=${encodeURIComponent(friendUsername)}`;
@@ -108,12 +110,9 @@ export async function showPaymentsPanel(container, user) {
         container.innerHTML = `<div style="color:#d12020;padding:2em;">Failed to read transactions. [Parse error]</div>`;
         return;
       }
-      if (!Array.isArray(data)) {
-        let msg = (data && data.error) ? data.error : 'Timeline is not available.';
-        container.innerHTML = `<div style="color:#d12020;padding:2em;">${msg}</div>`;
-        return;
-      }
-      timeline = data;
+      // --- NEW: grab explicit me field from backend for all logic ---
+      backendMe = data.me;
+      timeline = Array.isArray(data.transactions) ? data.transactions : [];
     } catch (e) {
       timeline = [];
       container.innerHTML = `<div style="color:#d12020;padding:2em;">${e.message||e}</div>`;
@@ -238,9 +237,16 @@ export async function showPaymentsPanel(container, user) {
   }
 
   function renderUserView() {
+    if (!backendMe) {
+      container.innerHTML = `<div class="paypage-wrap"><div class="paypage-chat">
+          <div class="paypage-empty">Current user could not be determined. Please re-login or contact support.</div>
+        </div></div>`;
+      return;
+    }
+
     let timelineRows = [];
     let lastDate = null;
-    const me = user.username; // must strictly match backend for transfer logic
+    const me = backendMe;
 
     if (!timeline.length) {
       container.innerHTML = `<div class="paypage-wrap"><div class="paypage-chat">
@@ -260,11 +266,7 @@ export async function showPaymentsPanel(container, user) {
       let bubbleSide = ev.direction === "sender" ? "bubble-right" : "bubble-left";
       let bubbleExtra = isTransfer ? "transfer-bubble" : "";
 
-      // --- Robust transfer heading and debug fallback ---
       if (isTransfer) {
-        // Debug values for troubleshooting
-        // Uncomment for debugging:
-        // console.log("[TRANSFER DEBUG]", {me, sender: ev.sender, from_user: ev.from_user, to_user: ev.to_user});
         if (ev.sender === me) {
           bubbleSide = "bubble-right";
           heading = `Transfer from <b>${displayFrom}</b> to <b>${displayTo}</b>`;
@@ -275,13 +277,12 @@ export async function showPaymentsPanel(container, user) {
           bubbleSide = "bubble-left";
           heading = `Transfer received from <b>${displayFrom}</b> (paid by ${displaySender})`;
         } else {
-          // fallback for any mismatch/unexpected record; helps debugging
-          heading = `Transfer <small>(Debug: me=${me}, sender=${ev.sender}, from=${ev.from_user}, to=${ev.to_user})</small>`;
+          heading = "Transfer"; // fallback, should never occur now
         }
-      } else if (ev.direction === "sender") {
+      } else if (ev.from_user === me) {
         bubbleSide = "bubble-right";
         heading = `You sent a payment to <b>${displayTo}</b>`;
-      } else if (ev.direction === "receiver") {
+      } else if (ev.to_user === me) {
         bubbleSide = "bubble-left";
         heading = `<b>${displayFrom}</b> sent you a payment`;
       }
@@ -296,9 +297,9 @@ export async function showPaymentsPanel(container, user) {
 
       let actions = "";
       if (!isTransfer && ev.status === "pending") {
-        if (ev.direction === "sender") {
+        if (ev.from_user === me) {
           actions = `<button class="bubble-cancel" data-idx="${idx}">Cancel</button>`;
-        } else if (ev.direction === "receiver") {
+        } else if (ev.to_user === me) {
           actions = `<button class="bubble-accept" data-idx="${idx}">Accept</button>
                     <button class="bubble-reject" data-idx="${idx}">Reject</button>`;
         }
@@ -341,13 +342,13 @@ export async function showPaymentsPanel(container, user) {
       </div>
     `;
 
-    // Actions and modals (pay/transfer/accept/reject/cancel/profile/back) unchanged...
+    // Standard event handlers for modals/actions remain unchanged.
     container.querySelector('.paypage-back').onclick = async () => {
       await loadFriends();
       view = "friends";
       renderMain();
     };
-    // ...remaining handler setup unchanged...
+
     container.querySelectorAll('.bubble-cancel').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
@@ -390,6 +391,7 @@ export async function showPaymentsPanel(container, user) {
         });
       }
     );
+    // ...Add all unchanged event/modal/etc logic here as needed...
   }
 
   function renderMain() {
