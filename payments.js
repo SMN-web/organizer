@@ -1,7 +1,6 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 import { showTransferPopup } from './transfer.js';
 
-// --- Modal Utility ---
 function showModal({title, content, inputType, inputPlaceholder, inputValue, onOk, onCancel, okText="OK", cancelText="Cancel", showCancel=true}) {
   let modal = document.createElement('div');
   modal.className = "modal-backdrop";
@@ -101,9 +100,19 @@ export async function showPaymentsPanel(container, user) {
       const token = await user.firebaseUser.getIdToken(true);
       const url = `https://pa-ca.nafil-8895-s.workers.dev/api/transactions?friend=${encodeURIComponent(friendUsername)}`;
       const resp = await fetch(url, { headers: { Authorization: "Bearer " + token } });
-      const data = await resp.json();
-      if (!Array.isArray(data)) throw new Error((data && data.error) ? data.error : "Invalid timeline");
-      // Fix: Only use ev.direction as returned by the backend!
+      let data;
+      try {
+        data = await resp.json();
+      } catch (jsonErr) {
+        timeline = [];
+        container.innerHTML = `<div style="color:#d12020;padding:2em;">Failed to read transactions. [Parse error]</div>`;
+        return;
+      }
+      if (!Array.isArray(data)) {
+        let msg = (data && data.error) ? data.error : 'Timeline is not available.';
+        container.innerHTML = `<div style="color:#d12020;padding:2em;">${msg}</div>`;
+        return;
+      }
       timeline = data.map(ev => ({
         ...ev,
         dir: ev.direction === "sender" ? "from"
@@ -236,6 +245,15 @@ export async function showPaymentsPanel(container, user) {
   function renderUserView() {
     let timelineRows = [];
     let lastDate = null;
+
+    // UI Message if timeline is empty
+    if (!timeline.length) {
+      container.innerHTML = `<div class="paypage-wrap"><div class="paypage-chat">
+        <div class="paypage-empty">No transactions found for this friend.</div>
+      </div></div>`;
+      return;
+    }
+
     timeline.forEach((ev, idx) => {
       const dtObj = parseDBDatetimeAsUTC(ev.last_updated);
       const groupLabel = getDateLabel(dtObj);
@@ -243,6 +261,13 @@ export async function showPaymentsPanel(container, user) {
         timelineRows.push(`<div class="paypage-date-divider pay-date-header">${groupLabel}</div>`);
         lastDate = groupLabel;
       }
+
+      // Validate direction
+      if (ev.dir !== "from" && ev.dir !== "to") {
+        timelineRows.push(`<div style="color:#d12020;font-size:1em;margin:1.2em 0;">This transaction cannot be displayed (invalid direction field).</div>`);
+        return;
+      }
+      
       let label =
         ev.dir === "to"
           ? ev.status === "pending"    ? "Payment sent, awaiting approval."
