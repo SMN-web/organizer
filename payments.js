@@ -94,23 +94,31 @@ export async function showPaymentsPanel(container, user) {
     }
   }
 
-  async function loadTimeline(friendUsername) {
-    showSpinner(container);
+  // Revised loadTimeline and mapping for direction → dir
+async function loadTimeline(friendUsername) {
+  showSpinner(container);
+  timeline = [];
+  try {
+    const token = await user.firebaseUser.getIdToken(true);
+    const url = `https://pa-ca.nafil-8895-s.workers.dev/api/transactions?friend=${encodeURIComponent(friendUsername)}`;
+    const resp = await fetch(url, { headers: { Authorization: "Bearer " + token } });
+    const data = await resp.json();
+    if (!Array.isArray(data)) throw new Error((data && data.error) ? data.error : "Invalid timeline");
+    // Map backend's direction field to dir ("from"/"to")
+    timeline = data.map(ev => ({
+      ...ev,
+      dir: ev.direction === "sender" || ev.direction === "initiator" ? "from"
+           : ev.direction === "receiver" ? "to"
+           : ""
+    }));
+  } catch (e) {
     timeline = [];
-    try {
-      const token = await user.firebaseUser.getIdToken(true);
-      const url = `https://pa-ca.nafil-8895-s.workers.dev/api/transactions?friend=${encodeURIComponent(friendUsername)}`;
-      const resp = await fetch(url, { headers: { Authorization: "Bearer " + token } });
-      const data = await resp.json();
-      if (!Array.isArray(data)) throw new Error((data && data.error) ? data.error : "Invalid timeline");
-      timeline = data;
-    } catch (e) {
-      timeline = [];
-      container.innerHTML = `<div style="color:#d12020;padding:2em;">${e.message||e}</div>`;
-      return;
-    }
-    hideSpinner(container);
+    container.innerHTML = `<div style="color:#d12020;padding:2em;">${e.message||e}</div>`;
+    return;
   }
+  hideSpinner(container);
+}
+
 
   async function sendPayment(toUsername, amount) {
     const currency = localStorage.getItem('currency') || "QAR";
