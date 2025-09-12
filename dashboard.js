@@ -41,14 +41,9 @@ export function showDashboard(container, user) {
       color: #2c3e50;
       animation: fadein 0.7s ease-out forwards;
     }
-
     @media (max-width: 680px) {
-      .db-main {
-        max-width: 95vw;
-        padding: 1em 0.5em;
-      }
+      .db-main { max-width: 95vw; padding: 1em 0.5em; }
     }
-
     .db-metric-cards {
       display: flex;
       flex-wrap: wrap;
@@ -56,7 +51,6 @@ export function showDashboard(container, user) {
       justify-content: space-between;
       margin: 2em 0 1.8em;
     }
-
     .db-card {
       flex: 1 0 140px;
       max-width: 160px;
@@ -71,11 +65,7 @@ export function showDashboard(container, user) {
       cursor: default;
       user-select: none;
     }
-
-    .db-card:hover {
-      box-shadow: 0 12px 24px rgb(37 115 255 / 0.25);
-    }
-
+    .db-card:hover { box-shadow: 0 12px 24px rgb(37 115 255 / 0.25); }
     .db-card-label {
       font-size: 0.95em;
       margin-bottom: 0.3em;
@@ -84,14 +74,12 @@ export function showDashboard(container, user) {
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
-
     .db-card-val {
       font-size: 1.5em;
       font-weight: 700;
       color: #1a237e;
       letter-spacing: 0.02em;
     }
-
     .db-card-animbar {
       width: 90%;
       height: 8px;
@@ -100,22 +88,18 @@ export function showDashboard(container, user) {
       margin: 0.8em auto 0.15em;
       overflow: hidden;
     }
-
     .db-card-animfill {
       height: 100%;
       border-radius: 5px;
       background: linear-gradient(90deg, #1e88e5, #42a5f5);
       transition: width 0.7s ease-in-out;
     }
-
     .db-card-animfill.you-owe {
       background: linear-gradient(90deg, #ef5350, #e53935);
     }
-
     .db-card-animfill.net-pos {
       background: linear-gradient(90deg, #43a047, #388e3c);
     }
-
     .db-section-hdr {
       font-size: 1.2em;
       font-weight: 600;
@@ -125,24 +109,14 @@ export function showDashboard(container, user) {
       padding-bottom: 0.3em;
       text-align: left;
     }
-
     .db-piewrap {
       display: flex;
       align-items: center;
       margin-bottom: 2.7em;
       gap: 1.2em;
     }
-
-    .db-donut-svg {
-      width: 80px;
-      height: 80px;
-    }
-
-    .db-pietotal {
-      font-weight: 600;
-      color: #1e88e5;
-    }
-
+    .db-donut-svg { width: 80px; height: 80px; }
+    .db-pietotal { font-weight: 600; color: #1e88e5; }
     .db-ballist {
       margin: 0 auto 2.8em;
       width: 100%;
@@ -153,56 +127,36 @@ export function showDashboard(container, user) {
       overflow: hidden;
       box-shadow: 0 8px 20px rgb(30 136 229 / 0.09);
     }
-
     .db-ballist th,
     .db-ballist td {
       padding: 12px 15px;
       font-size: 1.05em;
     }
-
     .db-ballist th {
       background: #e3f2fd;
       color: #1976d2;
       font-weight: 700;
       text-align: left;
     }
-
-    .db-ballist tr:nth-child(even) td {
-      background: #fafafa;
-    }
-
-    .db-ballist tr:nth-child(odd) td {
-      background: #f4faff;
-    }
-
+    .db-ballist tr:nth-child(even) td { background: #fafafa; }
+    .db-ballist tr:nth-child(odd) td { background: #f4faff; }
     .db-ballist tr:hover td {
       background-color: #bbdefb;
       color: #0d47a1;
       transition: background-color 0.3s ease;
     }
-
     .db-ballist td:first-child {
-      font-weight: 600;
-      color: #1565c0;
+      font-weight: 600; color: #1565c0;
     }
-
     .db-histstat {
       color: #34495e;
       margin: 1em 0;
       font-size: 1.02em;
       font-weight: 500;
     }
-
     @keyframes fadein {
-      0% {
-        opacity: 0;
-        transform: translateY(30px);
-      }
-
-      100% {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      0% { opacity: 0; transform: translateY(30px); }
+      100% { opacity: 1; transform: translateY(0); }
     }
   </style>
   <div class="db-main">
@@ -260,7 +214,6 @@ export function showDashboard(container, user) {
       }).join('')
     }
     </table>
-
     <div class="db-section-hdr"><span>Net Share Position</span></div>
     <div class="db-piewrap" style="margin-bottom:2.5em;">
       <svg class="db-donut-svg" width="76" height="76" viewBox="0 0 76 76" aria-label="Net share position chart" role="img">
@@ -273,7 +226,6 @@ export function showDashboard(container, user) {
         <div style="font-size:1.05em;color:#546e7a;font-weight:400;">You Are Owed vs You Owe</div>
       </div>
     </div>
-    
     <div class="db-section-hdr">Your Activity</div>
     <div class="db-histstat" role="region" aria-live="polite">
       <span>Spends participated: <b>${demo.spends}</b> &bull; 
