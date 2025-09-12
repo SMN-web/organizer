@@ -247,6 +247,12 @@ export async function showPaymentsPanel(container, user) {
     let lastDate = null;
     const me = backendMe;
 
+    if (!timeline.length) {
+  container.innerHTML = `<div class="paypage-wrap"><div class="paypage-chat">
+    <div class="paypage-empty">No transactions found for this friend.</div>
+  </div></div>`;
+  return;
+}
     timeline.forEach((ev, idx) => {
       const dtObj = parseDBDatetimeAsUTC(ev.last_updated);
       const displayFrom = ev.from_user_name || ev.from_user || '';
