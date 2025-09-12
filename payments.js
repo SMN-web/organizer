@@ -247,11 +247,6 @@ export async function showPaymentsPanel(container, user) {
     let lastDate = null;
     const me = backendMe;
 
-    if (!timeline.length) {
-      renderPaymentControls();
-      return;
-    }
-
     timeline.forEach((ev, idx) => {
       const dtObj = parseDBDatetimeAsUTC(ev.last_updated);
       const displayFrom = ev.from_user_name || ev.from_user || '';
