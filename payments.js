@@ -248,9 +248,7 @@ export async function showPaymentsPanel(container, user) {
     const me = backendMe;
 
     if (!timeline.length) {
-      container.innerHTML = `<div class="paypage-wrap"><div class="paypage-chat">
-        <div class="paypage-empty">No transactions found for this friend.</div>
-      </div></div>`;
+      renderPaymentControls();
       return;
     }
 
