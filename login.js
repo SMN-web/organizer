@@ -102,7 +102,7 @@ export function showLogin(container) {
     try {
       // Backend login-lookup
       const resp = await fetch(
-        "https://lucky-dawn-90bb.nafil-8895-s.workers.dev/api/login-lookup",
+        "https://lo-in.nafil-8895-s.workers.dev/api/login-lookup",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
