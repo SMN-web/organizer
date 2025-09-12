@@ -97,7 +97,7 @@ export function showSignup(container) {
   const checkUnique = debounce(async (field, value) => {
     if (!value) return;
     try {
-      const res = await fetch('https://holy-fog-231f.nafil-8895-s.workers.dev/api/check-unique', {
+      const res = await fetch('https://si-up.nafil-8895-s.workers.dev/api/check-unique', {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [field]: value.toLowerCase() })
@@ -299,7 +299,7 @@ export function showSignup(container) {
       await sendEmailVerification(cred.user);
 
       // Call backend to create user record (no emailVerified)
-      await fetch("https://holy-fog-231f.nafil-8895-s.workers.dev/api/register-user", {
+      await fetch("https://si-up.nafil-8895-s.workers.dev/api/register-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
