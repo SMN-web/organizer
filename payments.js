@@ -261,13 +261,13 @@ export async function showPaymentsPanel(container, user) {
       if (isTransfer) {
         if (ev.sender === me) {
           bubbleSide = "bubble-right";
-          heading = `Transfer from <b>${displayFrom}</b> to <b>${displayTo}</b>, initiated by you`;
+          heading = `Transfer from <b>${displayFrom}</b> to <b>${displayTo}</b> (transfer initiated by you)`;
         } else if (ev.from_user === me) {
           bubbleSide = "bubble-left";
-          heading = `Transfer to <b>${displayTo}</b> (initiated by ${displaySender})`;
+          heading = `Payment sent to <b>${displayTo}</b> (transfer initiated by ${displaySender})`;
         } else if (ev.to_user === me) {
           bubbleSide = "bubble-left";
-          heading = `Payment received from <b>${displayFrom}</b> (transferred by ${displaySender})`;
+          heading = `Payment received from <b>${displayFrom}</b> (transfer initiated by ${displaySender})`;
         } else {
           heading = "Transfer"; // Should never hit
         }
