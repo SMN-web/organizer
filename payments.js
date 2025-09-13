@@ -75,6 +75,17 @@ export async function showPaymentsPanel(container, user) {
   const CURRENCY = localStorage.getItem('currency') || "QAR";
 
   await loadFriends();
+
+  if (selectedFriend) {
+    currentFriend = friends.find(f => f.username === selectedFriend);
+    if (currentFriend) {
+      view = "user";
+      await loadTimeline(currentFriend.username);
+      renderUserView();
+      return;
+    }
+  }
+
   renderMain();
 
   async function loadFriends() {
@@ -337,18 +348,6 @@ export async function showPaymentsPanel(container, user) {
         </div>
       </div>
     `;
-    
-    // After loading friends:
-
-  if (selectedFriend) {
-    currentFriend = friends.find(f => f.username === selectedFriend);
-    if (currentFriend) {
-      view = "user";
-      await loadTimeline(currentFriend.username);
-      renderUserView();
-      return;
-    }
-  }
 
     // All event handlers, for full UI/UX:
     container.querySelector('.paypage-back').onclick = async () => {
