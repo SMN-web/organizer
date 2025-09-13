@@ -1,8 +1,5 @@
 export async function showDashboard(container, user) {
-  // Helper
-  function escapeHtml(str) { return String(str).replace(/[<>&"]/g, t => t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;"); }
-
-  // ========== Demo Data for Remaining Sections ==========
+  // Demo Data for metrics, recent activity, stats grid, etc.
   const demo = {
     paidTotal: 342,
     owedTotal: 119,
@@ -23,51 +20,75 @@ export async function showDashboard(container, user) {
     ]
   };
 
-  // ========== API Integration: Friends + Settle Up ==========
+  // Utility
+  function escapeHtml(str) {
+    return String(str).replace(/[<>&"]/g, t => t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
+  }
+
   const FRIENDS_PER_PAGE = 5;
   let friends = [];
   let page = 0;
   let openCardIdx = null;
 
+  // API calls using Firebase Auth for token
   async function fetchFriendsList() {
-    const resp = await fetch("https://pa-ca.nafil-8895-s.workers.dev/api/settlements/friends", {
-      headers: { "Authorization": "Bearer " + user.token }
-    });
-    if (!resp.ok) throw new Error("Failed to fetch friends");
-    return await resp.json();
+    try {
+      showSpinner(container);
+      if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function')
+        throw new Error("Not logged in");
+      const token = await user.firebaseUser.getIdToken(true);
+      const resp = await fetch('/api/settlements/friends', {
+        headers: { Authorization: "Bearer " + token }
+      });
+      const data = await resp.json();
+      hideSpinner(container);
+      if (!Array.isArray(data) && data.error) throw new Error(data.error);
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      hideSpinner(container);
+      container.innerHTML = `<div style="color:#d12020;margin:2em;">${e.message || e}</div>`;
+      throw e;
+    }
   }
+
   async function sendSettlePayment(toUser, amount) {
-    const resp = await fetch("https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment", {
-      method: "POST",
-      headers: {
-        "Authorization": "Bearer " + user.token,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ to_user: toUser, amount: Number(amount), currency: "QAR" })
-    });
-    const data = await resp.json();
-    if (!resp.ok || !data.ok) throw new Error(data.error || "Payment failed");
-    return data.payment_id;
+    try {
+      showSpinner(container);
+      const token = await user.firebaseUser.getIdToken(true);
+      const resp = await fetch('/api/expense_payment', {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ to_user: toUser, amount, currency: "QAR" })
+      });
+      const result = await resp.json();
+      hideSpinner(container);
+      if (!result.ok) throw new Error(result.error || "Payment failed");
+      return result.payment_id;
+    } catch (e) {
+      hideSpinner(container);
+      showModal && showModal({ content: e.message || e, okText: "OK" }); // Optional modal helper
+      throw e;
+    }
   }
 
   function donutSVG(owed, owe, net) {
-    const tot = owed+owe, c = 2*Math.PI*38, pct1 = tot ? owed/tot : 0, pct2 = tot ? owe/tot : 0;
+    const tot = owed + owe, c = 2 * Math.PI * 38, pct1 = tot ? owed / tot : 0, pct2 = tot ? owe / tot : 0;
     let netColor = net > 0 ? "#43a047" : net < 0 ? "#e53935" : "#789";
     return `
       <div id="donutChartArea" style="cursor:pointer;">
-      <svg width="88" height="88" viewBox="0 0 88 88" style="display:block;margin:0 auto 0.2em;">
-        <circle r="38" cx="44" cy="44" fill="#f3f8fc"/>
-        <circle r="38" cx="44" cy="44" fill="none" stroke="#43a047" stroke-width="12"
-          stroke-dasharray="${pct1*c},${c}" stroke-linecap="round" />
-        <circle r="38" cx="44" cy="44" fill="none" stroke="#e53935" stroke-width="12"
-          stroke-dasharray="${pct2*c},${c}" stroke-linecap="round"
-          style="transform:rotate(${pct1*360}deg);transform-origin:44px 44px;" />
-        <text x="44" y="54" text-anchor="middle" font-size="24" fill="${netColor}" font-weight="700">${net >= 0 ? '+' : '-'}${Math.abs(net)}</text>
-      </svg>
-      <div style="font-size:1em;font-weight:700;text-align:center;">
-        <span style="color:#43a047;">Owed (Green)</span> • <span style="color:#e53935;">Owe (Red)</span>
-        <span style="font-size:.92em;color:#9cacc0;">(Tap chart for legend)</span>
-      </div>
+        <svg width="88" height="88" viewBox="0 0 88 88" style="display:block;margin:0 auto 0.2em;">
+          <circle r="38" cx="44" cy="44" fill="#f3f8fc"/>
+          <circle r="38" cx="44" cy="44" fill="none" stroke="#43a047" stroke-width="12"
+            stroke-dasharray="${pct1 * c},${c}" stroke-linecap="round" />
+          <circle r="38" cx="44" cy="44" fill="none" stroke="#e53935" stroke-width="12"
+            stroke-dasharray="${pct2 * c},${c}" stroke-linecap="round"
+            style="transform:rotate(${pct1 * 360}deg);transform-origin:44px 44px;" />
+          <text x="44" y="54" text-anchor="middle" font-size="24" fill="${netColor}" font-weight="700">${net >= 0 ? '+' : '-'}${Math.abs(net)}</text>
+        </svg>
+        <div style="font-size:1em;font-weight:700;text-align:center;">
+          <span style="color:#43a047;">Owed (Green)</span> • <span style="color:#e53935;">Owe (Red)</span>
+          <span style="font-size:.92em;color:#9cacc0;">(Tap chart for legend)</span>
+        </div>
       </div>
     `;
   }
@@ -109,12 +130,14 @@ export async function showDashboard(container, user) {
     `;
   }
 
-  // ========== Render Dashboard (initial + after fetch) ==========
   function renderDashboard() {
-    // Totals for donut and net
-    let owed = friends.filter(f=>f.net>0).reduce((s,f)=>s+f.net,0);
-    let owe = friends.filter(f=>f.net<0).reduce((s,f)=>s+Math.abs(f.net),0);
+    let owed = friends.filter(f => f.net > 0).reduce((s, f) => s + f.net, 0);
+    let owe = friends.filter(f => f.net < 0).reduce((s, f) => s + Math.abs(f.net), 0);
     let net = owed - owe;
+    let netBG = net > 0 ? "#e7fff0" : net < 0 ? "#ffe6e6" : "#ececec";
+    let netColor = net > 0 ? "#43a047" : net < 0 ? "#e53935" : "#789";
+    let settledPct = Math.min(100, Math.round(demo.settled / (demo.spends + demo.settled) * 100));
+
     container.innerHTML = `
     <div class="fd-main">
       ${demo.payments?.length ?
@@ -145,14 +168,14 @@ export async function showDashboard(container, user) {
         <a class="fd-rec-link" href="#" onclick="event.preventDefault();alert('Go to transactions/all friends page')">Transactions</a>
       </div>
       <div class="fd-rec-list">
-        ${(demo.recent||[]).map(ev=>`
+        ${(demo.recent || []).map(ev => `
           <div class="fd-rec-card">
             <span class="fd-rc-dot ${ev.type}"></span>
             <div class="fd-rc-details">
               <div class="fd-rc-amount">${ev.amount} QAR</div>
-              <div class="fd-rc-desc">${ev.type==="received"?"Received from <b>"+escapeHtml(ev.name)+"</b>":
-                ev.type==="sent"?"Sent to <b>"+escapeHtml(ev.name)+"</b>":
-                "Settled with <b>"+escapeHtml(ev.name)+"</b>"}
+              <div class="fd-rc-desc">${ev.type === "received" ? "Received from <b>" + escapeHtml(ev.name) + "</b>" :
+                ev.type === "sent" ? "Sent to <b>" + escapeHtml(ev.name) + "</b>" :
+                  "Settled with <b>" + escapeHtml(ev.name) + "</b>"}
               </div>
               <div class="fd-rc-date">${escapeHtml(ev.date)}</div>
             </div>
@@ -170,9 +193,10 @@ export async function showDashboard(container, user) {
     </div>
     `;
 
-    // ------ Friends Cards & Paging Section -------
+    // Friends cards and paging
     container.querySelector("#fd-friend-list").innerHTML = renderFriendsList();
     container.querySelector("#fd-friend-pager").innerHTML = renderFriendsPager();
+
     // Paging logic
     let pagerRow = container.querySelector(".fd-pager-row");
     if (pagerRow) {
@@ -185,25 +209,25 @@ export async function showDashboard(container, user) {
         };
       });
     }
-    // Card open/collapse + action buttons
-    container.querySelectorAll('.fd-fcard').forEach(card=>{
+    // Only open/close card for non-button click
+    container.querySelectorAll('.fd-fcard').forEach(card => {
       card.onclick = evt => {
-        if(evt.target.closest('.fd-fbtn')) return;
+        if (evt.target.closest('.fd-fbtn')) return;
         let idx = Number(card.getAttribute('data-idx'));
         openCardIdx = openCardIdx === idx ? null : idx;
         renderDashboard();
       }
     });
-    container.querySelectorAll('.fd-fbtn').forEach(btn=>{
+    container.querySelectorAll('.fd-fbtn').forEach(btn => {
       btn.onclick = async ev => {
         ev.stopPropagation();
         const card = btn.closest('.fd-fcard');
         let idx = Number(card.getAttribute('data-idx'));
-        let friend = friends[page*FRIENDS_PER_PAGE+idx];
-        if(btn.textContent==="Settle Up") {
+        let friend = friends[page * FRIENDS_PER_PAGE + idx];
+        if (btn.textContent === "Settle Up") {
           showPayModal(friend.username, Math.abs(friend.net));
-        } else if(btn.textContent==="Transactions") {
-          alert("Show transactions with "+friend.name);
+        } else if (btn.textContent === "Transactions") {
+          alert("Show transactions with " + friend.name);
         }
       };
     });
@@ -217,7 +241,6 @@ export async function showDashboard(container, user) {
     }
   }
 
-  // Donut legend modal
   function showPieLegendModal() {
     const modal = document.createElement("div");
     modal.className = "fd-pay-modal";
@@ -238,10 +261,9 @@ export async function showDashboard(container, user) {
       </div>`;
     document.body.appendChild(modal);
     modal.querySelector('.fd-pay-close').onclick =
-      modal.onclick = ev => { if(ev.target === modal || ev.target.classList.contains('fd-pay-close')) document.body.removeChild(modal);}
+      modal.onclick = ev => { if (ev.target === modal || ev.target.classList.contains('fd-pay-close')) document.body.removeChild(modal); };
   }
 
-  // Settle Up modal
   function showPayModal(username, amountMax) {
     const modal = document.createElement("div");
     modal.className = "fd-pay-modal";
@@ -257,7 +279,7 @@ export async function showDashboard(container, user) {
 
     const closeHandler = () => document.body.removeChild(modal);
     modal.querySelector('.fd-pay-close').onclick = closeHandler;
-    modal.onclick = ev => { if(ev.target === modal) closeHandler(); };
+    modal.onclick = ev => { if (ev.target === modal) closeHandler(); };
 
     modal.querySelector('.fd-pay-confirm').onclick = async () => {
       const amount = +modal.querySelector('.fd-pay-input').value;
@@ -265,16 +287,13 @@ export async function showDashboard(container, user) {
         await sendSettlePayment(username, amount);
         modal.querySelector('.fd-pay-confirm').textContent = "Sent!";
         setTimeout(closeHandler, 900);
-        // Optionally refetch friends and redraw dashboard
         friends = await fetchFriendsList();
         renderDashboard();
-      } catch(e) {
+      } catch (e) {
         modal.querySelector('.fd-pay-error').textContent = e.message;
       }
     };
   }
-
-  // ========== Initial Load ==========
 
   // Show spinner while loading
   container.innerHTML = `<div class="fd-main"><div style="text-align:center;margin:3em auto;font-size:1.28em;color:#2566b2;font-weight:700;">Loading group balances&hellip;</div></div>`;
@@ -282,6 +301,22 @@ export async function showDashboard(container, user) {
     friends = await fetchFriendsList();
     renderDashboard();
   } catch (e) {
-    container.innerHTML = `<div class="fd-main"><div style="color:#e53935;font-weight:700;text-align:center;">Failed to load data.<br>${escapeHtml(e.message)}</div></div>`;
+    // already handled above
   }
 }
+
+// Optional: plug in your own showSpinner/hideSpinner/showModal
+function showSpinner(container) {
+  if (!container.__spinner) {
+    container.__spinner = document.createElement("div");
+    container.__spinner.innerHTML = "<div style='text-align:center;margin:2em;font-size:1.21em;color:#176dc4;'>Loading&hellip;</div>";
+    container.appendChild(container.__spinner);
+  }
+}
+function hideSpinner(container) {
+  if (container.__spinner) {
+    container.removeChild(container.__spinner);
+    container.__spinner = null;
+  }
+}
+// You can implement/showModal similarly or use any modal component you prefer
