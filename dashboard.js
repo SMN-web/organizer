@@ -1,9 +1,10 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 import { showPaymentsPanelMain } from './paymentPanel.js';
 import { showManageSpend } from './manageSpend.js';
+import { showFriends } from './friends.js';
 
 export async function showDashboard(container, userContext, mainContentRef) {
-  // Demo data for metrics, recent, etc.
+  // Demo metrics, recent activity, etc.
   const demo = {
     paidTotal: 342,
     owedTotal: 119,
@@ -97,6 +98,7 @@ export async function showDashboard(container, userContext, mainContentRef) {
       </div>
     `;
   }
+
   function renderFriendsList(list) {
     return list.map((f, idx) => {
       let isGreen = f.net > 0, isRed = f.net < 0;
@@ -134,7 +136,6 @@ export async function showDashboard(container, userContext, mainContentRef) {
     `;
   }
 
-  // Modal
   function showModal(args) {
     let modal = document.createElement('div');
     modal.className = "modal-backdrop";
@@ -203,7 +204,7 @@ export async function showDashboard(container, userContext, mainContentRef) {
         </div>` : ''}
       <div class="fd-title">Group Payments Dashboard</div>
       <div class="fd-btn-row">
-        <button class="fd-btn-main" id="paymentsBtn">Payments</button>
+        <button class="fd-btn-main" id="friendsBtn">Friends</button>
         <button class="fd-btn-main expense" id="splitBtn">Split Expense</button>
       </div>
       <div class="fd-piepanel">${donutSVG(owed, owe, net)}</div>
@@ -251,13 +252,12 @@ export async function showDashboard(container, userContext, mainContentRef) {
     `;
 
     // Top button reroutes
-    container.querySelector('#paymentsBtn').onclick = () => {
-      showPaymentsPanelMain(mainContentRef || container, userContext);
+    container.querySelector('#friendsBtn').onclick = () => {
+      showFriends(mainContentRef || container, userContext);
     };
     container.querySelector('#splitBtn').onclick = () => {
       showManageSpend(mainContentRef || container, userContext);
     };
-
     // Transactions link reroute
     const transactionsLink = container.querySelector('#transactionsLink');
     if (transactionsLink) {
@@ -338,7 +338,9 @@ export async function showDashboard(container, userContext, mainContentRef) {
             }
           });
         } else if (btn.textContent === "Transactions") {
-          showPaymentsPanelMain(mainContentRef || container, userContext, { friendUsername: friend.username });
+          // Use global variable to route/filter friend in payments panel
+          window.selectedFriendForPayments = friend.username;
+          showPaymentsPanelMain(mainContentRef || container, userContext);
         }
       };
     });
