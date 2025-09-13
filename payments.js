@@ -57,18 +57,7 @@ export async function showPaymentsPanel(container, user) {
  let selectedFriend = window.selectedFriendForPayments || null;
   window.selectedFriendForPayments = null;  // Clear after use
 
-  // After loading friends:
-  await loadFriends();
-
-  if (selectedFriend) {
-    currentFriend = friends.find(f => f.username === selectedFriend);
-    if (currentFriend) {
-      view = "user";
-      await loadTimeline(currentFriend.username);
-      renderUserView();
-      return;
-    }
-  }
+  
   const FILTERS = [
     { value: "all", label: "All" },
     { value: "owed", label: "Owed" },
@@ -348,6 +337,19 @@ export async function showPaymentsPanel(container, user) {
         </div>
       </div>
     `;
+    
+    // After loading friends:
+  await loadFriends();
+
+  if (selectedFriend) {
+    currentFriend = friends.find(f => f.username === selectedFriend);
+    if (currentFriend) {
+      view = "user";
+      await loadTimeline(currentFriend.username);
+      renderUserView();
+      return;
+    }
+  }
 
     // All event handlers, for full UI/UX:
     container.querySelector('.paypage-back').onclick = async () => {
