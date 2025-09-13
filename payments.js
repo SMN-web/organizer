@@ -280,7 +280,7 @@ export async function showPaymentsPanel(container, user) {
       }
 
       let statusPill =
-        isTransfer ? `<span class="status-pill accepted">Transfer</span>`
+        isTransfer ? `<span class="status-pill accepted">Transferred</span>`
         : ev.status === "accepted"  ? `<span class="status-pill accepted">Accepted</span>`
         : ev.status === "rejected"  ? `<span class="status-pill rejected">Rejected</span>`
         : ev.status === "pending"   ? `<span class="status-pill pending">Pending</span>`
@@ -355,12 +355,7 @@ export async function showPaymentsPanel(container, user) {
       menu.querySelector('#profile-view').onclick = () => showModal({title:"Profile",content:`Name: ${currentFriend.name}<br>Username: ${currentFriend.username}`,okText:"Close"});
       // Add other menu actions as needed
     };
-
-    // Notification bell (if present in header)
-    const notifBell = document.querySelector('.notif-bell');
-    if (notifBell) notifBell.onclick = () => showModal({title:"Notifications",content:"You have no new notifications.",okText:"Close"});
-
-    container.querySelectorAll('.bubble-cancel').forEach(btn =>
+ container.querySelectorAll('.bubble-cancel').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
         const paymentId = timeline[idx].payment_id;
