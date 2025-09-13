@@ -1,7 +1,7 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 
 export async function showDashboard(container, user) {
-  // Demo data for non-API sections
+  // Demo data for metrics, recent, etc.
   const demo = {
     paidTotal: 342,
     owedTotal: 119,
@@ -26,13 +26,12 @@ export async function showDashboard(container, user) {
     return String(str).replace(/[<>&"]/g, t => t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
   }
 
-  // Helper for API calls and UI state
   const FRIENDS_PER_PAGE = 5;
   let friends = [];
   let page = 0;
   let openCardIdx = null;
 
-  // API: fetch non-settled friends and progress stats
+  // API: fetch friends, split into outstanding/settled
   async function fetchFriendsList() {
     try {
       showSpinner(container);
@@ -45,7 +44,6 @@ export async function showDashboard(container, user) {
       const data = await resp.json();
       hideSpinner(container);
       if (!Array.isArray(data) && data.error) throw new Error(data.error);
-      // Split into non-settled and settled
       const outstanding = data.filter(f => f.net !== 0);
       const settled = data.filter(f => f.net === 0);
       return { outstanding, settled, all: data };
@@ -134,7 +132,7 @@ export async function showDashboard(container, user) {
     `;
   }
 
-  // Modal for confirmation/error
+  // Modal
   function showModal(args) {
     let modal = document.createElement('div');
     modal.className = "modal-backdrop";
@@ -186,7 +184,6 @@ export async function showDashboard(container, user) {
 
   function renderDashboard(friendsResult = { outstanding: [], settled: [], all: [] }) {
     friends = friendsResult.outstanding;
-    // Settled payments progress indicator
     const numSettled = friendsResult.settled.length;
     const numTotal = friendsResult.outstanding.length + numSettled;
     let owed = friends.filter(f=>f.net>0).reduce((s,f)=>s+f.net,0);
@@ -251,7 +248,7 @@ export async function showDashboard(container, user) {
     </div>
     `;
 
-    // Paginated friends section (show only outstanding)
+    // Friends paginated cards
     const friendsPage = friends.slice(page * FRIENDS_PER_PAGE, page * FRIENDS_PER_PAGE + FRIENDS_PER_PAGE);
     container.querySelector("#fd-friend-list").innerHTML = renderFriendsList(friendsPage);
     container.querySelector("#fd-friend-pager").innerHTML = renderFriendsPager(friends);
@@ -267,7 +264,7 @@ export async function showDashboard(container, user) {
         };
       });
     }
-    // Card open/collapse, only if not clicking button
+
     container.querySelectorAll('.fd-fcard').forEach(card => {
       card.onclick = evt => {
         if (evt.target.closest('.fd-fbtn')) return;
@@ -276,7 +273,6 @@ export async function showDashboard(container, user) {
         renderDashboard(friendsResult);
       }
     });
-    // Settle up and transactions
     container.querySelectorAll('.fd-fbtn').forEach(btn => {
       btn.onclick = async ev => {
         ev.stopPropagation();
@@ -284,26 +280,45 @@ export async function showDashboard(container, user) {
         let idx = Number(card.getAttribute('data-idx'));
         let friend = friendsPage[idx];
         if (btn.textContent === "Settle Up") {
+          // Modal Step 1: Enter amount
           showModal({
-            title: "Confirm Payment",
-            content: `Are you sure you want to pay <b>${Math.abs(friend.net)} QAR</b> to <b>${escapeHtml(friend.name)}</b>?`,
-            okText: "Confirm",
-            cancelText: "Edit Amount",
+            title: "Settle Up Payment",
+            content: `Enter amount to pay <b>${escapeHtml(friend.name)}</b>:`,
             inputType: "number",
             inputPlaceholder: "Amount in QAR",
             inputValue: Math.abs(friend.net),
+            okText: "Next",
+            cancelText: "Cancel",
             showCancel: true,
-            onOk: async (enteredAmount) => {
+            onOk: (enteredAmount) => {
               if (+enteredAmount > Math.abs(friend.net)) {
                 showModal({ content: "You cannot pay more than you owe!", okText: "OK", showCancel: false });
                 return;
               }
-              await sendSettlePayment(friend.username, +enteredAmount);
-              showSpinner(container);
-              const refreshed = await fetchFriendsList();
-              page = 0;
-              openCardIdx = null;
-              renderDashboard(refreshed);
+              if (+enteredAmount <= 0 || isNaN(+enteredAmount)) {
+                showModal({ content: "Please enter a valid amount!", okText: "OK", showCancel: false });
+                return;
+              }
+              // Modal Step 2: Confirm payment
+              showModal({
+                title: "Confirm Payment",
+                content: `Are you sure you want to pay <b>${enteredAmount} QAR</b> to <b>${escapeHtml(friend.name)}</b>?`,
+                okText: "Confirm",
+                cancelText: "Edit Amount",
+                showCancel: true,
+                onOk: async () => {
+                  await sendSettlePayment(friend.username, +enteredAmount);
+                  showSpinner(container);
+                  const refreshed = await fetchFriendsList();
+                  page = 0;
+                  openCardIdx = null;
+                  renderDashboard(refreshed);
+                },
+                onCancel: () => {
+                  // Allow to re-edit the amount
+                  btn.onclick(ev);
+                }
+              });
             }
           });
         } else if (btn.textContent === "Transactions") {
@@ -312,7 +327,6 @@ export async function showDashboard(container, user) {
       };
     });
 
-    // Donut chart legend modal
     const chartArea = container.querySelector("#donutChartArea");
     if (chartArea) {
       chartArea.onclick = () => {
@@ -333,12 +347,11 @@ export async function showDashboard(container, user) {
     }
   }
 
-  // Initial spinner/loading state
   container.innerHTML = `<div class="fd-main"><div style="text-align:center;margin:3em auto;font-size:1.28em;color:#2566b2;font-weight:700;">Loading group balances&hellip;</div></div>`;
   try {
     const friendsResult = await fetchFriendsList();
     renderDashboard(friendsResult);
   } catch (e) {
-    // Error display handled above
+    // error already handled above
   }
 }
