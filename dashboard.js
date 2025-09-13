@@ -1,5 +1,5 @@
 export function showDashboard(container, user) {
-  // DEMO DATA -- swap for backend!
+  // DEMO DATA – replace with backend/API!
   const demo = {
     paidTotal: 342,
     owedTotal: 119,
@@ -9,6 +9,10 @@ export function showDashboard(container, user) {
     topSpend: 120,
     shares: 22,
     settled: 9,
+    payments: [
+      { status: "pending", from_user: "Bala", to_user: "User", amount: 15 },
+      { status: "pending", from_user: "Rafseed", to_user: "User", amount: 9 }
+    ],
     recent: [
       { type: "received", name: "Bala", amount: 15, date: "Today" },
       { type: "sent", name: "Sreerag", amount: 18, date: "Yesterday" },
@@ -29,18 +33,20 @@ export function showDashboard(container, user) {
     return String(str).replace(/[<>&"]/g, t =>
       t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
   }
-  // Friend balances for rendering
+  // Balance & lists
   const balances = {};
   demo.friendsOwe.forEach(f => { balances[f.name] = (balances[f.name]||0) + f.amount; });
   demo.youOweList.forEach(f => { balances[f.name] = (balances[f.name]||0) - f.amount; });
   const allFriends = Object.entries(balances).map(([name, net]) => ({ name, net }));
-  const settledPct = Math.min(100,Math.round(demo.settled/(demo.settled+demo.spends)*100));
-  const netColor = demo.net>0?"#43a047":demo.net<0?"#e53935":"#789";
-  const netBG = demo.net>0?"#e7fff0":demo.net<0?"#ffe6e6":"#ececec";
+  const settledPct = Math.min(100,Math.round(demo.settled/(demo.spends+demo.settled)*100));
+  const netColor = demo.net > 0 ? "#43a047" : demo.net < 0 ? "#e53935" : "#789";
+  const netBG = demo.net > 0 ? "#e7fff0" : demo.net < 0 ? "#ffe6e6" : "#ececec";
+  let pendingCount = demo.payments?.filter(p => p.status === 'pending' && p.to_user === (user?.username||"User")).length || 0;
 
   function donutSVG(owed, owe, net) {
     const tot = owed+owe, c = 2*Math.PI*38, pct1 = tot ? owed/tot : 0, pct2 = tot ? owe/tot : 0;
     return `
+      <div id="donutChartArea" style="cursor:pointer;">
       <svg width="88" height="88" viewBox="0 0 88 88" style="display:block;margin:0 auto 0.2em;">
         <circle r="38" cx="44" cy="44" fill="#f3f8fc"/>
         <circle r="38" cx="44" cy="44" fill="none" stroke="#43a047" stroke-width="12"
@@ -50,17 +56,21 @@ export function showDashboard(container, user) {
           style="transform:rotate(${pct1*360}deg);transform-origin:44px 44px;" />
         <text x="44" y="54" text-anchor="middle" font-size="24" fill="${netColor}" font-weight="700">${net >= 0 ? '+' : '-'}${Math.abs(net)}</text>
       </svg>
-      <div style="font-size:.99em;font-weight:700;text-align:center;">
+      <div style="font-size:1em;font-weight:700;text-align:center;">
         <span style="color:#43a047;">Owed (Green)</span> &bull; <span style="color:#e53935;">Owe (Red)</span>
+        <span style="font-size:0.92em;color:#9cacc0;">(Tap chart for legend)</span>
+      </div>
       </div>
     `;
   }
 
   container.innerHTML = `
   <style>
-    .fd-main { max-width: 540px; margin: 36px auto; font-family: 'Inter', Arial, sans-serif; color: #1a2440; background: #fafdff; border-radius: 22px; box-shadow: 0 8px 24px #176dc418; padding: 2em 1em 2.7em;}
+    .fd-main { max-width:540px; margin:36px auto; font-family:'Inter',Arial,sans-serif; color:#1a2440; background:#fafdff; border-radius:22px; box-shadow:0 8px 22px #176dc419; padding:2em 1em 2.7em;}
     @media(max-width:540px){.fd-main{max-width:99vw;}}
+    .fd-banner { background: #fffde7; border-radius: 11px; padding: 0.9em 1.7em; margin-bottom: 1em; text-align: center; color: #e53935; font-weight: 700; box-shadow: 0 1px 8px #e5393512;}
     .fd-title { font-size:2.2em; font-weight:700; color:#124; text-align:center; margin-bottom:1em; }
+    .fd-split-btn { background:#e3f2fd;color:#176dc4;padding:0.7em 1.4em;border-radius:9px;font-weight:700;text-decoration:none;box-shadow:0 1px 4px #176dc414;float:right;margin-bottom:1em; }
     .fd-piepanel { margin-bottom:1em; }
     .fd-net-badge { font-size:2em;font-weight:900;display:block;background:${netBG};color:${netColor};border-radius:15px;text-align:center;margin:0 auto 1.2em auto;padding:.7em 0;letter-spacing:.04em;}
     .fd-metrics-row { display:flex; gap:1em; margin-bottom:2em; justify-content:center;}
@@ -77,7 +87,8 @@ export function showDashboard(container, user) {
     .fd-cardlist { margin:0 0 0.8em 0;}
     .fd-fcard {
       background:#fff; border-radius:13px; box-shadow:0 1px 6px #146dd012; position:relative; margin-bottom:0.7em;
-      padding:0.09em 0 0.09em 0; display:flex;flex-direction:column;align-items:flex-start; min-height:53px;
+      padding:0.09em 0 0.09em 0;
+      display:flex;flex-direction:column;align-items:flex-start; min-height:53px;
     }
     .fd-fcard.green { border-left:5.5px solid #43a047;}
     .fd-fcard.red { border-left:5.5px solid #e53935;}
@@ -94,6 +105,7 @@ export function showDashboard(container, user) {
     .fd-fbtnbar { display:flex; justify-content:center; gap:1em; width:100%; padding:0; margin:0; transition:.13s; }
     .fd-fbtn { font-size:1.05em;font-weight:700;padding:0.6em 1.25em;border:none; border-radius:8px;color:#fff;cursor:pointer; box-shadow:0 1px 6px #176dc410; margin:0.22em 0; }
     .fd-fbtn.pay { background:#176dc4;}
+    .fd-fbtn.settle { background:#fbc02d; color:#176dc4;}
     .fd-fbtn.tx { background:#43a047;}
     .fd-fbtn:hover { background:#e53935 !important;}
     .fd-fbtnbar-wrap { max-height:0; opacity:0; transition:max-height .23s, opacity .14s; pointer-events:none;}
@@ -125,6 +137,12 @@ export function showDashboard(container, user) {
     .fd-pay-confirm { background:#3897d1; color:#fff; border:none; font-weight:700; font-size:1.03em; padding:.62em 1.9em; border-radius:6px;cursor:pointer; box-shadow:0 2px 7px #176dc422;}
   </style>
   <div class="fd-main">
+    ${pendingCount ?
+      `<div class="fd-banner">
+        🔔 You have ${pendingCount} payments awaiting your action!
+      </div>` : ''}
+
+    <a href="/group-splits" class="fd-split-btn">+ Split Request</a>
     <div class="fd-title">Group Payments Dashboard</div>
     <div class="fd-piepanel">${donutSVG(demo.owedTotal, demo.youOwe, demo.net)}</div>
     <div class="fd-net-badge">${demo.net>=0?'+':'-'}${Math.abs(demo.net)} QAR Net Balance</div>
@@ -166,9 +184,9 @@ export function showDashboard(container, user) {
             <div class="fd-fcard-status">${label}</div>
             <div class="fd-fbtnbar-wrap">
               <div class="fd-fbtnbar" style="display:none;">
-                ${f.net<0?`
-                  <button class="fd-fbtn pay">Pay</button>
-                `:''}
+                ${f.net<0 ? `<button class="fd-fbtn pay">Pay</button>
+                  <button class="fd-fbtn settle">Settle Up</button>
+                  ` : f.net>0 ? `<button class="fd-fbtn settle">Settle Up</button>` : ''}
                 <button class="fd-fbtn tx">Transactions</button>
               </div>
             </div>
@@ -205,10 +223,38 @@ export function showDashboard(container, user) {
     <div class="fd-footer"><em>Connect your API for live analytics and history.</em></div>
   </div>`;
 
-  // Friend cards: Pay/Transactions buttons (Pay button only for "You Owe")
+  // Pie chart tap legend modal
+  const chartArea = container.querySelector("#donutChartArea");
+  chartArea.onclick = () => {
+    showPieLegendModal();
+  };
+  function showPieLegendModal() {
+    const modal = document.createElement("div");
+    modal.className = "fd-pay-modal";
+    modal.innerHTML = `
+      <div class="fd-pay-content" style="position:relative;">
+        <button class="fd-pay-close">&times;</button>
+        <h4>Breakdown: Owed vs Owe</h4>
+        <div>
+          <b style="color:#43a047;">Owed:</b>
+          <ul style="margin-bottom:1em;">
+            ${demo.friendsOwe.map(f => `<li>${escapeHtml(f.name)}: ${f.amount} QAR</li>`).join('')}
+          </ul>
+          <b style="color:#e53935;">Owe:</b>
+          <ul>
+            ${demo.youOweList.map(f => `<li>${escapeHtml(f.name)}: ${f.amount} QAR</li>`).join('')}
+          </ul>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('.fd-pay-close').onclick =
+    modal.onclick = ev => { if(ev.target === modal || ev.target.classList.contains('fd-pay-close')) document.body.removeChild(modal);}
+  }
+
+  // Friend cards: Pay/Settle/Transactions actions
   const cardEls = container.querySelectorAll('.fd-fcard');
   let openCard = null;
-  cardEls.forEach(card=>{
+  cardEls.forEach((card, i) => {
     card.onclick = e => {
       e.stopPropagation();
       if(openCard === card) {
@@ -225,12 +271,16 @@ export function showDashboard(container, user) {
       openCard = card;
       card.querySelector('.fd-fbtnbar').style.display = 'flex';
       let payBtn = card.querySelector('.fd-fbtn.pay');
-      if(payBtn) {
-        payBtn.onclick = ev => {
-          ev.stopPropagation();
-          showPayModal(card.getAttribute('data-friend'));
-        };
-      }
+      let settleBtn = card.querySelector('.fd-fbtn.settle');
+      let friendObj = allFriends[i];
+      if(payBtn) payBtn.onclick = ev => {
+        ev.stopPropagation();
+        showPayModal(card.getAttribute('data-friend'),'');
+      };
+      if(settleBtn) settleBtn.onclick = ev => {
+        ev.stopPropagation();
+        showPayModal(card.getAttribute('data-friend'), Math.abs(friendObj.net));
+      };
       card.querySelector('.fd-fbtn.tx').onclick = ev => {
         ev.stopPropagation();
         alert("Show transactions with "+card.getAttribute('data-friend'));
@@ -247,22 +297,26 @@ export function showDashboard(container, user) {
     }
   };
 
-  function showPayModal(friendName) {
+  // Pay/Settle modal
+  function showPayModal(friendName, amount) {
     const modal = document.createElement("div");
     modal.className = "fd-pay-modal";
     modal.innerHTML = `
       <div class="fd-pay-content" style="position:relative;">
         <button class="fd-pay-close">&times;</button>
         <h4>Pay to ${escapeHtml(friendName)}</h4>
-        <input class="fd-pay-input" type="number" min="1" placeholder="Amount in QAR"/>
-        <button class="fd-pay-confirm">Send Payment</button>
+        <input class="fd-pay-input" type="number" min="1" placeholder="Amount in QAR" value="${amount||''}"/>
+        <button class="fd-pay-confirm">${amount ? "Settle Up" : "Send Payment"}</button>
       </div>`;
     document.body.appendChild(modal);
     modal.querySelector('.fd-pay-close').onclick =
     modal.onclick = ev => { if(ev.target===modal||ev.target.classList.contains('fd-pay-close')) document.body.removeChild(modal);}
     modal.querySelector('.fd-pay-confirm').onclick = ()=> {
       const val = +modal.querySelector('.fd-pay-input').value;
-      if(val>0){modal.querySelector('.fd-pay-confirm').textContent="Sending...";setTimeout(()=>{document.body.removeChild(modal);},800);}
+      if(val>0) {
+        modal.querySelector('.fd-pay-confirm').textContent = "Sending...";
+        setTimeout(()=>{document.body.removeChild(modal);},800);
+      }
     };
   }
 }
