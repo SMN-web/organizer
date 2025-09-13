@@ -187,12 +187,15 @@ export function showDashboard(container, user) {
       });
     }
     container.querySelectorAll('.fd-fcard').forEach(card=>{
-      card.onclick = evt => {
-        let idx = Number(card.getAttribute('data-idx'));
-        openCardIdx = openCardIdx === idx ? null : idx;
-        updateFriendsPanel();
-      }
-    });
+  card.onclick = evt => {
+    // Ignore clicks on any button inside the card!
+    if(evt.target.closest('.fd-fbtn')) return;
+    let idx = Number(card.getAttribute('data-idx'));
+    openCardIdx = openCardIdx === idx ? null : idx;
+    updateFriendsPanel();
+  }
+});
+
     container.querySelectorAll('.fd-fbtn').forEach(btn=>{
       btn.onclick = ev => {
         ev.stopPropagation();
