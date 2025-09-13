@@ -1,5 +1,5 @@
 export function showDashboard(container, user) {
-  // DEMO DATA – replace with backend/API!
+  // ============ DEMO DATA ============ //
   const demo = {
     paidTotal: 342,
     owedTotal: 119,
@@ -20,28 +20,55 @@ export function showDashboard(container, user) {
     ],
     friendsOwe: [
       { name: "Bala", amount: 27 },
-      { name: "Rafseed", amount: 15 }
+      { name: "Rafseed", amount: 15 },
+      { name: "Gokul", amount: 10 },
+      { name: "Ben", amount: 12 },
+      { name: "Ramu", amount: 9 }
     ],
     youOweList: [
       { name: "Sreerag", amount: 18 },
-      { name: "Rafseed", amount: 23 }
+      { name: "Rafseed", amount: 23 },
+      { name: "Shyam", amount: 31 },
+      { name: "Akash D", amount: 11 },
+      { name: "Lawrence", amount: 16 }
     ]
   };
+  // friendsOwe + youOweList : ensure all names are unique for demo
+  function uniq(arr) {
+    const set = new Set(), out = [];
+    arr.forEach(f => { if(!set.has(f.name)) { set.add(f.name); out.push(f); }});
+    return out;
+  }
+  demo.friendsOwe = uniq(demo.friendsOwe);
+  demo.youOweList = uniq(demo.youOweList);
 
-  // Helper
+  // Compose net balances
   function escapeHtml(str) {
     return String(str).replace(/[<>&"]/g, t =>
       t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
   }
-  // Build friend balances
   const balances = {};
   demo.friendsOwe.forEach(f => { balances[f.name] = (balances[f.name]||0) + f.amount; });
   demo.youOweList.forEach(f => { balances[f.name] = (balances[f.name]||0) - f.amount; });
-  const allFriends = Object.entries(balances).map(([name, net]) => ({ name, net }));
-  const settledPct = Math.min(100,Math.round(demo.settled/(demo.spends+demo.settled)*100));
-  const netColor = demo.net > 0 ? "#43a047" : demo.net < 0 ? "#e53935" : "#789";
-  const netBG = demo.net > 0 ? "#e7fff0" : demo.net < 0 ? "#ffe6e6" : "#ececec";
+  const allFriends = Object.entries(balances).map(([name, net]) => ({ name, net }))
+    .sort((a, b) => {
+      // Green first, then red, then gray, then alpha
+      if(a.net>0 && b.net<=0) return -1;
+      if(a.net<0 && b.net>=0) return 1;
+      if(a.net===0 && b.net!==0) return 1;
+      if(a.net!==0 && b.net===0) return -1;
+      return a.name.localeCompare(b.name);
+    });
+
+  // 5 per page
+  const FRIENDS_PER_PAGE = 5;
+  let page = 0;
+
+  // Utility
+  const netColor = demo.net>0?"#43a047":demo.net<0?"#e53935":"#789";
+  const netBG = demo.net>0?"#e7fff0":demo.net<0?"#ffe6e6":"#ececec";
   let pendingCount = demo.payments?.filter(p => p.status === 'pending' && p.to_user === (user?.username||"User")).length || 0;
+  const settledPct = Math.min(100,Math.round(demo.settled/(demo.spends+demo.settled)*100));
 
   function donutSVG(owed, owe, net) {
     const tot = owed+owe, c = 2*Math.PI*38, pct1 = tot ? owed/tot : 0, pct2 = tot ? owe/tot : 0;
@@ -57,13 +84,49 @@ export function showDashboard(container, user) {
         <text x="44" y="54" text-anchor="middle" font-size="24" fill="${netColor}" font-weight="700">${net >= 0 ? '+' : '-'}${Math.abs(net)}</text>
       </svg>
       <div style="font-size:1em;font-weight:700;text-align:center;">
-        <span style="color:#43a047;">Owed (Green)</span> &bull; <span style="color:#e53935;">Owe (Red)</span>
-        <span style="font-size:0.92em;color:#9cacc0;">(Tap chart for legend)</span>
+        <span style="color:#43a047;">Owed (Green)</span> • <span style="color:#e53935;">Owe (Red)</span>
+        <span style="font-size:.92em;color:#9cacc0;">(Tap chart for legend)</span>
       </div>
       </div>
     `;
   }
 
+  // Render friend panel & paging
+  function renderFriendsPanel() {
+    const list = allFriends.slice(page * FRIENDS_PER_PAGE, page * FRIENDS_PER_PAGE + FRIENDS_PER_PAGE);
+    return list.map((f, i) => {
+      let initials = f.name.split(" ").map(n => n[0]).join('').toUpperCase().slice(0,2);
+      let statusC = f.net>0?'green':f.net<0?'red':'gray';
+      let barC = f.net>0?'#43a047':f.net<0?'#e53935':'#bbc';
+      let label = f.net>0?"Owes You":f.net<0?"You Owe":"Settled";
+      return `<div class="fd-fcard ${statusC}" data-friend="${escapeHtml(f.name)}" tabindex="0">
+        <div style="background:${barC};width:5.5px;height:100%;position:absolute;left:0;top:0;border-radius:8px 0 0 8px;"></div>
+        <div class="fd-fcard-content fd-fcard-main">
+          <span class="fd-fcard-avatar">${initials}</span>
+          <span class="fd-fcard-name">${escapeHtml(f.name)}</span>
+          <span class="fd-fcard-net" style="color:${barC};">${f.net>0?'+':f.net<0?'-':''}${Math.abs(f.net)} QAR</span>
+        </div>
+        <div class="fd-fcard-status">${label}</div>
+        <div class="fd-fbtnbar-wrap">
+          <div class="fd-fbtnbar" style="display:none;">
+            ${f.net<0 ? `<button class="fd-fbtn blue">Settle Up</button>` : ''}
+            <button class="fd-fbtn blue">Transactions</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  function renderFriendsPagination() {
+    let totalPages = Math.ceil(allFriends.length / FRIENDS_PER_PAGE);
+    if (totalPages <= 1) return "";
+    return `<div class="fd-pager-row">
+      <button class="fd-pager-btn" ${page===0?"disabled":""} data-pager="prev">&lt; Prev</button>
+      <span class="fd-pager-label">Page ${page+1} / ${totalPages}</span>
+      <button class="fd-pager-btn" ${page===totalPages-1?"disabled":""} data-pager="next">Next &gt;</button>
+    </div>`;
+  }
+
+  // ==== MAIN DASHBOARD HTML ====
   container.innerHTML = `
   <style>
     .fd-main { max-width:540px; margin:36px auto; font-family:'Inter',Arial,sans-serif; color:#1a2440; background:#fafdff; border-radius:22px; box-shadow:0 8px 22px #176dc419; padding:2em 1em 2.5em;}
@@ -71,10 +134,8 @@ export function showDashboard(container, user) {
     .fd-banner { background: #fffde7; border-radius: 11px; padding: 0.95em 1.7em; margin-bottom: 1.1em; text-align: center; color: #e53935; font-weight: 700; box-shadow: 0 1px 8px #e5393512;}
     .fd-title { font-size:2.08em; font-weight:800; color:#153; text-align:center; margin-bottom:.6em; letter-spacing:.01em;}
     .fd-btn-row { display:flex;align-items:center;justify-content:space-between;gap:1em;margin-bottom:1.4em;}
-    .fd-btn-main {
-      flex:1 1 0;max-width:48%;padding:0.82em 1.1em;font-size:1.11em;font-weight:700;text-align:center;border-radius:11px;border:none;box-shadow:0 1px 8px #1976d215;cursor:pointer;
-      background:#e3f2fd;color:#176dc4;transition:background .18s;
-    }
+    .fd-btn-main { flex:1 1 0;max-width:48%;padding:0.82em 1.1em;font-size:1.11em;font-weight:700;text-align:center;border-radius:11px;border:none;box-shadow:0 1px 8px #1976d215;cursor:pointer;
+      background:#e3f2fd;color:#176dc4;transition:background .18s;}
     .fd-btn-main.expense {background:#e5ffe6;color:#148142;}
     .fd-btn-main:active { background:#89ebfc;color:#235;}
     .fd-piepanel { margin-bottom:1em; }
@@ -83,11 +144,12 @@ export function showDashboard(container, user) {
     .fd-metric-card { flex:1 0 90px; padding:1em 0.7em; background:linear-gradient(110deg,#f7fafc,#fff6f6); border-radius:13px; text-align:center; box-shadow:0 2px 10px #176dc412;}
     .fd-metric-label { color:#3897d1;font-weight:700;font-size:.98em;}
     .fd-metric-value { color:#2e3b57;font-size:1.2em;font-weight:900;}
-    .fd-metric-card.owe .fd-metric-value { color:#e53935 !important; }
+    .fd-metric-card.owe .fd-metric-value { color:#e53935 !important;}
     .fd-progress-wrap {margin-bottom:1.8em;}
     .fd-progress-bar { background:#e3f2fd;border-radius:13px;width:80%;max-width:320px;margin:0 auto;height:14px;overflow:hidden;}
     .fd-progress-fill { background:#43a047;height:14px;width:${settledPct}%;border-radius:13px;transition:width .9s;}
     .fd-progress-text {margin-top:0.65em;font-size:1em;color:#198;font-weight:700;text-align:center;}
+    /* FRIENDS */
     .fd-friends-section { margin:1.6em 0 1.6em;}
     .fd-friends-label { font-size:1.13em; color:#176dc4;font-weight:800; margin-bottom:.7em;}
     .fd-cardlist { margin:0 0 0.8em 0;}
@@ -101,21 +163,23 @@ export function showDashboard(container, user) {
     .fd-fcard-content { display:flex;align-items:center;width:100%;gap:.74em;padding:0.65em 0.7em 0.52em 1em;}
     .fd-fcard-avatar { background:#e3f2fd; color:#1976d2; font-weight:700; font-size:1.07em;width:27px;height:27px;text-align:center;line-height:27px;border-radius:14px;}
     .fd-fcard-name { font-weight:700; font-size:1.08em; flex:1 1 auto;}
-    .fd-fcard-net { color:inherit; font-size:1.16em; min-width:40px; text-align:left; padding-left:0.5em;}
+    .fd-fcard-net { color:inherit; font-size:1.16em; text-align:left; padding-left:0.1em;}
     .fd-fcard-status { font-size:.99em;font-weight:600;margin:-2px 0 4px 1.69em;}
-    .fd-fcard.green .fd-fcard-status { color:#43a047; }
-    .fd-fcard.red .fd-fcard-status { color:#e53935; }
-    .fd-fcard.gray .fd-fcard-status { color:#888; }
+    .fd-fcard.green .fd-fcard-status { color:#43a047;}
+    .fd-fcard.red .fd-fcard-status { color:#e53935;}
+    .fd-fcard.gray .fd-fcard-status { color:#888;}
     .fd-fbtnbar-wrap {width:100%;padding:0;margin:0;overflow:hidden;}
-    .fd-fbtnbar { display:flex; justify-content:center; gap:1em; width:100%; padding:0; margin:0; transition:.13s; }
-    .fd-fbtn { font-size:1.05em;font-weight:700;padding:0.6em 1.25em;border:none; border-radius:8px;color:#fff;cursor:pointer; box-shadow:0 1px 6px #176dc410; margin:0.22em 0; }
-    .fd-fbtn.pay { background:#176dc4;}
-    .fd-fbtn.settle { background:#fbc02d; color:#176dc4;}
-    .fd-fbtn.tx { background:#43a047;}
-    .fd-fbtn:hover { background:#e53935 !important;}
+    .fd-fbtnbar { display:flex;justify-content:center;gap:1em;width:100%;padding:0;margin:0;transition:.13s;}
+    .fd-fbtn { font-size:1.05em;font-weight:700;padding:0.6em 1.25em;border:none; border-radius:8px;color:#fff;cursor:pointer;box-shadow:0 1px 6px #176dc410;margin:0.22em 0;}
+    .fd-fbtn.blue { background:#2566b2;}
+    .fd-fbtn.blue:hover { background:#1563a9;}
     .fd-fbtnbar-wrap { max-height:0; opacity:0; transition:max-height .23s, opacity .14s; pointer-events:none;}
-    .fd-fcard.fd-open .fd-fbtnbar-wrap { max-height:70px; opacity:1; pointer-events:auto; animation:dropSlide .33s; }
-    @keyframes dropSlide { 0% { max-height:0;opacity:0;} 100%{ max-height:70px; opacity:1; } }
+    .fd-fcard.fd-open .fd-fbtnbar-wrap { max-height:70px; opacity:1; pointer-events:auto; animation:dropSlide .33s;}
+    .fd-pager-row {text-align:center;margin-bottom:1em;display:flex;justify-content:center;align-items:center;gap:1.1em;}
+    .fd-pager-btn {background:#e3f2fd;color:#176dc4;font-weight:700;border:none;border-radius:9px;padding:.47em 1.2em;cursor:pointer;}
+    .fd-pager-btn:disabled {background:#ececec;color:#aaa;}
+    .fd-pager-label {font-size:1.05em;font-weight:700;color:#7f97ba;}
+    /* REST REMAINS */
     .fd-activity-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.46em; gap:0.2em;}
     .fd-rec-label {font-size:1.07em;color:#176dc4;font-weight:800;}
     .fd-rec-link { font-size:.98em;color:#1976d2;font-weight:700; text-decoration:underline; cursor:pointer; margin-left:auto;}
@@ -139,7 +203,8 @@ export function showDashboard(container, user) {
     .fd-pay-close { position:absolute; right:16px; top:16px; background:none; border:none; font-size:1.5em; color:#176dc4; cursor:pointer;}
     .fd-pay-content h4 {font-size:1.19em;font-weight:700;margin-bottom:1em;}
     .fd-pay-input {width:85%;padding:0.6em 0.7em;font-size:1em;border-radius:7px;border:1px solid #abc; margin-bottom:1.18em;}
-    .fd-pay-confirm { background:#3897d1; color:#fff; border:none; font-weight:700; font-size:1.03em; padding:.62em 1.9em; border-radius:6px;cursor:pointer; box-shadow:0 2px 7px #176dc422;}
+    .fd-pay-confirm { background:#2566b2; color:#fff; border:none; font-weight:700; font-size:1.03em; padding:.62em 1.9em; border-radius:6px;cursor:pointer; box-shadow:0 2px 7px #1976d422;}
+    /* Pie Chart Legend Modal */
   </style>
   <div class="fd-main">
     ${pendingCount ?
@@ -175,31 +240,8 @@ export function showDashboard(container, user) {
     </div>
     <div class="fd-friends-section">
       <div class="fd-friends-label">Balance with Friends</div>
-      <div class="fd-cardlist">
-        ${allFriends.map((f,i)=>{
-          let initials = f.name.split(" ").map(n=>n[0]).join('').toUpperCase().slice(0,2);
-          let statusC = f.net>0?'green':f.net<0?'red':'gray';
-          let barC = f.net>0?'#43a047':f.net<0?'#e53935':'#bbc';
-          let label = f.net>0?"Owes You":f.net<0?"You Owe":"Settled";
-          return `<div class="fd-fcard ${statusC}" data-friend="${escapeHtml(f.name)}" tabindex="0">
-            <div style="background:${barC};width:5.5px;height:100%;position:absolute;left:0;top:0;border-radius:8px 0 0 8px;"></div>
-            <div class="fd-fcard-content fd-fcard-main">
-              <span class="fd-fcard-avatar">${initials}</span>
-              <span class="fd-fcard-name">${escapeHtml(f.name)}</span>
-              <span class="fd-fcard-net" style="color:${barC};">${f.net>0?'+':f.net<0?'-':''}${Math.abs(f.net)}</span>
-            </div>
-            <div class="fd-fcard-status">${label}</div>
-            <div class="fd-fbtnbar-wrap">
-              <div class="fd-fbtnbar" style="display:none;">
-                ${f.net<0 ? `<button class="fd-fbtn pay">Pay</button>
-                  <button class="fd-fbtn settle">Settle Up</button>
-                  ` : f.net>0 ? `<button class="fd-fbtn settle">Settle Up</button>` : ''}
-                <button class="fd-fbtn tx">Transactions</button>
-              </div>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
+      <div class="fd-cardlist" id="fd-friend-list"></div>
+      ${renderFriendsPagination()}
     </div>
     <div class="fd-activity-row">
       <div class="fd-rec-label">Recent Activity</div>
@@ -230,6 +272,71 @@ export function showDashboard(container, user) {
     <div class="fd-footer"><em>Connect your API for live analytics and history.</em></div>
   </div>`;
 
+  // Friends list + paging
+  function updateFriendsPanel() {
+    container.querySelector("#fd-friend-list").innerHTML = renderFriendsPanel();
+    // Paging controls
+    let pagerRow = container.querySelector(".fd-pager-row");
+    if(pagerRow) {
+      pagerRow.querySelectorAll(".fd-pager-btn").forEach(btn => {
+        btn.onclick = (e) => {
+          if(btn.disabled) return;
+          page += btn.getAttribute("data-pager") === "next" ? 1 : -1;
+          updateFriendsPanel();
+          attachFriendHandlers();
+        };
+      });
+    }
+    attachFriendHandlers();
+  }
+  updateFriendsPanel();
+
+  // Attach interactive handler for cards/buttons/modal
+  function attachFriendHandlers() {
+    const cardEls = container.querySelectorAll('.fd-fcard');
+    let openCard = null;
+    cardEls.forEach((card,i) => {
+      card.onclick = e => {
+        e.stopPropagation();
+        if(openCard === card) {
+          card.classList.remove('fd-open');
+          card.querySelector('.fd-fbtnbar').style.display = 'none';
+          openCard = null;
+          return;
+        }
+        cardEls.forEach(c=>{
+          c.classList.remove('fd-open');
+          c.querySelector('.fd-fbtnbar').style.display = 'none';
+        });
+        card.classList.add('fd-open');
+        openCard = card;
+        card.querySelector('.fd-fbtnbar').style.display = 'flex';
+        let settleBtn = card.querySelector('.fd-fbtn.blue');
+        let friendObj = allFriends[page*FRIENDS_PER_PAGE+i];
+        if(settleBtn && settleBtn.textContent === "Settle Up") {
+          settleBtn.onclick = ev => {
+            ev.stopPropagation();
+            showPayModal(card.getAttribute('data-friend'), Math.abs(friendObj.net));
+          };
+        }
+        let txBtn = card.querySelectorAll('.fd-fbtn.blue')[settleBtn && settleBtn.textContent==="Settle Up"?1:0];
+        if(txBtn) txBtn.onclick = ev => {
+          ev.stopPropagation();
+          alert("Show transactions with "+card.getAttribute('data-friend'));
+        };
+      };
+    });
+    container.onclick = (e) => {
+      if (!e.target.closest('.fd-fcard')) {
+        cardEls.forEach(c=>{
+          c.classList.remove('fd-open');
+          c.querySelector('.fd-fbtnbar').style.display='none';
+        });
+        openCard = null;
+      }
+    };
+  }
+
   // Pie chart tap legend modal
   const chartArea = container.querySelector("#donutChartArea");
   chartArea.onclick = () => {
@@ -258,52 +365,6 @@ export function showDashboard(container, user) {
     modal.onclick = ev => { if(ev.target === modal || ev.target.classList.contains('fd-pay-close')) document.body.removeChild(modal);}
   }
 
-  // Friend cards: Pay/Settle/Transactions actions
-  const cardEls = container.querySelectorAll('.fd-fcard');
-  let openCard = null;
-  cardEls.forEach((card, i) => {
-    card.onclick = e => {
-      e.stopPropagation();
-      if(openCard === card) {
-        card.classList.remove('fd-open');
-        card.querySelector('.fd-fbtnbar').style.display = 'none';
-        openCard = null;
-        return;
-      }
-      cardEls.forEach(c=>{
-        c.classList.remove('fd-open');
-        c.querySelector('.fd-fbtnbar').style.display = 'none';
-      });
-      card.classList.add('fd-open');
-      openCard = card;
-      card.querySelector('.fd-fbtnbar').style.display = 'flex';
-      let payBtn = card.querySelector('.fd-fbtn.pay');
-      let settleBtn = card.querySelector('.fd-fbtn.settle');
-      let friendObj = allFriends[i];
-      if(payBtn) payBtn.onclick = ev => {
-        ev.stopPropagation();
-        showPayModal(card.getAttribute('data-friend'),'');
-      };
-      if(settleBtn) settleBtn.onclick = ev => {
-        ev.stopPropagation();
-        showPayModal(card.getAttribute('data-friend'), Math.abs(friendObj.net));
-      };
-      card.querySelector('.fd-fbtn.tx').onclick = ev => {
-        ev.stopPropagation();
-        alert("Show transactions with "+card.getAttribute('data-friend'));
-      };
-    };
-  });
-  container.onclick = (e) => {
-    if (!e.target.closest('.fd-fcard')) {
-      cardEls.forEach(c=>{
-        c.classList.remove('fd-open');
-        c.querySelector('.fd-fbtnbar').style.display='none';
-      });
-      openCard = null;
-    }
-  };
-
   // Pay/Settle modal
   function showPayModal(friendName, amount) {
     const modal = document.createElement("div");
@@ -311,9 +372,9 @@ export function showDashboard(container, user) {
     modal.innerHTML = `
       <div class="fd-pay-content" style="position:relative;">
         <button class="fd-pay-close">&times;</button>
-        <h4>Pay to ${escapeHtml(friendName)}</h4>
+        <h4>Settle Up to ${escapeHtml(friendName)}</h4>
         <input class="fd-pay-input" type="number" min="1" placeholder="Amount in QAR" value="${amount||''}"/>
-        <button class="fd-pay-confirm">${amount ? "Settle Up" : "Send Payment"}</button>
+        <button class="fd-pay-confirm">Settle Up</button>
       </div>`;
     document.body.appendChild(modal);
     modal.querySelector('.fd-pay-close').onclick =
