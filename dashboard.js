@@ -1,5 +1,5 @@
 export function showDashboard(container, user) {
-  // --- DEMO DATA ---
+  // DEMO DATA -- swap with API results!
   const demo = {
     paidTotal: 342,
     owedTotal: 119,
@@ -34,12 +34,9 @@ export function showDashboard(container, user) {
   demo.youOweList.forEach(f => { balances[f.name] = (balances[f.name]||0) - f.amount; });
   const allFriends = Object.entries(balances).map(([name, net]) => ({ name, net }));
   const settledPct = Math.min(100,Math.round(demo.settled/(demo.settled+demo.spends)*100));
-
-  // Net color logic
   const netColor = demo.net>0?"#43a047":demo.net<0?"#e53935":"#789";
   const netBG = demo.net>0?"#e7fff0":demo.net<0?"#ffe6e6":"#ececec";
   
-  // Pie donut chart utility
   function donutSVG(owed, owe, net) {
     const tot = owed+owe, c = 2*Math.PI*38, pct1=tot?owed/tot:0, pct2=tot?owe/tot:0;
     return `
@@ -58,40 +55,45 @@ export function showDashboard(container, user) {
     `;
   }
 
-  // MAIN DASHBOARD HTML
   container.innerHTML = `
   <style>
-    .fd-main { max-width:540px; margin:42px auto; font-family:'Inter',Arial,sans-serif; color:#223; background:#fafdff; border-radius:24px; box-shadow:0 8px 34px #176dc419; padding:2em 1em 2.7em;}
+    .fd-main { max-width:540px; margin:38px auto; font-family:'Inter',Arial,sans-serif; color:#223; background:#fafdff; border-radius:24px; box-shadow:0 8px 34px #176dc419; padding:2em 1em 2.7em;}
     @media(max-width:540px){.fd-main{max-width:99vw;padding:1em 0.05em 2em;}}
-    .fd-title { font-size:2.3em; font-weight:700; color:#124; text-align:center; margin-bottom:1em; }
+    .fd-title { font-size:2.3em; font-weight:700; color:#124; text-align:center; margin-bottom:.9em; }
     .fd-piepanel { margin-bottom:1em; }
-    .fd-net-badge { font-size:2em;font-weight:900;display:block;background:${netBG};color:${netColor};border-radius:15px;text-align:center;margin:0 auto 1.2em auto;padding:.7em 0;letter-spacing:.04em;box-shadow:0 2px 19px #43a04719; }
+    .fd-net-badge { font-size:2em;font-weight:900;display:block;background:${netBG};color:${netColor};border-radius:15px;text-align:center;margin:0 auto 1.3em auto;padding:.7em 0;letter-spacing:.04em;box-shadow:0 2px 19px #43a04719; }
     .fd-metrics-row { display:flex; gap:1.2em; margin-bottom:2em; justify-content:center;}
-    .fd-metric-card { flex:1 0 96px; padding:1.06em 0.85em; background:linear-gradient(110deg,#f6fafc,#fef5f5); border-radius:13px; text-align:center; box-shadow:0 2px 14px #176dc42a; font-size:1.15em;}
+    .fd-metric-card { flex:1 0 96px; padding:1.08em 1em; background:linear-gradient(110deg,#f6fafc,#fef5f5); border-radius:13px; text-align:center; box-shadow:0 2px 14px #176dc42a; font-size:1.15em;}
     .fd-metric-label { color:#3897d1;font-weight:700;font-size:.99em;margin-bottom:3px;}
     .fd-metric-value { color:#2e3b57;font-size:1.29em;font-weight:900;}
     .fd-metric-card.owe .fd-metric-value { color:#e53935 !important; }
     .fd-progress-wrap {margin-bottom:2em;}
     .fd-progress-bar { background:#e3f2fd;border-radius:13px;width:80%;max-width:320px;margin:0 auto;height:14px;overflow:hidden;}
     .fd-progress-fill { background:#43a047;height:14px;width:${settledPct}%;border-radius:13px;transition:width .9s;}
-    .fd-progress-text { margin-top:.75em;font-size:1em;color:#198;font-weight:700;text-align:center;}
-    .fd-friends-section { margin:2.1em 0 2em;}
-    .fd-friends-label { font-size:1.11em; color:#176dc4;font-weight:800; margin-bottom:.7em;}
-    .fd-chiplist { display:flex;gap:0.7em;flex-wrap:wrap; }
-    .fd-chip {display:flex;align-items:center;gap:0.8em;background:#fff;border-radius:25px;padding:0.68em 1.1em; font-weight:700; font-size:1.11em;box-shadow:0 1.5px 9px #176dc410;transition:.14s;position:relative;}
-    .fd-chip.green { color:#21a065; background:#e7fff0; }
-    .fd-chip.red { color:#e53935; background:#fff5f5; }
-    .fd-chip.settled { color:#888; background:#ececec;}
-    .fd-chip-initial { background:#e3f2fd; color:#1976d2; font-weight:800;font-size:1.03em;width:28px;height:28px;text-align:center;line-height:28px;border-radius:14px;}
-    .fd-chip-net { margin-left:auto; margin-right:5px;}
-    .fd-cbtnrow { display:flex; justify-content:center; gap:1em; margin-top:.5em; }
-    .fd-cbtn {background:#176dc4;color:#fff;font-weight:700;padding:0.52em 1.4em;border:none; border-radius:9px; cursor:pointer; font-size:1em;}
-    .fd-cbtn.tx { background:#43a047;}
-    .fd-cbtn.pay:hover, .fd-cbtn.tx:hover { background:#e53935; }
-    .fd-cbtnrow { max-height:0; overflow:hidden; opacity:0; transition:max-height .3s,opacity .18s; }
-    .fd-chip.selected .fd-cbtnrow { max-height:70px; opacity:1; animation:dropSlide .4s; }
+    .fd-progress-text { margin-top:.85em;font-size:1em;color:#198;font-weight:700;text-align:center;}
+    .fd-friends-section { margin:2em 0 2em;}
+    .fd-friends-label { font-size:1.13em; color:#176dc4;font-weight:800; margin-bottom:.7em;}
+    .fd-cardlist { margin:0 0 1.2em 0;}
+    .fd-fcard { background:#fff; border-radius:14px; transition:.15s; position:relative; overflow:hidden; box-shadow:0 1px 10px #176dc410;}
+    .fd-fcard.green { border-left:8px solid #43a047;}
+    .fd-fcard.red { border-left:8px solid #e53935;}
+    .fd-fcard.gray { border-left:8px solid #bbc;}
+    .fd-fcard-main { display:flex;align-items:center;gap:.9em;padding:1.1em 1em 1.1em 1.5em;}
+    .fd-fcard-avatar { background:#e3f2fd; color:#1976d2; font-weight:700; font-size:1.1em;width:33px;height:33px;text-align:center;line-height:33px;border-radius:24px;}
+    .fd-fcard-net { color:inherit; font-size:1.14em; margin-left:auto; }
+    .fd-fcard.fd-open {box-shadow:0 3px 18px #176dc422;}
+    .fd-fbtnbar {display:flex;gap:0.95em;margin:0.45em 0 0 1.7em;}
+    .fd-fbtn { font-size:1.06em;font-weight:700;padding:0.7em 2em;border:none; border-radius:8px;color:#fff;box-shadow:0 1px 7px #176dc41b;cursor:pointer;}
+    .fd-fbtn:first-child { background:#176dc4;}
+    .fd-fbtn:last-child { background:#43a047;}
+    .fd-fbtn:hover { background:#e53935 !important;}
+    .fd-fcard.fd-open .fd-fbtnbar { animation:dropSlide .36s; }
+    .fd-fcard-status { margin-left:1.6em;font-size:1em;font-weight:600;}
+    .fd-fcard.green .fd-fcard-status { color:#43a047; }
+    .fd-fcard.red .fd-fcard-status { color:#e53935; }
+    .fd-fcard.gray .fd-fcard-status { color:#888; }
     @keyframes dropSlide { 0% { max-height:0;opacity:0;} 100%{ max-height:70px; opacity:1; } }
-    .fd-rec-label {font-size:1.07em;color:#176dc4;font-weight:800;margin-bottom:0.45em;}
+    .fd-rec-label {font-size:1.07em;color:#176dc4;font-weight:800;margin-bottom:.45em;}
     .fd-rec-list { margin-bottom:2em;}
     .fd-rec-card { background:#fff;border-radius:10px;box-shadow:0 1px 7px #1976d213; margin-bottom:0.8em;padding:1em 1.3em; display:flex;align-items:center; gap:1em;}
     .fd-rc-dot { width:15px;height:15px;border-radius:50%;background:#1976d2;display:inline-block;}
@@ -142,19 +144,23 @@ export function showDashboard(container, user) {
     </div>
     <div class="fd-friends-section">
       <div class="fd-friends-label">Balance with Friends</div>
-      <div class="fd-chiplist">
+      <div class="fd-cardlist">
         ${allFriends.map((f,i)=>{
           let initials = f.name.split(" ").map(n=>n[0]).join('').toUpperCase().slice(0,2);
-          let chipC = f.net>0?"green":f.net<0?"red":"settled";
+          let statusC = f.net>0?'green':f.net<0?'red':'gray';
+          let barC = f.net>0?'#43a047':f.net<0?'#e53935':'#bbc';
           let label = f.net>0?"Owes You":f.net<0?"You Owe":"Settled";
-          return `<div class="fd-chip ${chipC}" data-friend="${escapeHtml(f.name)}">
-            <span class="fd-chip-initial">${initials}</span>
-            <span>${escapeHtml(f.name)}</span>
-            <span class="fd-chip-net">${f.net>0?'+':f.net<0?'-':''}${Math.abs(f.net)}</span>
-            <span style="font-size:.99em;font-weight:600;">${label}</span>
-            <div class="fd-cbtnrow" style="display:none;">
-              <button class="fd-cbtn pay">Pay</button>
-              <button class="fd-cbtn tx">Transactions</button>
+          return `<div class="fd-fcard ${statusC}" data-friend="${escapeHtml(f.name)}" tabindex="0" style="margin-bottom:1em;position:relative;">
+            <div style="background:${barC};width:8px;height:100%;position:absolute;left:0;top:0;border-radius:8px 0 0 8px;"></div>
+            <div class="fd-fcard-main">
+              <span class="fd-fcard-avatar">${initials}</span>
+              <span style="font-weight:700;">${escapeHtml(f.name)}</span>
+              <span class="fd-fcard-net" style="color:${barC};">${f.net>0?'+':f.net<0?'-':''}${Math.abs(f.net)}</span>
+            </div>
+            <div class="fd-fcard-status">${label}</div>
+            <div class="fd-fbtnbar" style="display:none;">
+              <button class="fd-fbtn">Pay</button>
+              <button class="fd-fbtn">Transactions</button>
             </div>
           </div>`;
         }).join('')}
@@ -186,42 +192,41 @@ export function showDashboard(container, user) {
     <div class="fd-footer"><em>Connect your API for live analytics and history.</em></div>
   </div>`;
 
-  // -- Friend chip dropdown: horizontal row, slide down, only visible below chip --
-  const chipEls = container.querySelectorAll('.fd-chip');
-  let openChip = null;
-  chipEls.forEach((chip,idx) => {
-    chip.onclick = e => {
+  // -- Friend card dropdown: slide down, Pay/Transactions buttons in a row --
+  const cardEls = container.querySelectorAll('.fd-fcard');
+  let openCard = null;
+  cardEls.forEach(card=>{
+    card.onclick = e => {
       e.stopPropagation();
-      if(openChip === chip) {
-        chip.classList.remove('selected');
-        chip.querySelector('.fd-cbtnrow').style.display='none';
-        openChip=null; return;
+      if(openCard === card) {
+        card.classList.remove('fd-open');
+        card.querySelector('.fd-fbtnbar').style.display='none';
+        openCard=null; return;
       }
-      chipEls.forEach(c=>{
-        c.classList.remove("selected");
-        c.querySelector('.fd-cbtnrow').style.display='none';
+      cardEls.forEach(c=>{
+        c.classList.remove('fd-open');
+        c.querySelector('.fd-fbtnbar').style.display='none';
       });
-      chip.classList.add("selected");
-      openChip=chip;
-      chip.querySelector('.fd-cbtnrow').style.display='flex';
-      // Pay modal
-      chip.querySelector('.fd-cbtn.pay').onclick = ev => {
+      card.classList.add('fd-open');
+      openCard=card;
+      card.querySelector('.fd-fbtnbar').style.display='flex';
+      card.querySelectorAll('.fd-fbtn')[0].onclick = ev => {
         ev.stopPropagation();
-        showPayModal(chip.getAttribute('data-friend'));
+        showPayModal(card.getAttribute('data-friend'));
       };
-      chip.querySelector('.fd-cbtn.tx').onclick = ev => {
+      card.querySelectorAll('.fd-fbtn')[1].onclick = ev => {
         ev.stopPropagation();
-        alert("Show transactions with "+chip.getAttribute('data-friend'));
+        alert("Show transactions with "+card.getAttribute('data-friend'));
       };
     };
   });
   container.onclick = (e) => {
-    if (!e.target.closest('.fd-chip')) {
-      chipEls.forEach(c=>{
-        c.classList.remove('selected');
-        c.querySelector('.fd-cbtnrow').style.display='none';
+    if (!e.target.closest('.fd-fcard')) {
+      cardEls.forEach(c=>{
+        c.classList.remove('fd-open');
+        c.querySelector('.fd-fbtnbar').style.display='none';
       });
-      openChip = null;
+      openCard = null;
     }
   };
 
@@ -244,11 +249,4 @@ export function showDashboard(container, user) {
       if(val>0){modal.querySelector('.fd-pay-confirm').textContent="Sending...";setTimeout(()=>{document.body.removeChild(modal);},800);}
     };
   }
-
-  // --- Alternate "Balance with Friends" design ideas ---
-  // Optionally, swap .fd-chiplist for...
-  // 1. Each friend as card with avatar and bar showing the net value and status.
-  // 2. Circular avatars in a horizontal scroll with popup stats below.
-  // 3. Grid-style small tiles with color-coded corners.
-  // Let me know if you want one implemented!
 }
