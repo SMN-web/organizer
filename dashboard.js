@@ -1,5 +1,5 @@
 export function showDashboard(container, user) {
-  // DEMO DATA
+  // DEMO DATA -- swap for backend!
   const demo = {
     paidTotal: 342,
     owedTotal: 119,
@@ -24,20 +24,20 @@ export function showDashboard(container, user) {
     ]
   };
 
-  // Net color logic
-  const netColor = demo.net > 0 ? "#43a047" : demo.net < 0 ? "#e53935" : "#789";
-  const netBG = demo.net > 0 ? "#e7fff0" : demo.net < 0 ? "#ffe6e6" : "#ececec";
+  // Utility
+  function escapeHtml(str) {
+    return String(str).replace(/[<>&"]/g, t =>
+      t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
+  }
   // Friend balances for rendering
   const balances = {};
   demo.friendsOwe.forEach(f => { balances[f.name] = (balances[f.name]||0) + f.amount; });
   demo.youOweList.forEach(f => { balances[f.name] = (balances[f.name]||0) - f.amount; });
   const allFriends = Object.entries(balances).map(([name, net]) => ({ name, net }));
   const settledPct = Math.min(100,Math.round(demo.settled/(demo.settled+demo.spends)*100));
+  const netColor = demo.net>0?"#43a047":demo.net<0?"#e53935":"#789";
+  const netBG = demo.net>0?"#e7fff0":demo.net<0?"#ffe6e6":"#ececec";
 
-  function escapeHtml(str) {
-    return String(str).replace(/[<>&"]/g, t =>
-      t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
-  }
   function donutSVG(owed, owe, net) {
     const tot = owed+owe, c = 2*Math.PI*38, pct1 = tot ? owed/tot : 0, pct2 = tot ? owe/tot : 0;
     return `
@@ -76,18 +76,17 @@ export function showDashboard(container, user) {
     .fd-friends-label { font-size:1.13em; color:#176dc4;font-weight:800; margin-bottom:.7em;}
     .fd-cardlist { margin:0 0 0.8em 0;}
     .fd-fcard {
-      background:#fff; border-radius:13px; transition:.12s; box-shadow:0 1px 6px #146dd012; position:relative; margin-bottom:0.7em;
-      padding:0.09em 0 0.09em 0;
-      display:flex;flex-direction:column;align-items:flex-start; min-height:53px;
+      background:#fff; border-radius:13px; box-shadow:0 1px 6px #146dd012; position:relative; margin-bottom:0.7em;
+      padding:0.09em 0 0.09em 0; display:flex;flex-direction:column;align-items:flex-start; min-height:53px;
     }
     .fd-fcard.green { border-left:5.5px solid #43a047;}
     .fd-fcard.red { border-left:5.5px solid #e53935;}
     .fd-fcard.gray { border-left:5.5px solid #bbc;}
-    .fd-fcard-content { display:flex;align-items:center;width:100%;gap:.74em;padding:0.65em 0.86em 0.52em 1.13em; }
+    .fd-fcard-content { display:flex;align-items:center;width:100%;gap:.74em;padding:0.65em 0.7em 0.52em 1em;}
     .fd-fcard-avatar { background:#e3f2fd; color:#1976d2; font-weight:700; font-size:1.07em;width:27px;height:27px;text-align:center;line-height:27px;border-radius:14px;}
     .fd-fcard-name { font-weight:700; font-size:1.08em; flex:1 1 auto;}
-    .fd-fcard-net { color:inherit; font-size:1.18em; min-width:42px; text-align:right; }
-    .fd-fcard-status { font-size:.99em;font-weight:600;margin:-2px 0 4px 1.71em;}
+    .fd-fcard-net { color:inherit; font-size:1.16em; min-width:40px; text-align:left; padding-left:0.5em;}
+    .fd-fcard-status { font-size:.99em;font-weight:600;margin:-2px 0 4px 1.69em;}
     .fd-fcard.green .fd-fcard-status { color:#43a047; }
     .fd-fcard.red .fd-fcard-status { color:#e53935; }
     .fd-fcard.gray .fd-fcard-status { color:#888; }
@@ -100,7 +99,9 @@ export function showDashboard(container, user) {
     .fd-fbtnbar-wrap { max-height:0; opacity:0; transition:max-height .23s, opacity .14s; pointer-events:none;}
     .fd-fcard.fd-open .fd-fbtnbar-wrap { max-height:70px; opacity:1; pointer-events:auto; animation:dropSlide .33s; }
     @keyframes dropSlide { 0% { max-height:0;opacity:0;} 100%{ max-height:70px; opacity:1; } }
-    .fd-rec-label {font-size:1.07em;color:#176dc4;font-weight:800;margin-bottom:.4em;}
+    .fd-activity-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.46em; gap:0.2em;}
+    .fd-rec-label {font-size:1.07em;color:#176dc4;font-weight:800;}
+    .fd-rec-link { font-size:.98em;color:#1976d2;font-weight:700; text-decoration:underline; cursor:pointer; margin-left:auto;}
     .fd-rec-list { margin-bottom:1.7em;}
     .fd-rec-card { background:#fff;border-radius:10px;box-shadow:0 1px 5px #1976d213; margin-bottom:0.7em;padding:1em 1em; display:flex;align-items:center; gap:1em;}
     .fd-rc-dot { width:13px;height:13px;border-radius:50%;background:#1976d2;display:inline-block;}
@@ -165,7 +166,9 @@ export function showDashboard(container, user) {
             <div class="fd-fcard-status">${label}</div>
             <div class="fd-fbtnbar-wrap">
               <div class="fd-fbtnbar" style="display:none;">
-                <button class="fd-fbtn pay">Pay</button>
+                ${f.net<0?`
+                  <button class="fd-fbtn pay">Pay</button>
+                `:''}
                 <button class="fd-fbtn tx">Transactions</button>
               </div>
             </div>
@@ -173,7 +176,10 @@ export function showDashboard(container, user) {
         }).join('')}
       </div>
     </div>
-    <div class="fd-rec-label">Recent Activity</div>
+    <div class="fd-activity-row">
+      <div class="fd-rec-label">Recent Activity</div>
+      <a class="fd-rec-link" href="#" onclick="event.preventDefault();alert('Go to transactions/all friends page')">Transactions</a>
+    </div>
     <div class="fd-rec-list">
       ${(demo.recent||[]).map(ev=>`
         <div class="fd-rec-card">
@@ -199,7 +205,7 @@ export function showDashboard(container, user) {
     <div class="fd-footer"><em>Connect your API for live analytics and history.</em></div>
   </div>`;
 
-  // Friend cards: Pay/Transactions buttons slide down under card
+  // Friend cards: Pay/Transactions buttons (Pay button only for "You Owe")
   const cardEls = container.querySelectorAll('.fd-fcard');
   let openCard = null;
   cardEls.forEach(card=>{
@@ -218,10 +224,13 @@ export function showDashboard(container, user) {
       card.classList.add('fd-open');
       openCard = card;
       card.querySelector('.fd-fbtnbar').style.display = 'flex';
-      card.querySelector('.fd-fbtn.pay').onclick = ev => {
-        ev.stopPropagation();
-        showPayModal(card.getAttribute('data-friend'));
-      };
+      let payBtn = card.querySelector('.fd-fbtn.pay');
+      if(payBtn) {
+        payBtn.onclick = ev => {
+          ev.stopPropagation();
+          showPayModal(card.getAttribute('data-friend'));
+        };
+      }
       card.querySelector('.fd-fbtn.tx').onclick = ev => {
         ev.stopPropagation();
         alert("Show transactions with "+card.getAttribute('data-friend'));
