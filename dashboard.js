@@ -4,77 +4,85 @@ import { showManageSpend } from './manageSpend.js';
 import { showFriends } from './friends.js';
 
 export async function showDashboard(container, userContext, mainContentRef) {
-  // Demo metrics, recent activity, etc.
-  const demo = {
-    paidTotal: 342,
-    owedTotal: 119,
-    youOwe: 41,
-    net: 78,
-    spends: 12,
-    topSpend: 120,
-    shares: 22,
-    settled: 9,
-    payments: [
-      { status: "pending", from_user: "Bala", to_user: userContext?.username || "User", amount: 15 },
-      { status: "pending", from_user: "Rafseed", to_user: userContext?.username || "User", amount: 9 }
-    ],
-    recent: [
-      { type: "received", name: "Bala", amount: 15, date: "2025-09-13 20:55:00" },
-      { type: "sent", name: "Sreerag", amount: 18, date: "2025-09-12 13:25:00" },
-      { type: "settled", name: "Rafseed", amount: 23, date: "2025-09-11 11:42:00" }
-    ]
-  };
-
   function escapeHtml(str) {
     return String(str).replace(/[<>&"]/g, t => t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
   }
-
-  const FRIENDS_PER_PAGE = 5;
-  let friends = [];
-  let page = 0;
-  let openCardIdx = null;
-
-  // API: fetch friends, split into outstanding/settled
-  async function fetchFriendsList() {
-    try {
-      showSpinner(container);
-      if (!userContext?.firebaseUser || typeof userContext.firebaseUser.getIdToken !== 'function')
-        throw new Error("Not logged in");
-      const token = await userContext.firebaseUser.getIdToken(true);
-      const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/settlements/friends', {
-        headers: { Authorization: "Bearer " + token }
-      });
-      const data = await resp.json();
-      hideSpinner(container);
-      if (!Array.isArray(data) && data.error) throw new Error(data.error);
-      const outstanding = data.filter(f => f.net !== 0);
-      const settled = data.filter(f => f.net === 0);
-      return { outstanding, settled, all: data };
-    } catch (e) {
-      hideSpinner(container);
-      container.innerHTML = `<div style="color:#d12020;margin:2em;">${e.message || e}</div>`;
-      throw e;
-    }
+  function parseDBDatetimeAsUTC(dt) {
+    const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
+    if (!m) return new Date(dt);
+    return new Date(Date.UTC(+m[1], m[2]-1, +m[3], +m[4], +m[5], +m[6]));
+  }
+  function getDateLabel(date) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const then = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diff = Math.round((today - then) / (1000*60*60*24));
+    if (diff === 0) return "Today";
+    if (diff === 1) return "Yesterday";
+    if (diff >= 2 && diff < 7) return date.toLocaleDateString(undefined, { weekday: 'long' });
+    const day = String(date.getDate()).padStart(2, '0');
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `${day}-${months[date.getMonth()]}-${String(date.getFullYear()).slice(2)}`;
   }
 
-  async function sendSettlePayment(toUser, amount) {
-    try {
-      showSpinner(container);
-      const token = await userContext.firebaseUser.getIdToken(true);
-      const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment', {
-        method: "POST",
-        headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ to_user: toUser, amount, currency: "QAR" })
-      });
-      const result = await resp.json();
-      hideSpinner(container);
-      if (!result.ok) throw new Error(result.error || "Payment failed");
-      return result.payment_id;
-    } catch (e) {
-      hideSpinner(container);
-      showModal({ content: e.message || e, okText: "OK" });
-      throw e;
-    }
+  let metrics = {
+    paidTotal: 0,
+    receivedTotal: 0,
+    spends: 0,
+    topSpend: 0,
+    shares: 0,
+    settledCount: 0,
+    pendingCount: 0
+  };
+  let friends = [];
+  let owe = 0;
+  let net = 0;
+  let page = 0;
+  let openCardIdx = null;
+  const FRIENDS_PER_PAGE = 5;
+  let recentActivity = [];
+
+  async function fetchMetrics() {
+    showSpinner(container);
+    let token = await userContext.firebaseUser.getIdToken(true);
+    let resp = await fetch('https://da-su.nafil-8895-s.workers.dev/api/dashboard_summary', {
+      headers: { Authorization: "Bearer " + token }
+    });
+    let data = await resp.json();
+    hideSpinner(container);
+    if (!data.ok) throw new Error(data.error || "Failed to load metrics");
+    metrics.paidTotal = data.paid_total || 0;
+    metrics.receivedTotal = data.received_total || 0;
+    metrics.spends = data.spends || 0;
+    metrics.topSpend = data.top_spend || 0;
+    metrics.shares = data.shares || 0;
+    metrics.settledCount = data.settled_count || 0;
+    metrics.pendingCount = data.pending_count || 0;
+  }
+
+  async function fetchSettlements() {
+    showSpinner(container);
+    let token = await userContext.firebaseUser.getIdToken(true);
+    let resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/settlements/friends', {
+      headers: { Authorization: "Bearer " + token }
+    });
+    let rows = await resp.json();
+    hideSpinner(container);
+    if (!Array.isArray(rows)) throw new Error("Failed to load settlements");
+    friends = rows.filter(f => f.net !== 0);
+    owe = rows.filter(f => f.net < 0).reduce((sum, f) => sum + Math.abs(f.net), 0);
+    net = rows.reduce((sum, f) => sum + f.net, 0);
+  }
+
+  async function fetchRecentActivity() {
+    showSpinner(container);
+    let token = await userContext.firebaseUser.getIdToken(true);
+    let resp = await fetch('https://da-su.nafil-8895-s.workers.dev/api/activity/recent', { // replace with actual endpoint
+      headers: { Authorization: "Bearer " + token }
+    });
+    let rows = await resp.json();
+    hideSpinner(container);
+    recentActivity = Array.isArray(rows) ? rows : [];
   }
 
   function donutSVG(owed, owe, net) {
@@ -113,26 +121,26 @@ export async function showDashboard(container, userContext, mainContentRef) {
         </div>`;
       }
       return `
-      <div class="fd-fcard" data-idx="${idx}" style="position:relative;background:#fff;border-radius:13px;box-shadow:0 1px 8px #146dd012;margin-bottom:0.7em;min-height:52px;border-left:6px solid ${leftBar};display:flex;flex-direction:column;">
-        <div style="display:flex;align-items:center;gap:.77em;padding:0.6em 0.8em 0.6em 1em;">
-          <span style="background:#e3f2fd;color:#1976d2;font-weight:700;font-size:1.07em;width:27px;height:27px;text-align:center;line-height:27px;border-radius:14px;">${escapeHtml(f.initials)}</span>
-          <span style="font-weight:700;font-size:1.08em;">${escapeHtml(f.name)}</span>
-          <span style="margin-left:auto;color:${netColor};font-size:1.17em;font-weight:700;">${f.net > 0 ? "+" : f.net < 0 ? "-" : ""}${Math.abs(f.net)} QAR</span>
-        </div>
-        <div style="margin-left:1.8em;font-size:.99em;font-weight:600;color:${netColor};">${status}</div>
-        ${actions}
-      </div>`;
+        <div class="fd-fcard" data-idx="${idx}" style="position:relative;background:#fff;border-radius:13px;box-shadow:0 1px 8px #146dd012;margin-bottom:0.7em;min-height:52px;border-left:6px solid ${leftBar};display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;gap:.77em;padding:0.6em 0.8em 0.6em 1em;">
+            <span style="background:#e3f2fd;color:#1976d2;font-weight:700;font-size:1.07em;width:27px;height:27px;text-align:center;line-height:27px;border-radius:14px;">${escapeHtml(f.initials)}</span>
+            <span style="font-weight:700;font-size:1.08em;">${escapeHtml(f.name)}</span>
+            <span style="margin-left:auto;color:${netColor};font-size:1.17em;font-weight:700;">${f.net > 0 ? "+" : f.net < 0 ? "-" : ""}${Math.abs(f.net)} QAR</span>
+          </div>
+          <div style="margin-left:1.8em;font-size:.99em;font-weight:600;color:${netColor};">${status}</div>
+          ${actions}
+        </div>`;
     }).join("");
   }
   function renderFriendsPager(list) {
     let totalPages = Math.max(1, Math.ceil(list.length / FRIENDS_PER_PAGE));
     if (totalPages <= 1) return "";
     return `
-    <div class="fd-pager-row">
-      <button class="fd-pager-btn"${page === 0 ? " disabled" : ""} data-pager="prev">&lt; Prev</button>
-      <span class="fd-pager-label">Page ${page + 1} / ${totalPages}</span>
-      <button class="fd-pager-btn"${page === totalPages - 1 ? " disabled" : ""} data-pager="next">Next &gt;</button>
-    </div>
+      <div class="fd-pager-row">
+        <button class="fd-pager-btn"${page === 0 ? " disabled" : ""} data-pager="prev">&lt; Prev</button>
+        <span class="fd-pager-label">Page ${page + 1} / ${totalPages}</span>
+        <button class="fd-pager-btn"${page === totalPages - 1 ? " disabled" : ""} data-pager="next">Next &gt;</button>
+      </div>
     `;
   }
 
@@ -167,41 +175,36 @@ export async function showDashboard(container, userContext, mainContentRef) {
     if (args.inputType) modal.querySelector('#modal-input').focus();
   }
 
-  function parseDBDatetimeAsUTC(dt) {
-    const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
-    if (!m) return new Date(dt);
-    return new Date(Date.UTC(+m[1], m[2]-1, +m[3], +m[4], +m[5], +m[6]));
-  }
-  function getDateLabel(date) {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const then = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const diff = Math.round((today - then) / (1000*60*60*24));
-    if (diff === 0) return "Today";
-    if (diff === 1) return "Yesterday";
-    if (diff >= 2 && diff < 7) return date.toLocaleDateString(undefined, { weekday: 'long' });
-    const day = String(date.getDate()).padStart(2, '0');
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    return `${day}-${months[date.getMonth()]}-${String(date.getFullYear()).slice(2)}`;
+  async function sendSettlePayment(toUser, amount) {
+    showSpinner(container);
+    let token = await userContext.firebaseUser.getIdToken(true);
+    let resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment', {
+      method: "POST",
+      headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+      body: JSON.stringify({ to_user: toUser, amount, currency: "QAR" })
+    });
+    let result = await resp.json();
+    hideSpinner(container);
+    if (!result.ok) throw new Error(result.error || "Payment failed");
+    return result.payment_id;
   }
 
-  function renderDashboard(friendsResult = { outstanding: [], settled: [], all: [] }) {
-    friends = friendsResult.outstanding;
-    const numSettled = friendsResult.settled.length;
-    const numTotal = friendsResult.outstanding.length + numSettled;
-    let owed = friends.filter(f=>f.net>0).reduce((s,f)=>s+f.net,0);
-    let owe = friends.filter(f=>f.net<0).reduce((s,f)=>s+Math.abs(f.net),0);
-    let net = owed - owe;
+  function renderDashboard() {
+    const owed = friends.filter(f => f.net > 0).reduce((sum, f) => sum + f.net, 0);
+    const friendsPage = friends.slice(page * FRIENDS_PER_PAGE, page * FRIENDS_PER_PAGE + FRIENDS_PER_PAGE);
+    const numSettled = metrics.settledCount;
+    const numTotal = friends.length + numSettled;
     let netBG = net > 0 ? "#e7fff0" : net < 0 ? "#ffe6e6" : "#ececec";
     let netColor = net > 0 ? "#43a047" : net < 0 ? "#e53935" : "#789";
     let settledPct = numTotal ? Math.round(100*numSettled/numTotal) : 0;
 
     container.innerHTML = `
     <div class="fd-main">
-      ${demo.payments?.length ?
-        `<div class="fd-banner">
-          🔔 You have ${demo.payments.length} payments awaiting your action!
-        </div>` : ''}
+      ${metrics.pendingCount > 0 ? `
+        <div class="fd-banner">
+          🔔 You have <b>${metrics.pendingCount}</b> payments awaiting your action!
+        </div>
+      ` : ''}
       <div class="fd-title">Group Payments Dashboard</div>
       <div class="fd-btn-row">
         <button class="fd-btn-main" id="friendsBtn">Friends</button>
@@ -210,9 +213,9 @@ export async function showDashboard(container, userContext, mainContentRef) {
       <div class="fd-piepanel">${donutSVG(owed, owe, net)}</div>
       <div class="fd-net-badge" style="background:${netBG};color:${netColor};">${net >= 0 ? "+" : "-"}${Math.abs(net)} QAR Net Balance</div>
       <div class="fd-metrics-row">
-        <div class="fd-metric-card"><div class="fd-metric-label">Paid</div><div class="fd-metric-value">${demo.paidTotal}</div></div>
-        <div class="fd-metric-card"><div class="fd-metric-label">Received</div><div class="fd-metric-value">${demo.owedTotal}</div></div>
-        <div class="fd-metric-card owe"><div class="fd-metric-label">Owe</div><div class="fd-metric-value">${demo.youOwe}</div></div>
+        <div class="fd-metric-card"><div class="fd-metric-label">Paid</div><div class="fd-metric-value">${metrics.paidTotal}</div></div>
+        <div class="fd-metric-card"><div class="fd-metric-label">Received</div><div class="fd-metric-value">${metrics.receivedTotal}</div></div>
+        <div class="fd-metric-card owe"><div class="fd-metric-label">Owe</div><div class="fd-metric-value">${owe}</div></div>
       </div>
       <div class="fd-progress-wrap">
         <div class="fd-progress-bar"><div class="fd-progress-fill" style="width:${settledPct}%;"></div></div>
@@ -226,7 +229,7 @@ export async function showDashboard(container, userContext, mainContentRef) {
         <a class="fd-rec-link" id="transactionsLink" href="#">Transactions</a>
       </div>
       <div class="fd-rec-list">
-        ${(demo.recent || []).map(ev => `
+        ${(recentActivity || []).map(ev => `
           <div class="fd-rec-card">
             <span class="fd-rc-dot ${ev.type}"></span>
             <div class="fd-rc-details">
@@ -242,33 +245,26 @@ export async function showDashboard(container, userContext, mainContentRef) {
       </div>
       <div class="fd-stats-label">Your Stats</div>
       <div class="fd-stats-grid">
-        <div class="fd-sg-card"><div class="fd-sg-label">Spends</div><div class="fd-sg-value">${demo.spends}</div></div>
-        <div class="fd-sg-card"><div class="fd-sg-label">Shares</div><div class="fd-sg-value">${demo.shares}</div></div>
-        <div class="fd-sg-card"><div class="fd-sg-label">Top Spend</div><div class="fd-sg-value">${demo.topSpend}</div></div>
-        <div class="fd-sg-card"><div class="fd-sg-label">Settled</div><div class="fd-sg-value">${demo.settled}</div></div>
+        <div class="fd-sg-card"><div class="fd-sg-label">Spends</div><div class="fd-sg-value">${metrics.spends}</div></div>
+        <div class="fd-sg-card"><div class="fd-sg-label">Shares</div><div class="fd-sg-value">${metrics.shares}</div></div>
+        <div class="fd-sg-card"><div class="fd-sg-label">Top Spend</div><div class="fd-sg-value">${metrics.topSpend}</div></div>
+        <div class="fd-sg-card"><div class="fd-sg-label">Settled</div><div class="fd-sg-value">${metrics.settledCount}</div></div>
       </div>
       <div class="fd-footer" style="margin-bottom:2em;"><em>Connect your API for live analytics and history.</em></div>
     </div>
     `;
 
-    // Top button reroutes
     container.querySelector('#friendsBtn').onclick = () => {
       showFriends(mainContentRef || container, userContext);
     };
     container.querySelector('#splitBtn').onclick = () => {
       showManageSpend(mainContentRef || container, userContext);
     };
-    // Transactions link reroute
-    const transactionsLink = container.querySelector('#transactionsLink');
-    if (transactionsLink) {
-      transactionsLink.onclick = (e) => {
-        e.preventDefault();
-        showPaymentsPanelMain(mainContentRef || container, userContext);
-      };
-    }
+    container.querySelector('#transactionsLink').onclick = (e) => {
+      e.preventDefault();
+      showPaymentsPanelMain(mainContentRef || container, userContext);
+    };
 
-    // Paginated friends section
-    const friendsPage = friends.slice(page * FRIENDS_PER_PAGE, page * FRIENDS_PER_PAGE + FRIENDS_PER_PAGE);
     container.querySelector("#fd-friend-list").innerHTML = renderFriendsList(friendsPage);
     container.querySelector("#fd-friend-pager").innerHTML = renderFriendsPager(friends);
 
@@ -279,17 +275,16 @@ export async function showDashboard(container, userContext, mainContentRef) {
           if (btn.disabled) return;
           page += btn.getAttribute("data-pager") === "next" ? 1 : -1;
           openCardIdx = null;
-          renderDashboard(friendsResult);
+          renderDashboard();
         };
       });
     }
-
     container.querySelectorAll('.fd-fcard').forEach(card => {
       card.onclick = evt => {
         if (evt.target.closest('.fd-fbtn')) return;
         let idx = Number(card.getAttribute('data-idx'));
         openCardIdx = openCardIdx === idx ? null : idx;
-        renderDashboard(friendsResult);
+        renderDashboard();
       }
     });
     container.querySelectorAll('.fd-fbtn').forEach(btn => {
@@ -326,10 +321,10 @@ export async function showDashboard(container, userContext, mainContentRef) {
                 onOk: async () => {
                   await sendSettlePayment(friend.username, +enteredAmount);
                   showSpinner(container);
-                  const refreshed = await fetchFriendsList();
+                  await fetchSettlements();
                   page = 0;
                   openCardIdx = null;
-                  renderDashboard(refreshed);
+                  renderDashboard();
                 },
                 onCancel: () => {
                   btn.onclick(ev);
@@ -338,7 +333,6 @@ export async function showDashboard(container, userContext, mainContentRef) {
             }
           });
         } else if (btn.textContent === "Transactions") {
-          // Use global variable to route/filter friend in payments panel
           window.selectedFriendForPayments = friend.username;
           showPaymentsPanelMain(mainContentRef || container, userContext);
         }
@@ -365,11 +359,13 @@ export async function showDashboard(container, userContext, mainContentRef) {
     }
   }
 
-  container.innerHTML = `<div class="fd-main"><div style="text-align:center;margin:3em auto;font-size:1.28em;color:#2566b2;font-weight:700;">Loading group balances&hellip;</div></div>`;
+  container.innerHTML = `<div class="fd-main"><div style="text-align:center;margin:3em auto;font-size:1.28em;color:#2566b2;font-weight:700;">Loading dashboard&hellip;</div></div>`;
   try {
-    const friendsResult = await fetchFriendsList();
-    renderDashboard(friendsResult);
+    await fetchMetrics();
+    await fetchSettlements();
+    await fetchRecentActivity();
+    renderDashboard();
   } catch (e) {
-    // error already handled above
+    container.innerHTML = `<div style="color:#d12020;margin:2em;">${e.message || e}</div>`;
   }
 }
