@@ -264,10 +264,10 @@ export async function showPaymentsPanel(container, user) {
           heading = `Transfer from <b>${displayFrom}</b> to <b>${displayTo}</b> (transfer initiated by you)`;
         } else if (ev.from_user === me) {
           bubbleSide = "bubble-left";
-          heading = `Payment sent to <b>${displayTo}</b> (transfer initiated by ${displaySender})`;
+          heading = `Payment sent to <b>${displayTo}</b> (on behalf of ${displaySender})`;
         } else if (ev.to_user === me) {
           bubbleSide = "bubble-left";
-          heading = `Payment received from <b>${displayFrom}</b> (transfer initiated by ${displaySender})`;
+          heading = `Payment received from <b>${displayFrom}</b> (on behalf of ${displaySender})`;
         } else {
           heading = "Transfer"; // Should never hit
         }
