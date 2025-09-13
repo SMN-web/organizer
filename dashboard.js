@@ -1,5 +1,5 @@
 export function showDashboard(container, user) {
-  // DEMO DATA – replace with your backend/API!
+  // DEMO DATA
   const demo = {
     paidTotal: 342,
     owedTotal: 119,
@@ -24,105 +24,104 @@ export function showDashboard(container, user) {
     ]
   };
 
-  function escapeHtml(str) {
-    return String(str).replace(/[<>&"]/g, t =>
-      t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
-  }
-  // Compile friend balances
+  // Net color logic
+  const netColor = demo.net > 0 ? "#43a047" : demo.net < 0 ? "#e53935" : "#789";
+  const netBG = demo.net > 0 ? "#e7fff0" : demo.net < 0 ? "#ffe6e6" : "#ececec";
+  // Friend balances for rendering
   const balances = {};
   demo.friendsOwe.forEach(f => { balances[f.name] = (balances[f.name]||0) + f.amount; });
   demo.youOweList.forEach(f => { balances[f.name] = (balances[f.name]||0) - f.amount; });
   const allFriends = Object.entries(balances).map(([name, net]) => ({ name, net }));
   const settledPct = Math.min(100,Math.round(demo.settled/(demo.settled+demo.spends)*100));
-  const netColor = demo.net>0?"#43a047":demo.net<0?"#e53935":"#789";
-  const netBG = demo.net>0?"#e7fff0":demo.net<0?"#ffe6e6":"#ececec";
 
+  function escapeHtml(str) {
+    return String(str).replace(/[<>&"]/g, t =>
+      t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
+  }
   function donutSVG(owed, owe, net) {
-    const tot = owed+owe, c = 2*Math.PI*38, pct1=tot?owed/tot:0, pct2=tot?owe/tot:0;
+    const tot = owed+owe, c = 2*Math.PI*38, pct1 = tot ? owed/tot : 0, pct2 = tot ? owe/tot : 0;
     return `
       <svg width="88" height="88" viewBox="0 0 88 88" style="display:block;margin:0 auto 0.2em;">
         <circle r="38" cx="44" cy="44" fill="#f3f8fc"/>
-        <circle r="38" cx="44" cy="44" fill="none" stroke="#1e88e5" stroke-width="12"
+        <circle r="38" cx="44" cy="44" fill="none" stroke="#43a047" stroke-width="12"
           stroke-dasharray="${pct1*c},${c}" stroke-linecap="round" />
         <circle r="38" cx="44" cy="44" fill="none" stroke="#e53935" stroke-width="12"
           stroke-dasharray="${pct2*c},${c}" stroke-linecap="round"
           style="transform:rotate(${pct1*360}deg);transform-origin:44px 44px;" />
-        <text x="44" y="54" text-anchor="middle" font-size="24" fill="${netColor}" font-weight="700">${net>=0?'+':'-'}${Math.abs(net)}</text>
+        <text x="44" y="54" text-anchor="middle" font-size="24" fill="${netColor}" font-weight="700">${net >= 0 ? '+' : '-'}${Math.abs(net)}</text>
       </svg>
-      <div style="font-size:.99em;color:#1e88e5;font-weight:700;text-align:center;">
-        Owed (<span style="color:#1e88e5;">Blue</span>) &bull; Owe (<span style="color:#e53935;">Red</span>)
+      <div style="font-size:.99em;font-weight:700;text-align:center;">
+        <span style="color:#43a047;">Owed (Green)</span> &bull; <span style="color:#e53935;">Owe (Red)</span>
       </div>
     `;
   }
 
   container.innerHTML = `
   <style>
-    .fd-main { max-width:540px; margin:36px auto; font-family:'Inter',Arial,sans-serif; color:#1a2440; background:#fafdff; border-radius:22px; box-shadow:0 8px 28px #176dc420; padding:2em 1em 2.7em;}
-    @media(max-width:540px){.fd-main{max-width:99vw;padding:1em 0.05em 2em;}}
+    .fd-main { max-width: 540px; margin: 36px auto; font-family: 'Inter', Arial, sans-serif; color: #1a2440; background: #fafdff; border-radius: 22px; box-shadow: 0 8px 24px #176dc418; padding: 2em 1em 2.7em;}
+    @media(max-width:540px){.fd-main{max-width:99vw;}}
     .fd-title { font-size:2.2em; font-weight:700; color:#124; text-align:center; margin-bottom:1em; }
     .fd-piepanel { margin-bottom:1em; }
-    .fd-net-badge { font-size:2em;font-weight:900;display:block;background:${netBG};color:${netColor};border-radius:15px;text-align:center;margin:0 auto 1.2em auto;padding:.7em 0;letter-spacing:.04em;box-shadow:0 2px 19px #43a0470e;}
+    .fd-net-badge { font-size:2em;font-weight:900;display:block;background:${netBG};color:${netColor};border-radius:15px;text-align:center;margin:0 auto 1.2em auto;padding:.7em 0;letter-spacing:.04em;}
     .fd-metrics-row { display:flex; gap:1em; margin-bottom:2em; justify-content:center;}
-    .fd-metric-card { flex:1 0 90px; padding:1em 0.7em; background:linear-gradient(110deg,#f7fafc,#fff6f6); border-radius:13px; text-align:center; box-shadow:0 2px 10px #176dc414; font-size:1.13em;}
-    .fd-metric-label { color:#3897d1;font-weight:700;font-size:.98em;margin-bottom:3px;}
-    .fd-metric-value { color:#2e3b57;font-size:1.23em;font-weight:900;}
+    .fd-metric-card { flex:1 0 90px; padding:1em 0.7em; background:linear-gradient(110deg,#f7fafc,#fff6f6); border-radius:13px; text-align:center; box-shadow:0 2px 10px #176dc412;}
+    .fd-metric-label { color:#3897d1;font-weight:700;font-size:.98em;}
+    .fd-metric-value { color:#2e3b57;font-size:1.2em;font-weight:900;}
     .fd-metric-card.owe .fd-metric-value { color:#e53935 !important; }
     .fd-progress-wrap {margin-bottom:1.8em;}
     .fd-progress-bar { background:#e3f2fd;border-radius:13px;width:80%;max-width:320px;margin:0 auto;height:14px;overflow:hidden;}
     .fd-progress-fill { background:#43a047;height:14px;width:${settledPct}%;border-radius:13px;transition:width .9s;}
     .fd-progress-text {margin-top:0.65em;font-size:1em;color:#198;font-weight:700;text-align:center;}
-    .fd-friends-section { margin:2em 0 2em;}
+    .fd-friends-section { margin:1.6em 0 1.6em;}
     .fd-friends-label { font-size:1.13em; color:#176dc4;font-weight:800; margin-bottom:.7em;}
-    .fd-cardlist { margin:0 0 1.2em 0;}
+    .fd-cardlist { margin:0 0 0.8em 0;}
     .fd-fcard {
-      background:#fff; border-radius:14px; transition:.14s; position:relative; box-shadow:0 1px 8px #176dc412; overflow:visible;
-      display:flex; flex-direction:column; align-items:flex-start; min-height:52px; margin-bottom:0.85em; padding:0.2em 0 0.2em 0;
+      background:#fff; border-radius:13px; transition:.12s; box-shadow:0 1px 6px #146dd012; position:relative; margin-bottom:0.7em;
+      padding:0.09em 0 0.09em 0;
+      display:flex;flex-direction:column;align-items:flex-start; min-height:53px;
     }
-    .fd-fcard.green { border-left:6px solid #43a047;}
-    .fd-fcard.red { border-left:6px solid #e53935;}
-    .fd-fcard.gray { border-left:6px solid #bbc;}
-    .fd-fcard-content { display:flex;align-items:center;width:100%;gap:.77em;padding:0.65em 0.8em 0.6em 1.1em;}
-    .fd-fcard-avatar { background:#e3f2fd; color:#1976d2; font-weight:700; font-size:1.07em;width:28px;height:28px;text-align:center;line-height:28px;border-radius:15px;}
-    .fd-fcard-main { display:flex;align-items:center;width:100%; }
-    .fd-fcard-name { font-weight:700; font-size:1.07em;}
-    .fd-fcard-net { color:inherit; font-size:1.12em; margin-left:auto;padding-left:9px; }
-    .fd-fcard-status { font-size:.97em;font-weight:600;margin:-2px 0 2px 1.6em; }
+    .fd-fcard.green { border-left:5.5px solid #43a047;}
+    .fd-fcard.red { border-left:5.5px solid #e53935;}
+    .fd-fcard.gray { border-left:5.5px solid #bbc;}
+    .fd-fcard-content { display:flex;align-items:center;width:100%;gap:.74em;padding:0.65em 0.86em 0.52em 1.13em; }
+    .fd-fcard-avatar { background:#e3f2fd; color:#1976d2; font-weight:700; font-size:1.07em;width:27px;height:27px;text-align:center;line-height:27px;border-radius:14px;}
+    .fd-fcard-name { font-weight:700; font-size:1.08em; flex:1 1 auto;}
+    .fd-fcard-net { color:inherit; font-size:1.18em; min-width:42px; text-align:right; }
+    .fd-fcard-status { font-size:.99em;font-weight:600;margin:-2px 0 4px 1.71em;}
     .fd-fcard.green .fd-fcard-status { color:#43a047; }
     .fd-fcard.red .fd-fcard-status { color:#e53935; }
     .fd-fcard.gray .fd-fcard-status { color:#888; }
-    .fd-fbtnbar-wrap {width:100%;padding:0; margin:0;overflow:hidden;}
+    .fd-fbtnbar-wrap {width:100%;padding:0;margin:0;overflow:hidden;}
     .fd-fbtnbar { display:flex; justify-content:center; gap:1em; width:100%; padding:0; margin:0; transition:.13s; }
-    .fd-fbtn { font-size:1.07em;font-weight:700;padding:0.7em 1.34em;border:none; border-radius:8px;color:#fff;cursor:pointer; box-shadow:0 1px 6px #176dc412; margin:0.3em 0;}
+    .fd-fbtn { font-size:1.05em;font-weight:700;padding:0.6em 1.25em;border:none; border-radius:8px;color:#fff;cursor:pointer; box-shadow:0 1px 6px #176dc410; margin:0.22em 0; }
     .fd-fbtn.pay { background:#176dc4;}
     .fd-fbtn.tx { background:#43a047;}
     .fd-fbtn:hover { background:#e53935 !important;}
-    .fd-fbtnbar-wrap { max-height:0; opacity:0; transition:max-height .27s, opacity .19s; pointer-events:none;}
-    .fd-fcard.fd-open .fd-fbtnbar-wrap { max-height:80px; opacity:1; pointer-events:auto; animation:dropSlide .32s; }
-    @keyframes dropSlide { 0% { max-height:0;opacity:0;} 100%{ max-height:80px; opacity:1; } }
+    .fd-fbtnbar-wrap { max-height:0; opacity:0; transition:max-height .23s, opacity .14s; pointer-events:none;}
+    .fd-fcard.fd-open .fd-fbtnbar-wrap { max-height:70px; opacity:1; pointer-events:auto; animation:dropSlide .33s; }
+    @keyframes dropSlide { 0% { max-height:0;opacity:0;} 100%{ max-height:70px; opacity:1; } }
     .fd-rec-label {font-size:1.07em;color:#176dc4;font-weight:800;margin-bottom:.4em;}
-    .fd-rec-list { margin-bottom:2em;}
-    .fd-rec-card { background:#fff;border-radius:10px;box-shadow:0 1px 7px #1976d213; margin-bottom:0.8em;padding:1em 1.3em; display:flex;align-items:center; gap:1em;}
-    .fd-rc-dot { width:15px;height:15px;border-radius:50%;background:#1976d2;display:inline-block;}
+    .fd-rec-list { margin-bottom:1.7em;}
+    .fd-rec-card { background:#fff;border-radius:10px;box-shadow:0 1px 5px #1976d213; margin-bottom:0.7em;padding:1em 1em; display:flex;align-items:center; gap:1em;}
+    .fd-rc-dot { width:13px;height:13px;border-radius:50%;background:#1976d2;display:inline-block;}
     .fd-rc-dot.received {background:#43a047;}
     .fd-rc-dot.sent {background:#e53935;}
     .fd-rc-dot.settled {background:#789;}
-    .fd-rc-details { flex:1;}
-    .fd-rc-amount {font-size:1.11em;font-weight:800;color:#223b57;}
-    .fd-rc-desc {font-size:.99em;font-weight:600;color:#4570a2;}
-    .fd-rc-date {font-size:.98em;color:#789;}
-    .fd-stats-label {font-size:1.03em;color:#176dc4;font-weight:700;margin-top:1.7em;margin-bottom:.7em;text-align:left;}
-    .fd-stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.12em; }
-    @media(max-width:480px){ .fd-stats-grid { grid-template-columns:1fr 1fr; } }
+    .fd-rc-amount {font-size:1.09em;font-weight:800;color:#223b57;}
+    .fd-rc-desc {font-size:.98em;font-weight:600;color:#4570a2;}
+    .fd-rc-date {font-size:.97em;color:#789;}
+    .fd-stats-label {font-size:1.04em;color:#176dc4;font-weight:700;margin-top:1.5em;margin-bottom:.78em;text-align:left;}
+    .fd-stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.12em;}
     .fd-sg-card { background:#e3f8fe;border-radius:11px; box-shadow:0 1px 8px #1976d212;text-align:center;padding:1em 0.7em;}
     .fd-sg-label {font-size:.97em;color:#176dc4;font-weight:700;}
     .fd-sg-value { font-size:1.21em;font-weight:800;}
-    .fd-footer {margin:2em auto 0;text-align:center;color:#99acd5;font-size:1.10em;}
-    .fd-pay-modal { position: fixed; left:0; top:0; width:100vw; height:100vh; z-index:99; background:rgba(24,32,54,0.30); display:flex; align-items:center; justify-content:center;}
+    .fd-footer {margin:1.5em auto 0;text-align:center;color:#99acd5;font-size:1.09em;}
+    .fd-pay-modal { position: fixed; left:0; top:0; width:100vw; height:100vh; z-index:99; background:rgba(24,32,54,0.28); display:flex; align-items:center; justify-content:center;}
     .fd-pay-content { background:#fff; border-radius:13px; box-shadow:0 6px 36px #1976d230; padding:2em 2.3em; min-width:260px; text-align:center;}
     .fd-pay-close { position:absolute; right:16px; top:16px; background:none; border:none; font-size:1.5em; color:#176dc4; cursor:pointer;}
-    .fd-pay-content h4 {font-size:1.2em;font-weight:700;margin-bottom:1em;}
+    .fd-pay-content h4 {font-size:1.19em;font-weight:700;margin-bottom:1em;}
     .fd-pay-input {width:85%;padding:0.6em 0.7em;font-size:1em;border-radius:7px;border:1px solid #abc; margin-bottom:1.18em;}
-    .fd-pay-confirm { background:#3897d1; color:#fff; border:none; font-weight:700; font-size:1.04em; padding:.62em 1.9em; border-radius:6px;cursor:pointer; box-shadow:0 2px 7px #176dc422;}
+    .fd-pay-confirm { background:#3897d1; color:#fff; border:none; font-weight:700; font-size:1.03em; padding:.62em 1.9em; border-radius:6px;cursor:pointer; box-shadow:0 2px 7px #176dc422;}
   </style>
   <div class="fd-main">
     <div class="fd-title">Group Payments Dashboard</div>
@@ -157,7 +156,7 @@ export function showDashboard(container, user) {
           let barC = f.net>0?'#43a047':f.net<0?'#e53935':'#bbc';
           let label = f.net>0?"Owes You":f.net<0?"You Owe":"Settled";
           return `<div class="fd-fcard ${statusC}" data-friend="${escapeHtml(f.name)}" tabindex="0">
-            <div style="background:${barC};width:6px;height:100%;position:absolute;left:0;top:0;border-radius:8px 0 0 8px;"></div>
+            <div style="background:${barC};width:5.5px;height:100%;position:absolute;left:0;top:0;border-radius:8px 0 0 8px;"></div>
             <div class="fd-fcard-content fd-fcard-main">
               <span class="fd-fcard-avatar">${initials}</span>
               <span class="fd-fcard-name">${escapeHtml(f.name)}</span>
@@ -200,13 +199,13 @@ export function showDashboard(container, user) {
     <div class="fd-footer"><em>Connect your API for live analytics and history.</em></div>
   </div>`;
 
-  // Friend card dropdown: Pay/Transactions, below card, horizontal row
+  // Friend cards: Pay/Transactions buttons slide down under card
   const cardEls = container.querySelectorAll('.fd-fcard');
   let openCard = null;
   cardEls.forEach(card=>{
     card.onclick = e => {
       e.stopPropagation();
-      if (openCard === card) {
+      if(openCard === card) {
         card.classList.remove('fd-open');
         card.querySelector('.fd-fbtnbar').style.display = 'none';
         openCard = null;
