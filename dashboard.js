@@ -1,5 +1,5 @@
 export function showDashboard(container, user) {
-  // DEMO DATA -- swap with API results!
+  // DEMO DATA – replace with your backend/API!
   const demo = {
     paidTotal: 342,
     owedTotal: 119,
@@ -28,7 +28,7 @@ export function showDashboard(container, user) {
     return String(str).replace(/[<>&"]/g, t =>
       t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
   }
-  // Friend balances
+  // Compile friend balances
   const balances = {};
   demo.friendsOwe.forEach(f => { balances[f.name] = (balances[f.name]||0) + f.amount; });
   demo.youOweList.forEach(f => { balances[f.name] = (balances[f.name]||0) - f.amount; });
@@ -36,7 +36,7 @@ export function showDashboard(container, user) {
   const settledPct = Math.min(100,Math.round(demo.settled/(demo.settled+demo.spends)*100));
   const netColor = demo.net>0?"#43a047":demo.net<0?"#e53935":"#789";
   const netBG = demo.net>0?"#e7fff0":demo.net<0?"#ffe6e6":"#ececec";
-  
+
   function donutSVG(owed, owe, net) {
     const tot = owed+owe, c = 2*Math.PI*38, pct1=tot?owed/tot:0, pct2=tot?owe/tot:0;
     return `
@@ -57,43 +57,49 @@ export function showDashboard(container, user) {
 
   container.innerHTML = `
   <style>
-    .fd-main { max-width:540px; margin:38px auto; font-family:'Inter',Arial,sans-serif; color:#223; background:#fafdff; border-radius:24px; box-shadow:0 8px 34px #176dc419; padding:2em 1em 2.7em;}
+    .fd-main { max-width:540px; margin:36px auto; font-family:'Inter',Arial,sans-serif; color:#1a2440; background:#fafdff; border-radius:22px; box-shadow:0 8px 28px #176dc420; padding:2em 1em 2.7em;}
     @media(max-width:540px){.fd-main{max-width:99vw;padding:1em 0.05em 2em;}}
-    .fd-title { font-size:2.3em; font-weight:700; color:#124; text-align:center; margin-bottom:.9em; }
+    .fd-title { font-size:2.2em; font-weight:700; color:#124; text-align:center; margin-bottom:1em; }
     .fd-piepanel { margin-bottom:1em; }
-    .fd-net-badge { font-size:2em;font-weight:900;display:block;background:${netBG};color:${netColor};border-radius:15px;text-align:center;margin:0 auto 1.3em auto;padding:.7em 0;letter-spacing:.04em;box-shadow:0 2px 19px #43a04719; }
-    .fd-metrics-row { display:flex; gap:1.2em; margin-bottom:2em; justify-content:center;}
-    .fd-metric-card { flex:1 0 96px; padding:1.08em 1em; background:linear-gradient(110deg,#f6fafc,#fef5f5); border-radius:13px; text-align:center; box-shadow:0 2px 14px #176dc42a; font-size:1.15em;}
-    .fd-metric-label { color:#3897d1;font-weight:700;font-size:.99em;margin-bottom:3px;}
-    .fd-metric-value { color:#2e3b57;font-size:1.29em;font-weight:900;}
+    .fd-net-badge { font-size:2em;font-weight:900;display:block;background:${netBG};color:${netColor};border-radius:15px;text-align:center;margin:0 auto 1.2em auto;padding:.7em 0;letter-spacing:.04em;box-shadow:0 2px 19px #43a0470e;}
+    .fd-metrics-row { display:flex; gap:1em; margin-bottom:2em; justify-content:center;}
+    .fd-metric-card { flex:1 0 90px; padding:1em 0.7em; background:linear-gradient(110deg,#f7fafc,#fff6f6); border-radius:13px; text-align:center; box-shadow:0 2px 10px #176dc414; font-size:1.13em;}
+    .fd-metric-label { color:#3897d1;font-weight:700;font-size:.98em;margin-bottom:3px;}
+    .fd-metric-value { color:#2e3b57;font-size:1.23em;font-weight:900;}
     .fd-metric-card.owe .fd-metric-value { color:#e53935 !important; }
-    .fd-progress-wrap {margin-bottom:2em;}
+    .fd-progress-wrap {margin-bottom:1.8em;}
     .fd-progress-bar { background:#e3f2fd;border-radius:13px;width:80%;max-width:320px;margin:0 auto;height:14px;overflow:hidden;}
     .fd-progress-fill { background:#43a047;height:14px;width:${settledPct}%;border-radius:13px;transition:width .9s;}
-    .fd-progress-text { margin-top:.85em;font-size:1em;color:#198;font-weight:700;text-align:center;}
+    .fd-progress-text {margin-top:0.65em;font-size:1em;color:#198;font-weight:700;text-align:center;}
     .fd-friends-section { margin:2em 0 2em;}
     .fd-friends-label { font-size:1.13em; color:#176dc4;font-weight:800; margin-bottom:.7em;}
     .fd-cardlist { margin:0 0 1.2em 0;}
-    .fd-fcard { background:#fff; border-radius:14px; transition:.15s; position:relative; overflow:hidden; box-shadow:0 1px 10px #176dc410;}
-    .fd-fcard.green { border-left:8px solid #43a047;}
-    .fd-fcard.red { border-left:8px solid #e53935;}
-    .fd-fcard.gray { border-left:8px solid #bbc;}
-    .fd-fcard-main { display:flex;align-items:center;gap:.9em;padding:1.1em 1em 1.1em 1.5em;}
-    .fd-fcard-avatar { background:#e3f2fd; color:#1976d2; font-weight:700; font-size:1.1em;width:33px;height:33px;text-align:center;line-height:33px;border-radius:24px;}
-    .fd-fcard-net { color:inherit; font-size:1.14em; margin-left:auto; }
-    .fd-fcard.fd-open {box-shadow:0 3px 18px #176dc422;}
-    .fd-fbtnbar {display:flex;gap:0.95em;margin:0.45em 0 0 1.7em;}
-    .fd-fbtn { font-size:1.06em;font-weight:700;padding:0.7em 2em;border:none; border-radius:8px;color:#fff;box-shadow:0 1px 7px #176dc41b;cursor:pointer;}
-    .fd-fbtn:first-child { background:#176dc4;}
-    .fd-fbtn:last-child { background:#43a047;}
-    .fd-fbtn:hover { background:#e53935 !important;}
-    .fd-fcard.fd-open .fd-fbtnbar { animation:dropSlide .36s; }
-    .fd-fcard-status { margin-left:1.6em;font-size:1em;font-weight:600;}
+    .fd-fcard {
+      background:#fff; border-radius:14px; transition:.14s; position:relative; box-shadow:0 1px 8px #176dc412; overflow:visible;
+      display:flex; flex-direction:column; align-items:flex-start; min-height:52px; margin-bottom:0.85em; padding:0.2em 0 0.2em 0;
+    }
+    .fd-fcard.green { border-left:6px solid #43a047;}
+    .fd-fcard.red { border-left:6px solid #e53935;}
+    .fd-fcard.gray { border-left:6px solid #bbc;}
+    .fd-fcard-content { display:flex;align-items:center;width:100%;gap:.77em;padding:0.65em 0.8em 0.6em 1.1em;}
+    .fd-fcard-avatar { background:#e3f2fd; color:#1976d2; font-weight:700; font-size:1.07em;width:28px;height:28px;text-align:center;line-height:28px;border-radius:15px;}
+    .fd-fcard-main { display:flex;align-items:center;width:100%; }
+    .fd-fcard-name { font-weight:700; font-size:1.07em;}
+    .fd-fcard-net { color:inherit; font-size:1.12em; margin-left:auto;padding-left:9px; }
+    .fd-fcard-status { font-size:.97em;font-weight:600;margin:-2px 0 2px 1.6em; }
     .fd-fcard.green .fd-fcard-status { color:#43a047; }
     .fd-fcard.red .fd-fcard-status { color:#e53935; }
     .fd-fcard.gray .fd-fcard-status { color:#888; }
-    @keyframes dropSlide { 0% { max-height:0;opacity:0;} 100%{ max-height:70px; opacity:1; } }
-    .fd-rec-label {font-size:1.07em;color:#176dc4;font-weight:800;margin-bottom:.45em;}
+    .fd-fbtnbar-wrap {width:100%;padding:0; margin:0;overflow:hidden;}
+    .fd-fbtnbar { display:flex; justify-content:center; gap:1em; width:100%; padding:0; margin:0; transition:.13s; }
+    .fd-fbtn { font-size:1.07em;font-weight:700;padding:0.7em 1.34em;border:none; border-radius:8px;color:#fff;cursor:pointer; box-shadow:0 1px 6px #176dc412; margin:0.3em 0;}
+    .fd-fbtn.pay { background:#176dc4;}
+    .fd-fbtn.tx { background:#43a047;}
+    .fd-fbtn:hover { background:#e53935 !important;}
+    .fd-fbtnbar-wrap { max-height:0; opacity:0; transition:max-height .27s, opacity .19s; pointer-events:none;}
+    .fd-fcard.fd-open .fd-fbtnbar-wrap { max-height:80px; opacity:1; pointer-events:auto; animation:dropSlide .32s; }
+    @keyframes dropSlide { 0% { max-height:0;opacity:0;} 100%{ max-height:80px; opacity:1; } }
+    .fd-rec-label {font-size:1.07em;color:#176dc4;font-weight:800;margin-bottom:.4em;}
     .fd-rec-list { margin-bottom:2em;}
     .fd-rec-card { background:#fff;border-radius:10px;box-shadow:0 1px 7px #1976d213; margin-bottom:0.8em;padding:1em 1.3em; display:flex;align-items:center; gap:1em;}
     .fd-rc-dot { width:15px;height:15px;border-radius:50%;background:#1976d2;display:inline-block;}
@@ -106,7 +112,7 @@ export function showDashboard(container, user) {
     .fd-rc-date {font-size:.98em;color:#789;}
     .fd-stats-label {font-size:1.03em;color:#176dc4;font-weight:700;margin-top:1.7em;margin-bottom:.7em;text-align:left;}
     .fd-stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.12em; }
-    @media(max-width:480px){ .fd-stats-grid { grid-template-columns:1fr; } }
+    @media(max-width:480px){ .fd-stats-grid { grid-template-columns:1fr 1fr; } }
     .fd-sg-card { background:#e3f8fe;border-radius:11px; box-shadow:0 1px 8px #1976d212;text-align:center;padding:1em 0.7em;}
     .fd-sg-label {font-size:.97em;color:#176dc4;font-weight:700;}
     .fd-sg-value { font-size:1.21em;font-weight:800;}
@@ -150,17 +156,19 @@ export function showDashboard(container, user) {
           let statusC = f.net>0?'green':f.net<0?'red':'gray';
           let barC = f.net>0?'#43a047':f.net<0?'#e53935':'#bbc';
           let label = f.net>0?"Owes You":f.net<0?"You Owe":"Settled";
-          return `<div class="fd-fcard ${statusC}" data-friend="${escapeHtml(f.name)}" tabindex="0" style="margin-bottom:1em;position:relative;">
-            <div style="background:${barC};width:8px;height:100%;position:absolute;left:0;top:0;border-radius:8px 0 0 8px;"></div>
-            <div class="fd-fcard-main">
+          return `<div class="fd-fcard ${statusC}" data-friend="${escapeHtml(f.name)}" tabindex="0">
+            <div style="background:${barC};width:6px;height:100%;position:absolute;left:0;top:0;border-radius:8px 0 0 8px;"></div>
+            <div class="fd-fcard-content fd-fcard-main">
               <span class="fd-fcard-avatar">${initials}</span>
-              <span style="font-weight:700;">${escapeHtml(f.name)}</span>
+              <span class="fd-fcard-name">${escapeHtml(f.name)}</span>
               <span class="fd-fcard-net" style="color:${barC};">${f.net>0?'+':f.net<0?'-':''}${Math.abs(f.net)}</span>
             </div>
             <div class="fd-fcard-status">${label}</div>
-            <div class="fd-fbtnbar" style="display:none;">
-              <button class="fd-fbtn">Pay</button>
-              <button class="fd-fbtn">Transactions</button>
+            <div class="fd-fbtnbar-wrap">
+              <div class="fd-fbtnbar" style="display:none;">
+                <button class="fd-fbtn pay">Pay</button>
+                <button class="fd-fbtn tx">Transactions</button>
+              </div>
             </div>
           </div>`;
         }).join('')}
@@ -192,29 +200,30 @@ export function showDashboard(container, user) {
     <div class="fd-footer"><em>Connect your API for live analytics and history.</em></div>
   </div>`;
 
-  // -- Friend card dropdown: slide down, Pay/Transactions buttons in a row --
+  // Friend card dropdown: Pay/Transactions, below card, horizontal row
   const cardEls = container.querySelectorAll('.fd-fcard');
   let openCard = null;
   cardEls.forEach(card=>{
     card.onclick = e => {
       e.stopPropagation();
-      if(openCard === card) {
+      if (openCard === card) {
         card.classList.remove('fd-open');
-        card.querySelector('.fd-fbtnbar').style.display='none';
-        openCard=null; return;
+        card.querySelector('.fd-fbtnbar').style.display = 'none';
+        openCard = null;
+        return;
       }
       cardEls.forEach(c=>{
         c.classList.remove('fd-open');
-        c.querySelector('.fd-fbtnbar').style.display='none';
+        c.querySelector('.fd-fbtnbar').style.display = 'none';
       });
       card.classList.add('fd-open');
-      openCard=card;
-      card.querySelector('.fd-fbtnbar').style.display='flex';
-      card.querySelectorAll('.fd-fbtn')[0].onclick = ev => {
+      openCard = card;
+      card.querySelector('.fd-fbtnbar').style.display = 'flex';
+      card.querySelector('.fd-fbtn.pay').onclick = ev => {
         ev.stopPropagation();
         showPayModal(card.getAttribute('data-friend'));
       };
-      card.querySelectorAll('.fd-fbtn')[1].onclick = ev => {
+      card.querySelector('.fd-fbtn.tx').onclick = ev => {
         ev.stopPropagation();
         alert("Show transactions with "+card.getAttribute('data-friend'));
       };
@@ -230,7 +239,6 @@ export function showDashboard(container, user) {
     }
   };
 
-  // -- Pay modal --
   function showPayModal(friendName) {
     const modal = document.createElement("div");
     modal.className = "fd-pay-modal";
