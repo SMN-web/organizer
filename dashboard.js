@@ -1,5 +1,5 @@
 export function showDashboard(container, user) {
-  // Replace demo with API data in production
+  // Sample/demo data, plug in your real metrics
   const demo = {
     paidTotal: 362,
     owedTotal: 119,
@@ -16,125 +16,121 @@ export function showDashboard(container, user) {
       { name: "Sreerag", amount: 18 },
       { name: "Rafseed", amount: 23 }
     ],
-    settled: 9
+    settled: 9,
+    recent: [
+      { type: "received", name: "Bala", amount: 15, date: "Today" },
+      { type: "sent", name: "Sreerag", amount: 18, date: "Yesterday" },
+      { type: "settled", name: "Rafseed", amount: 23, date: "2 days ago" }
+    ]
   };
 
-  // Utility
+  // Helper
   function escapeHtml(str) {
     return String(str).replace(/[<>&"]/g, t =>
       t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
   }
 
-  // Friend chips
+  // Friend balance cards
   const balances = {};
   demo.friendsOwe.forEach(f => { balances[f.name] = (balances[f.name]||0) + f.amount; });
   demo.youOweList.forEach(f => { balances[f.name] = (balances[f.name]||0) - f.amount; });
-  const allChips = Object.entries(balances)
+  const balanceCards = Object.entries(balances)
     .map(([name, net]) => {
       let color = net > 0 ? "#43a047" : net < 0 ? "#e53935" : "#789";
-      let badge = net > 0 ? "gets +" : net < 0 ? "owes -" : "settled";
+      let status = net > 0 ? "Owes Me" : net < 0 ? "I Owe" : "Settled";
       let initials = name.split(" ").map(n => n[0]).join('').toUpperCase().slice(0,2);
-      return `<div class="chip-friend" style="background:${color}20;"><span class="chip-avatar" style="background:${color}">${initials}</span> 
-        <span>${escapeHtml(name)}</span>
-        <span class="chip-net" style="color:${color}">${net > 0 ? "+" : net < 0 ? "-" : ""}${Math.abs(net)}</span>
-        <small>${badge}</small>
+      return `<div class="card-friend" style="border-left:5px solid ${color};box-shadow:0 2px 14px ${color}14;">
+        <span class="card-avatar" style="background:${color}">${initials}</span>
+        <span class="card-fname">${escapeHtml(name)}</span>
+        <span class="card-fnet" style="color:${color};font-weight:700;">${net > 0 ? "+" : net < 0 ? "-" : ""}${Math.abs(net)}</span>
+        <small class="card-status" style="color:${color}">${status}</small>
       </div>`;
     }).join('');
 
-  // Animated horizontal metrics bar
-  function animateNums() {
-    ["db-pd","db-rec","db-ow","db-net"].forEach(id => {
-      const el = document.getElementById(id); if(!el) return;
-      const v = +el.dataset.val||0;
-      let cur=0,inc=Math.max(1,Math.ceil(v/40));
-      function step(){ if(cur>=v){el.textContent=v+" QAR"; return;} cur+=inc; el.textContent=Math.min(cur,v)+" QAR"; requestAnimationFrame(step);}
-      step();
-    });
-  }
-
-  // Simple ring chart
-  function ringChart(owed, owe, net) {
-    const r=30,c=2*Math.PI*r,x=38,y=38;
-    const tot=Math.max(1,owed+owe), pct1=owed/tot, pct2=owe/tot;
-    return `
-      <svg width="90" height="90" viewBox="0 0 76 76" style="vertical-align:-30%;">
-        <circle r="30" cx="38" cy="38" fill="#f6f6f9"/>
-        <circle r="30" cx="${x}" cy="${y}" fill="none" stroke="#1976d2" stroke-width="10"
-          stroke-dasharray="${pct1*c},${c}" stroke-linecap="round" />
-        <circle r="30" cx="${x}" cy="${y}" fill="none" stroke="#e53935" stroke-width="10"
-          stroke-dasharray="${pct2*c},${c}" stroke-linecap="round" style="transform:rotate(${(pct1)*360}deg);transform-origin:38px 38px;" />
-        <text x="38" y="47" text-anchor="middle" font-size="23" fill="${net>=0?"#43a047":"#e53935"}" font-weight="800">${net}</text>
-      </svg>
-    `;
-  }
-
-  // Activity tiles
-  function activityTiles() {
-    return [
-      { label: "Spends", value: demo.spends, color: "#1976d2" },
-      { label: "Top Spend", value: demo.topSpend+" QAR", color: "#e53935" },
-      { label: "Shares", value: demo.shares, color: "#218c36" },
-      { label: "Settled", value: demo.settled, color: "#546e7a" }
-    ].map(tile =>
-      `<div class="tile-activity" style="background:${tile.color}10;color:${tile.color}">
-        <div class="tile-label">${tile.label}</div>
-        <div class="tile-val">${tile.value}</div>
-      </div>`
-    ).join('');
-  }
+  // Recent timeline
+  const timeline = demo.recent.map(ev =>
+    `<div class="tl-row tl-${ev.type}">
+      <span class="tl-dot"></span>
+      <div class="tl-details">
+        <div class="tl-amount">${ev.amount} QAR</div>
+        <div class="tl-desc">${ev.type === "received"
+          ? `Received from <b>${escapeHtml(ev.name)}</b>`
+          : ev.type === "sent"
+            ? `Sent to <b>${escapeHtml(ev.name)}</b>`
+            : `Settled with <b>${escapeHtml(ev.name)}</b>`
+        }</div>
+        <div class="tl-date">${escapeHtml(ev.date)}</div>
+      </div>
+    </div>`
+  ).join('');
 
   // Dashboard HTML
   container.innerHTML = `
   <style>
-    .alt-dash-main { max-width:680px;margin:32px auto;padding:2em 1em 2.8em;background:#fff;border-radius:22px;box-shadow:0 8px 38px #2277ff22;
-      font-family:'Inter','Segoe UI',Arial,sans-serif;color:#214;
-      animation:fadein .7s; }
-    @media (max-width:700px) { .alt-dash-main { max-width:97vw; padding:1em 0.3em; } }
-    .metrics-bar-scroll { display:flex;overflow-x:auto;gap:1.2em;margin:1.3em 0;padding-bottom:8px; }
-    .metric-horiz { display:flex;flex-direction:column;min-width:132px;background:#fafcfd;border-radius:9px;box-shadow:0 4px 10px #0001;text-align:center;padding:1em; }
-    .metric-label { font-size:.97em;color:#99aad0;font-weight:600;margin-bottom:0.3em;text-transform:uppercase; }
-    .metric-val { font-size:1.63em;font-weight:800;color:#1976d2;margin-bottom:.1em; }
-    .metric-val.net { color:${demo.net>=0?"#43a047":"#e53935"} }
-    .metrics-bar-scroll::-webkit-scrollbar { display:none; }
-    .ring-wrap { margin:2.8em 0 1em; text-align:center; }
-    .badge-net { display:inline-block;padding:7px 24px;border-radius:30px;background:${demo.net>=0?"#e4ffea":"#ffe2e2"};font-weight:700;color:${demo.net>=0?"#218c36":"#e53935"};font-size:1.12em;margin-bottom:5px;box-shadow:0 2px 8px #0001; }
-    .chips-bal-row { display:flex;flex-wrap:wrap;gap:0.7em;margin:2.2em 0 2.8em; }
-    .chip-friend { display:flex;align-items:center;gap:7px;background:#f3f9fc;border-radius:19px;padding:7px 18px;box-shadow:0 1px 6px #1e88e512; }
-    .chip-avatar { display:inline-block;width:27px;height:27px;border-radius:50%;text-align:center;font-weight:700;font-size:1em;color:#fff; }
-    .chip-net { font-weight:600;padding:0 5px; }
-    .tile-row { display:flex;gap:1.1em;margin-top:2.6em;justify-content:center; }
-    .tile-activity { flex:1 0 110px;min-width:100px;border-radius:13px;background:#f3f9fc;box-shadow:0 2px 14px #2277ff10;text-align:center;padding:1em 0.6em; }
-    .tile-label { font-size:.97em;color:#6c7fa5;font-weight:700;margin-bottom:1px; }
-    .tile-val { font-size:1.21em;font-weight:800; }
+    .mdl-root { max-width:520px;margin:36px auto 0;background:#fff;border-radius:22px;box-shadow:0 8px 38px #2277ff10; font-family:'Inter',Arial,sans-serif;color:#222;padding:2em 0.6em 2.1em;}
+    @media(max-width:540px){.mdl-root{max-width:97vw;padding:1.1em 0.2em 2em;}}
+    .mdl-top-summary { display:flex;flex-direction:column;align-items:center;gap:0.6em;margin-bottom:1.4em; }
+    .mdl-balance-badge { border-radius:13px;background:${demo.net>0?"#e9ffe7":demo.net<0?"#ffe3e3":"#eeedef"};padding:0.8em 2em;font-weight:800;font-size:1.26em; box-shadow:0 4px 16px #43a04722; color:${demo.net>0?"#218c36":demo.net<0?"#e53935":"#888"};}
+    .mdl-bal-list { display:flex;gap:0.7em;flex-wrap:wrap;justify-content:center;margin:2em 0 2.2em;}
+    .card-friend { display:flex;align-items:center;gap:10px;background:#f7fbfd;border-radius:14px;padding:1em 1.3em 1em 1.1em;margin-bottom:7px;font-size:1.04em;min-width:175px;}
+    .card-avatar {display:inline-block;width:27px;height:27px;border-radius:50%;text-align:center;font-weight:800;font-size:1em;color:#fff;line-height:27px;margin-right:2px;}
+    .card-fnet {margin-left:auto;margin-right:10px;}
+    .card-status {font-size:.95em;margin-left:2px;}
+    .mdl-metric-bar { display:flex;gap:1em;margin-bottom:1.6em;justify-content:center;}
+    .mdl-metric { flex:1 0 110px;background:#f9fafc; border-radius:10px;padding:1em 0.3em;text-align:center;box-shadow:0 2px 10px #1976d228; }
+    .mdl-metric-label { font-size:.98em;color:#7e90ac;font-weight:700;text-transform:uppercase; }
+    .mdl-metric-val { font-size:1.45em;font-weight:700; color:#213348;margin-bottom:.1em;}
+    .mdl-action-row { display:flex;gap:2em;justify-content:center;margin:2.2em 0;}
+    .mdl-action-btn { flex:1 0 80px;border:none;font-size:1.1em;font-weight:800;padding:0.8em 1.6em;border-radius:9px;box-shadow:0 2px 10px #1976d210;cursor:pointer;background:#1e88e5;color:#fff;transition:.17s;}
+    .mdl-action-btn.owebtn {background:#e53935;}
+    .mdl-action-btn.settlebtn {background:#43a047;}
+    .mdl-timeline {margin:2.5em 0 1em;}
+    .tl-row { display:flex;align-items:flex-start;gap:10px;margin-bottom:1.2em;}
+    .tl-dot { width:16px;height:16px;border-radius:50%;background:#1e88e5;display:inline-block;margin-right:7px;}
+    .tl-row.tl-received .tl-dot { background:#43a047; }
+    .tl-row.tl-sent .tl-dot { background:#e53935; }
+    .tl-row.tl-settled .tl-dot { background:#789; }
+    .tl-details { flex:1 0 auto; }
+    .tl-amount { font-size:1.12em;font-weight:700; color:#213348;}
+    .tl-desc { font-size:1.0em;margin-bottom:2px;}
+    .tl-date { font-size:.98em;color:#789;}
     @keyframes fadein {0%{opacity:0;}100%{opacity:1;}}
   </style>
-  <div class="alt-dash-main">
-    <h2 style="font-size:2em;margin-top:0;font-weight:800;">👋 Hi ${escapeHtml(user.name||"User")}</h2>
-    <div style="font-size:1.17em;margin-bottom:1em;">Your payment and activity summary.</div>
-    <div class="metrics-bar-scroll">
-      <div class="metric-horiz"><div class="metric-label">Net</div>
-        <span class="metric-val net" id="db-net" data-val="${demo.net}">0</span></div>
-      <div class="metric-horiz"><div class="metric-label">Paid</div>
-        <span class="metric-val" id="db-pd" data-val="${demo.paidTotal}">0</span></div>
-      <div class="metric-horiz"><div class="metric-label">Received</div>
-        <span class="metric-val" id="db-rec" data-val="${demo.owedTotal}">0</span></div>
-      <div class="metric-horiz"><div class="metric-label">You Owe</div>
-        <span class="metric-val" id="db-ow" data-val="${demo.youOwe}">0</span></div>
+  <div class="mdl-root">
+    <div class="mdl-top-summary">
+      <div class="mdl-balance-badge">
+        Net Balance: ${demo.net>0?'+':'-'}${Math.abs(demo.net)} QAR
+      </div>
+      <div class="mdl-metric-bar">
+        <div class="mdl-metric"><div class="mdl-metric-label">Paid</div><div class="mdl-metric-val">${demo.paidTotal}</div></div>
+        <div class="mdl-metric"><div class="mdl-metric-label">Received</div><div class="mdl-metric-val">${demo.owedTotal}</div></div>
+        <div class="mdl-metric"><div class="mdl-metric-label">Owe</div><div class="mdl-metric-val">${demo.youOwe}</div></div>
+      </div>
     </div>
-    <div class="ring-wrap">
-      ${ringChart(demo.youOwe, demo.owedTotal, demo.net)}
-      <div class="badge-net">${demo.net>=0?'+':'-'}${Math.abs(demo.net)} Net</div>
-      <div style="font-size:1em;color:#7e97b3;">Owed (<span style="color:#1e88e5;">Blue</span>) &nbsp;/&nbsp; Owe (<span style="color:#e53935;">Red</span>)</div>
+    <div class="mdl-action-row">
+      <button class="mdl-action-btn owebtn">Pay</button>
+      <button class="mdl-action-btn settlebtn">Settle Up</button>
     </div>
-    <div class="db-section-hdr">Balances with Friends</div>
-    <div class="chips-bal-row">${allChips || '<em>No group balances yet!<em>'}</div>
-    <div class="db-section-hdr">Your Activity</div>
-    <div class="tile-row">${activityTiles()}</div>
-    <div style="margin:2.7em auto 0 auto;text-align:center;color:#99acd5;font-size:1.10em;">
-      <em>Visual analytics, exports, and reports coming soon.<br>Connect your API for real-time snapshots!</em>
+    <div class="mdl-section" style="margin-top:1.7em;">
+      <h3 style="font-size:1.09em;color:#1976d2;text-align:left;margin-bottom:0.6em;">Friends' Balances</h3>
+      <div class="mdl-bal-list">${balanceCards || '<em>No balances yet!</em>'}</div>
     </div>
-  </div>
-  `;
+    <div class="mdl-section mdl-timeline">
+      <h3 style="font-size:1.09em;color:#1976d2;margin-bottom:0.6em;text-align:left;">Recent Activity</h3>
+      ${timeline || '<em>No recent transactions.</em>'}
+    </div>
+    <div class="mdl-section" style="margin-top:2em;">
+      <h3 style="font-size:1.03em;color:#1976d2;text-align:left;margin-bottom:0.2em;">Your Stats</h3>
+      <div style="display:flex;gap:1em;">
+        <div class="mdl-metric"><div class="mdl-metric-label">Spends</div><div class="mdl-metric-val">${demo.spends}</div></div>
+        <div class="mdl-metric"><div class="mdl-metric-label">Shares</div><div class="mdl-metric-val">${demo.shares}</div></div>
+        <div class="mdl-metric"><div class="mdl-metric-label">Top Spend</div><div class="mdl-metric-val">${demo.topSpend}</div></div>
+        <div class="mdl-metric"><div class="mdl-metric-label">Settled</div><div class="mdl-metric-val">${demo.settled}</div></div>
+      </div>
+    </div>
+    <div style="margin:2em auto 0 auto;text-align:center;color:#99acd5;font-size:1.07em;">
+      <em>Connect your API for live, actionable insights!</em>
+    </div>
+  </div>`;
 
-  animateNums();
 }
