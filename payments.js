@@ -339,7 +339,6 @@ export async function showPaymentsPanel(container, user) {
     `;
     
     // After loading friends:
-  await loadFriends();
 
   if (selectedFriend) {
     currentFriend = friends.find(f => f.username === selectedFriend);
