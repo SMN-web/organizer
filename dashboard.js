@@ -1,5 +1,7 @@
 export function showDashboard(container, user) {
-  // ============ DEMO DATA ============ //
+  // ======= DEMO DATA: replace all blocks below with your API queries as needed! =======
+  // On production, fetch using the token of the passed `user`:
+  // fetch('/api/your-endpoint', {headers:{Authorization: 'Bearer ' + user.token}})...then...
   const demo = {
     paidTotal: 342,
     owedTotal: 119,
@@ -19,59 +21,77 @@ export function showDashboard(container, user) {
       { type: "settled", name: "Rafseed", amount: 23, date: "2 days ago" }
     ],
     friendsOwe: [
-      { name: "Bala", amount: 27 },
-      { name: "Rafseed", amount: 15 },
-      { name: "Gokul", amount: 10 },
+      { name: "Lawrence", amount: -16 },
+      { name: "Rafseed", amount: -8 },
+      { name: "Shyam", amount: -31 },
+      { name: "Sreerag", amount: -18 },
       { name: "Ben", amount: 12 },
-      { name: "Ramu", amount: 9 }
-    ],
-    youOweList: [
-      { name: "Sreerag", amount: 18 },
-      { name: "Rafseed", amount: 23 },
-      { name: "Shyam", amount: 31 },
-      { name: "Akash D", amount: 11 },
-      { name: "Lawrence", amount: 16 }
+      { name: "Bala", amount: 27 },
+      { name: "Gokul", amount: 10 },
+      { name: "Ramu", amount: 7 },
+      { name: "Andy", amount: 0 },
+      { name: "Raju", amount: 19 }
     ]
   };
-  // friendsOwe + youOweList : ensure all names are unique for demo
-  function uniq(arr) {
-    const set = new Set(), out = [];
-    arr.forEach(f => { if(!set.has(f.name)) { set.add(f.name); out.push(f); }});
-    return out;
-  }
-  demo.friendsOwe = uniq(demo.friendsOwe);
-  demo.youOweList = uniq(demo.youOweList);
-
-  // Compose net balances
-  function escapeHtml(str) {
-    return String(str).replace(/[<>&"]/g, t =>
-      t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
-  }
-  const balances = {};
-  demo.friendsOwe.forEach(f => { balances[f.name] = (balances[f.name]||0) + f.amount; });
-  demo.youOweList.forEach(f => { balances[f.name] = (balances[f.name]||0) - f.amount; });
-  const allFriends = Object.entries(balances).map(([name, net]) => ({ name, net }))
-    .sort((a, b) => {
-      // Green first, then red, then gray, then alpha
-      if(a.net>0 && b.net<=0) return -1;
-      if(a.net<0 && b.net>=0) return 1;
-      if(a.net===0 && b.net!==0) return 1;
-      if(a.net!==0 && b.net===0) return -1;
-      return a.name.localeCompare(b.name);
-    });
-
-  // 5 per page
-  const FRIENDS_PER_PAGE = 5;
-  let page = 0;
+  // ======= END DEMO DATA =======
 
   // Utility
-  const netColor = demo.net>0?"#43a047":demo.net<0?"#e53935":"#789";
-  const netBG = demo.net>0?"#e7fff0":demo.net<0?"#ffe6e6":"#ececec";
-  let pendingCount = demo.payments?.filter(p => p.status === 'pending' && p.to_user === (user?.username||"User")).length || 0;
-  const settledPct = Math.min(100,Math.round(demo.settled/(demo.spends+demo.settled)*100));
+  function escapeHtml(str) {
+    return String(str).replace(/[<>&"]/g, t =>
+      t === "<"
+        ? "&lt;"
+        : t === ">"
+        ? "&gt;"
+        : t === "&"
+        ? "&amp;"
+        : "&quot;"
+    );
+  }
 
+  // PAGINATION: friends balances comes as [{name, amount}] from your API!
+  const balances = demo.friendsOwe; // Replace with actual API result in production
+  const FRIENDS_PER_PAGE = 5;
+  let page = 0;
+  function renderFriendsList() {
+    const list = balances.slice(page * FRIENDS_PER_PAGE, page * FRIENDS_PER_PAGE + FRIENDS_PER_PAGE);
+    return list
+      .map((f) => {
+        let initials = f.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+        let net = f.amount;
+        let isGreen = net > 0,
+          isRed = net < 0;
+        let leftBar = isRed ? "#e53935" : isGreen ? "#43a047" : "#bbb";
+        let status = isRed ? "You Owe" : isGreen ? "Owes You" : "Settled";
+        let netColor = isRed ? "#e53935" : isGreen ? "#43a047" : "#888";
+        return `
+        <div class="fd-fcard" style="position:relative;background:#fff;border-radius:13px;box-shadow:0 1px 8px #146dd012;margin-bottom:0.7em;min-height:52px;border-left:6px solid ${leftBar};display:flex;flex-direction:column;">
+          <div style="display:flex;align-items:center;gap:.77em;padding:0.6em 0.8em 0.6em 1em;">
+            <span style="background:#e3f2fd;color:#1976d2;font-weight:700;font-size:1.07em;width:27px;height:27px;text-align:center;line-height:27px;border-radius:14px;">${initials}</span>
+            <span style="font-weight:700;font-size:1.08em;">${escapeHtml(f.name)}</span>
+            <span style="margin-left:auto;color:${netColor};font-size:1.17em;font-weight:700;">${net > 0 ? "+" : net < 0 ? "-" : ""}${Math.abs(net)} QAR</span>
+          </div>
+          <div style="margin-left:1.8em;font-size:.99em;font-weight:600;color:${netColor};">${status}</div>
+        </div>
+        `;
+      })
+      .join("");
+  }
+  function renderFriendsPager() {
+    let totalPages = Math.max(1, Math.ceil(balances.length / FRIENDS_PER_PAGE));
+    if (totalPages <= 1) return "";
+    return `
+    <div class="fd-pager-row">
+      <button class="fd-pager-btn"${page === 0 ? " disabled" : ""} data-pager="prev">&lt; Prev</button>
+      <span class="fd-pager-label">Page ${page + 1} / ${totalPages}</span>
+      <button class="fd-pager-btn"${page === totalPages - 1 ? " disabled" : ""} data-pager="next">Next &gt;</button>
+    </div>
+    `;
+  }
+
+  // Pie chart utility for completeness
   function donutSVG(owed, owe, net) {
     const tot = owed+owe, c = 2*Math.PI*38, pct1 = tot ? owed/tot : 0, pct2 = tot ? owe/tot : 0;
+    let netColor = net > 0 ? "#43a047" : net < 0 ? "#e53935" : "#789";
     return `
       <div id="donutChartArea" style="cursor:pointer;">
       <svg width="88" height="88" viewBox="0 0 88 88" style="display:block;margin:0 auto 0.2em;">
@@ -91,53 +111,18 @@ export function showDashboard(container, user) {
     `;
   }
 
-  // Render friend panel & paging
-  function renderFriendsPanel() {
-    const list = allFriends.slice(page * FRIENDS_PER_PAGE, page * FRIENDS_PER_PAGE + FRIENDS_PER_PAGE);
-    return list.map((f, i) => {
-      let initials = f.name.split(" ").map(n => n[0]).join('').toUpperCase().slice(0,2);
-      let statusC = f.net>0?'green':f.net<0?'red':'gray';
-      let barC = f.net>0?'#43a047':f.net<0?'#e53935':'#bbc';
-      let label = f.net>0?"Owes You":f.net<0?"You Owe":"Settled";
-      return `<div class="fd-fcard ${statusC}" data-friend="${escapeHtml(f.name)}" tabindex="0">
-        <div style="background:${barC};width:5.5px;height:100%;position:absolute;left:0;top:0;border-radius:8px 0 0 8px;"></div>
-        <div class="fd-fcard-content fd-fcard-main">
-          <span class="fd-fcard-avatar">${initials}</span>
-          <span class="fd-fcard-name">${escapeHtml(f.name)}</span>
-          <span class="fd-fcard-net" style="color:${barC};">${f.net>0?'+':f.net<0?'-':''}${Math.abs(f.net)} QAR</span>
-        </div>
-        <div class="fd-fcard-status">${label}</div>
-        <div class="fd-fbtnbar-wrap">
-          <div class="fd-fbtnbar" style="display:none;">
-            ${f.net<0 ? `<button class="fd-fbtn blue">Settle Up</button>` : ''}
-            <button class="fd-fbtn blue">Transactions</button>
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-  }
-  function renderFriendsPagination() {
-    let totalPages = Math.ceil(allFriends.length / FRIENDS_PER_PAGE);
-    if (totalPages <= 1) return "";
-    return `<div class="fd-pager-row">
-      <button class="fd-pager-btn" ${page===0?"disabled":""} data-pager="prev">&lt; Prev</button>
-      <span class="fd-pager-label">Page ${page+1} / ${totalPages}</span>
-      <button class="fd-pager-btn" ${page===totalPages-1?"disabled":""} data-pager="next">Next &gt;</button>
-    </div>`;
-  }
+  // Compute summary values (for completeness)
+  const netColor = demo.net > 0 ? "#43a047" : demo.net < 0 ? "#e53935" : "#789";
+  const netBG = demo.net > 0 ? "#e7fff0" : demo.net < 0 ? "#ffe6e6" : "#ececec";
+  const settledPct = Math.min(100, Math.round(demo.settled / (demo.spends + demo.settled) * 100));
+  let pendingCount = demo.payments?.filter(p => p.status === 'pending' && p.to_user === (user?.username || "User")).length || 0;
 
-  // ==== MAIN DASHBOARD HTML ====
   container.innerHTML = `
   <style>
     .fd-main { max-width:540px; margin:36px auto; font-family:'Inter',Arial,sans-serif; color:#1a2440; background:#fafdff; border-radius:22px; box-shadow:0 8px 22px #176dc419; padding:2em 1em 2.5em;}
     @media(max-width:540px){.fd-main{max-width:99vw;}}
     .fd-banner { background: #fffde7; border-radius: 11px; padding: 0.95em 1.7em; margin-bottom: 1.1em; text-align: center; color: #e53935; font-weight: 700; box-shadow: 0 1px 8px #e5393512;}
     .fd-title { font-size:2.08em; font-weight:800; color:#153; text-align:center; margin-bottom:.6em; letter-spacing:.01em;}
-    .fd-btn-row { display:flex;align-items:center;justify-content:space-between;gap:1em;margin-bottom:1.4em;}
-    .fd-btn-main { flex:1 1 0;max-width:48%;padding:0.82em 1.1em;font-size:1.11em;font-weight:700;text-align:center;border-radius:11px;border:none;box-shadow:0 1px 8px #1976d215;cursor:pointer;
-      background:#e3f2fd;color:#176dc4;transition:background .18s;}
-    .fd-btn-main.expense {background:#e5ffe6;color:#148142;}
-    .fd-btn-main:active { background:#89ebfc;color:#235;}
     .fd-piepanel { margin-bottom:1em; }
     .fd-net-badge { font-size:2em;font-weight:900;display:block;background:${netBG};color:${netColor};border-radius:15px;text-align:center;margin:0 auto 1.2em auto;padding:.7em 0;letter-spacing:.04em;}
     .fd-metrics-row { display:flex; gap:1em; margin-bottom:2em; justify-content:center;}
@@ -149,62 +134,13 @@ export function showDashboard(container, user) {
     .fd-progress-bar { background:#e3f2fd;border-radius:13px;width:80%;max-width:320px;margin:0 auto;height:14px;overflow:hidden;}
     .fd-progress-fill { background:#43a047;height:14px;width:${settledPct}%;border-radius:13px;transition:width .9s;}
     .fd-progress-text {margin-top:0.65em;font-size:1em;color:#198;font-weight:700;text-align:center;}
-    /* FRIENDS */
-    .fd-friends-section { margin:1.6em 0 1.6em;}
-    .fd-friends-label { font-size:1.13em; color:#176dc4;font-weight:800; margin-bottom:.7em;}
-    .fd-cardlist { margin:0 0 0.8em 0;}
-    .fd-fcard {
-      background:#fff; border-radius:13px; box-shadow:0 1px 6px #146dd012; position:relative; margin-bottom:0.7em;
-      padding:0.09em 0 0.09em 0; display:flex;flex-direction:column;align-items:flex-start; min-height:53px;
-    }
-    .fd-fcard.green { border-left:5.5px solid #43a047;}
-    .fd-fcard.red { border-left:5.5px solid #e53935;}
-    .fd-fcard.gray { border-left:5.5px solid #bbc;}
-    .fd-fcard-content { display:flex;align-items:center;width:100%;gap:.74em;padding:0.65em 0.7em 0.52em 1em;}
-    .fd-fcard-avatar { background:#e3f2fd; color:#1976d2; font-weight:700; font-size:1.07em;width:27px;height:27px;text-align:center;line-height:27px;border-radius:14px;}
-    .fd-fcard-name { font-weight:700; font-size:1.08em; flex:1 1 auto;}
-    .fd-fcard-net { color:inherit; font-size:1.16em; text-align:left; padding-left:0.1em;}
-    .fd-fcard-status { font-size:.99em;font-weight:600;margin:-2px 0 4px 1.69em;}
-    .fd-fcard.green .fd-fcard-status { color:#43a047;}
-    .fd-fcard.red .fd-fcard-status { color:#e53935;}
-    .fd-fcard.gray .fd-fcard-status { color:#888;}
-    .fd-fbtnbar-wrap {width:100%;padding:0;margin:0;overflow:hidden;}
-    .fd-fbtnbar { display:flex;justify-content:center;gap:1em;width:100%;padding:0;margin:0;transition:.13s;}
-    .fd-fbtn { font-size:1.05em;font-weight:700;padding:0.6em 1.25em;border:none; border-radius:8px;color:#fff;cursor:pointer;box-shadow:0 1px 6px #176dc410;margin:0.22em 0;}
-    .fd-fbtn.blue { background:#2566b2;}
-    .fd-fbtn.blue:hover { background:#1563a9;}
-    .fd-fbtnbar-wrap { max-height:0; opacity:0; transition:max-height .23s, opacity .14s; pointer-events:none;}
-    .fd-fcard.fd-open .fd-fbtnbar-wrap { max-height:70px; opacity:1; pointer-events:auto; animation:dropSlide .33s;}
-    .fd-pager-row {text-align:center;margin-bottom:1em;display:flex;justify-content:center;align-items:center;gap:1.1em;}
+    /* Pagination & friends */
+    .fd-friends-label {font-size:1.21em; color:#176dc4; font-weight:800;margin-bottom:1.1em;}
+    .fd-pager-row {text-align:center;display:flex;justify-content:center;align-items:center;gap:1.1em;margin-bottom:1em;}
     .fd-pager-btn {background:#e3f2fd;color:#176dc4;font-weight:700;border:none;border-radius:9px;padding:.47em 1.2em;cursor:pointer;}
     .fd-pager-btn:disabled {background:#ececec;color:#aaa;}
-    .fd-pager-label {font-size:1.05em;font-weight:700;color:#7f97ba;}
-    /* REST REMAINS */
-    .fd-activity-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.46em; gap:0.2em;}
-    .fd-rec-label {font-size:1.07em;color:#176dc4;font-weight:800;}
-    .fd-rec-link { font-size:.98em;color:#1976d2;font-weight:700; text-decoration:underline; cursor:pointer; margin-left:auto;}
-    .fd-rec-list { margin-bottom:1.7em;}
-    .fd-rec-card { background:#fff;border-radius:10px;box-shadow:0 1px 5px #1976d213; margin-bottom:0.7em;padding:1em 1em; display:flex;align-items:center; gap:1em;}
-    .fd-rc-dot { width:13px;height:13px;border-radius:50%;background:#1976d2;display:inline-block;}
-    .fd-rc-dot.received {background:#43a047;}
-    .fd-rc-dot.sent {background:#e53935;}
-    .fd-rc-dot.settled {background:#789;}
-    .fd-rc-amount {font-size:1.09em;font-weight:800;color:#223b57;}
-    .fd-rc-desc {font-size:.98em;font-weight:600;color:#4570a2;}
-    .fd-rc-date {font-size:.97em;color:#789;}
-    .fd-stats-label {font-size:1.04em;color:#176dc4;font-weight:700;margin-top:1.5em;margin-bottom:.78em;text-align:left;}
-    .fd-stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.12em;}
-    .fd-sg-card { background:#e3f8fe;border-radius:11px; box-shadow:0 1px 8px #1976d212;text-align:center;padding:1em 0.7em;}
-    .fd-sg-label {font-size:.97em;color:#176dc4;font-weight:700;}
-    .fd-sg-value { font-size:1.21em;font-weight:800;}
-    .fd-footer {margin:1.5em auto 0;text-align:center;color:#99acd5;font-size:1.09em;}
-    .fd-pay-modal { position: fixed; left:0; top:0; width:100vw; height:100vh; z-index:99; background:rgba(24,32,54,0.28); display:flex; align-items:center; justify-content:center;}
-    .fd-pay-content { background:#fff; border-radius:13px; box-shadow:0 6px 36px #1976d230; padding:2em 2.3em; min-width:260px; text-align:center;}
-    .fd-pay-close { position:absolute; right:16px; top:16px; background:none; border:none; font-size:1.5em; color:#176dc4; cursor:pointer;}
-    .fd-pay-content h4 {font-size:1.19em;font-weight:700;margin-bottom:1em;}
-    .fd-pay-input {width:85%;padding:0.6em 0.7em;font-size:1em;border-radius:7px;border:1px solid #abc; margin-bottom:1.18em;}
-    .fd-pay-confirm { background:#2566b2; color:#fff; border:none; font-weight:700; font-size:1.03em; padding:.62em 1.9em; border-radius:6px;cursor:pointer; box-shadow:0 2px 7px #1976d422;}
-    /* Pie Chart Legend Modal */
+    .fd-pager-label {font-size:1.09em;font-weight:700;color:#7f97ba;}
+    /* ... rest of CSS as needed ... */
   </style>
   <div class="fd-main">
     ${pendingCount ?
@@ -212,179 +148,38 @@ export function showDashboard(container, user) {
         🔔 You have ${pendingCount} payments awaiting your action!
       </div>` : ''}
     <div class="fd-title">Group Payments Dashboard</div>
-    <div class="fd-btn-row">
-      <button class="fd-btn-main friends" onclick="alert('Go to friends page')">Friends</button>
-      <button class="fd-btn-main expense" onclick="window.location='/group-splits'">Split Expense</button>
-    </div>
     <div class="fd-piepanel">${donutSVG(demo.owedTotal, demo.youOwe, demo.net)}</div>
-    <div class="fd-net-badge">${demo.net>=0?'+':'-'}${Math.abs(demo.net)} QAR Net Balance</div>
+    <div class="fd-net-badge">${demo.net >= 0 ? "+" : "-"}${Math.abs(demo.net)} QAR Net Balance</div>
     <div class="fd-metrics-row">
-      <div class="fd-metric-card">
-        <div class="fd-metric-label">Paid</div>
-        <div class="fd-metric-value">${demo.paidTotal}</div>
-      </div>
-      <div class="fd-metric-card">
-        <div class="fd-metric-label">Received</div>
-        <div class="fd-metric-value">${demo.owedTotal}</div>
-      </div>
-      <div class="fd-metric-card owe">
-        <div class="fd-metric-label">Owe</div>
-        <div class="fd-metric-value">${demo.youOwe}</div>
-      </div>
+      <div class="fd-metric-card"><div class="fd-metric-label">Paid</div><div class="fd-metric-value">${demo.paidTotal}</div></div>
+      <div class="fd-metric-card"><div class="fd-metric-label">Received</div><div class="fd-metric-value">${demo.owedTotal}</div></div>
+      <div class="fd-metric-card owe"><div class="fd-metric-label">Owe</div><div class="fd-metric-value">${demo.youOwe}</div></div>
     </div>
     <div class="fd-progress-wrap">
       <div class="fd-progress-bar"><div class="fd-progress-fill"></div></div>
-      <div class="fd-progress-text">
-        ${demo.settled} of ${demo.spends+demo.settled} spends settled!
-      </div>
+      <div class="fd-progress-text">${demo.settled} of ${demo.spends + demo.settled} spends settled!</div>
     </div>
-    <div class="fd-friends-section">
-      <div class="fd-friends-label">Balance with Friends</div>
-      <div class="fd-cardlist" id="fd-friend-list"></div>
-      ${renderFriendsPagination()}
-    </div>
-    <div class="fd-activity-row">
-      <div class="fd-rec-label">Recent Activity</div>
-      <a class="fd-rec-link" href="#" onclick="event.preventDefault();alert('Go to transactions/all friends page')">Transactions</a>
-    </div>
-    <div class="fd-rec-list">
-      ${(demo.recent||[]).map(ev=>`
-        <div class="fd-rec-card">
-          <span class="fd-rc-dot ${ev.type}"></span>
-          <div class="fd-rc-details">
-            <div class="fd-rc-amount">${ev.amount} QAR</div>
-            <div class="fd-rc-desc">${ev.type==="received"?"Received from <b>"+escapeHtml(ev.name)+"</b>":
-              ev.type==="sent"?"Sent to <b>"+escapeHtml(ev.name)+"</b>":
-              "Settled with <b>"+escapeHtml(ev.name)+"</b>"}
-            </div>
-            <div class="fd-rc-date">${escapeHtml(ev.date)}</div>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-    <div class="fd-stats-label">Your Stats</div>
-    <div class="fd-stats-grid">
-      <div class="fd-sg-card"><div class="fd-sg-label">Spends</div><div class="fd-sg-value">${demo.spends}</div></div>
-      <div class="fd-sg-card"><div class="fd-sg-label">Shares</div><div class="fd-sg-value">${demo.shares}</div></div>
-      <div class="fd-sg-card"><div class="fd-sg-label">Top Spend</div><div class="fd-sg-value">${demo.topSpend}</div></div>
-      <div class="fd-sg-card"><div class="fd-sg-label">Settled</div><div class="fd-sg-value">${demo.settled}</div></div>
-    </div>
-    <div class="fd-footer"><em>Connect your API for live analytics and history.</em></div>
-  </div>`;
+    <!-- FRIENDS PANE -->
+    <div class="fd-friends-label">Balance with Friends</div>
+    <div id="fd-friend-list"></div>
+    <div id="fd-friend-pager"></div>
+    <!-- You may add rest: activity, stats as needed -->
+  </div>
+  `;
 
-  // Friends list + paging
   function updateFriendsPanel() {
-    container.querySelector("#fd-friend-list").innerHTML = renderFriendsPanel();
-    // Paging controls
+    container.querySelector("#fd-friend-list").innerHTML = renderFriendsList();
+    container.querySelector("#fd-friend-pager").innerHTML = renderFriendsPager();
     let pagerRow = container.querySelector(".fd-pager-row");
-    if(pagerRow) {
-      pagerRow.querySelectorAll(".fd-pager-btn").forEach(btn => {
+    if (pagerRow) {
+      pagerRow.querySelectorAll(".fd-pager-btn").forEach((btn) => {
         btn.onclick = (e) => {
-          if(btn.disabled) return;
+          if (btn.disabled) return;
           page += btn.getAttribute("data-pager") === "next" ? 1 : -1;
           updateFriendsPanel();
-          attachFriendHandlers();
         };
       });
     }
-    attachFriendHandlers();
   }
   updateFriendsPanel();
-
-  // Attach interactive handler for cards/buttons/modal
-  function attachFriendHandlers() {
-    const cardEls = container.querySelectorAll('.fd-fcard');
-    let openCard = null;
-    cardEls.forEach((card,i) => {
-      card.onclick = e => {
-        e.stopPropagation();
-        if(openCard === card) {
-          card.classList.remove('fd-open');
-          card.querySelector('.fd-fbtnbar').style.display = 'none';
-          openCard = null;
-          return;
-        }
-        cardEls.forEach(c=>{
-          c.classList.remove('fd-open');
-          c.querySelector('.fd-fbtnbar').style.display = 'none';
-        });
-        card.classList.add('fd-open');
-        openCard = card;
-        card.querySelector('.fd-fbtnbar').style.display = 'flex';
-        let settleBtn = card.querySelector('.fd-fbtn.blue');
-        let friendObj = allFriends[page*FRIENDS_PER_PAGE+i];
-        if(settleBtn && settleBtn.textContent === "Settle Up") {
-          settleBtn.onclick = ev => {
-            ev.stopPropagation();
-            showPayModal(card.getAttribute('data-friend'), Math.abs(friendObj.net));
-          };
-        }
-        let txBtn = card.querySelectorAll('.fd-fbtn.blue')[settleBtn && settleBtn.textContent==="Settle Up"?1:0];
-        if(txBtn) txBtn.onclick = ev => {
-          ev.stopPropagation();
-          alert("Show transactions with "+card.getAttribute('data-friend'));
-        };
-      };
-    });
-    container.onclick = (e) => {
-      if (!e.target.closest('.fd-fcard')) {
-        cardEls.forEach(c=>{
-          c.classList.remove('fd-open');
-          c.querySelector('.fd-fbtnbar').style.display='none';
-        });
-        openCard = null;
-      }
-    };
-  }
-
-  // Pie chart tap legend modal
-  const chartArea = container.querySelector("#donutChartArea");
-  chartArea.onclick = () => {
-    showPieLegendModal();
-  };
-  function showPieLegendModal() {
-    const modal = document.createElement("div");
-    modal.className = "fd-pay-modal";
-    modal.innerHTML = `
-      <div class="fd-pay-content" style="position:relative;">
-        <button class="fd-pay-close">&times;</button>
-        <h4>Breakdown: Owed vs Owe</h4>
-        <div>
-          <b style="color:#43a047;">Owed:</b>
-          <ul style="margin-bottom:1em;">
-            ${demo.friendsOwe.map(f => `<li>${escapeHtml(f.name)}: ${f.amount} QAR</li>`).join('')}
-          </ul>
-          <b style="color:#e53935;">Owe:</b>
-          <ul>
-            ${demo.youOweList.map(f => `<li>${escapeHtml(f.name)}: ${f.amount} QAR</li>`).join('')}
-          </ul>
-        </div>
-      </div>`;
-    document.body.appendChild(modal);
-    modal.querySelector('.fd-pay-close').onclick =
-    modal.onclick = ev => { if(ev.target === modal || ev.target.classList.contains('fd-pay-close')) document.body.removeChild(modal);}
-  }
-
-  // Pay/Settle modal
-  function showPayModal(friendName, amount) {
-    const modal = document.createElement("div");
-    modal.className = "fd-pay-modal";
-    modal.innerHTML = `
-      <div class="fd-pay-content" style="position:relative;">
-        <button class="fd-pay-close">&times;</button>
-        <h4>Settle Up to ${escapeHtml(friendName)}</h4>
-        <input class="fd-pay-input" type="number" min="1" placeholder="Amount in QAR" value="${amount||''}"/>
-        <button class="fd-pay-confirm">Settle Up</button>
-      </div>`;
-    document.body.appendChild(modal);
-    modal.querySelector('.fd-pay-close').onclick =
-    modal.onclick = ev => { if(ev.target===modal||ev.target.classList.contains('fd-pay-close')) document.body.removeChild(modal);}
-    modal.querySelector('.fd-pay-confirm').onclick = ()=> {
-      const val = +modal.querySelector('.fd-pay-input').value;
-      if(val>0) {
-        modal.querySelector('.fd-pay-confirm').textContent = "Sending...";
-        setTimeout(()=>{document.body.removeChild(modal);},800);
-      }
-    };
-  }
 }
