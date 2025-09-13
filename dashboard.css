@@ -72,3 +72,8 @@
 .fd-pay-content { background:#fff; border-radius:13px; box-shadow:0 6px 36px #1976d230; padding:2em 2.3em; min-width:260px; text-align:center;}
 .fd-pay-close { position:absolute; right:16px; top:16px; background:none; border:none; font-size:1.5em; color:#176dc4; cursor:pointer;}
 .fd-pay-content h4 {font-size:1.19em;font-weight:700;margin-bottom:1em;}
+
+.fd-fcard, .fd-fcard *:not(button):not(.fd-fbtn) {
+  -webkit-tap-highlight-color: transparent;
+}
+
