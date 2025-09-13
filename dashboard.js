@@ -1,5 +1,5 @@
 export function showDashboard(container, user) {
-  // ==== DEMO DATA: replace for production! ==== //
+  // Replace with your API query/fetch as needed!
   const demo = {
     paidTotal: 342,
     owedTotal: 119,
@@ -31,7 +31,6 @@ export function showDashboard(container, user) {
       { name: "Raju", amount: 19 }
     ]
   };
-
   function escapeHtml(str) {
     return String(str).replace(/[<>&"]/g, t =>
       t === "<"
@@ -121,6 +120,10 @@ export function showDashboard(container, user) {
         🔔 You have ${pendingCount} payments awaiting your action!
       </div>` : ''}
     <div class="fd-title">Group Payments Dashboard</div>
+    <div class="fd-btn-row">
+      <button class="fd-btn-main" onclick="alert('Go to friends page')">Friends</button>
+      <button class="fd-btn-main expense" onclick="window.location='/group-splits'">Split Expense</button>
+    </div>
     <div class="fd-piepanel">${donutSVG(
       balances.filter(f=>f.amount>0).reduce((s,f)=>s+f.amount,0),
       balances.filter(f=>f.amount<0).reduce((s,f)=>s+Math.abs(f.amount),0),
@@ -169,11 +172,9 @@ export function showDashboard(container, user) {
   </div>
   `;
 
-  // Paging/cards/actions logic
   function updateFriendsPanel() {
     container.querySelector("#fd-friend-list").innerHTML = renderFriendsList();
     container.querySelector("#fd-friend-pager").innerHTML = renderFriendsPager();
-    // Paging
     let pagerRow = container.querySelector(".fd-pager-row");
     if (pagerRow) {
       pagerRow.querySelectorAll(".fd-pager-btn").forEach((btn) => {
@@ -185,7 +186,6 @@ export function showDashboard(container, user) {
         };
       });
     }
-    // Card expand/collapse + action buttons
     container.querySelectorAll('.fd-fcard').forEach(card=>{
       card.onclick = evt => {
         let idx = Number(card.getAttribute('data-idx'));
@@ -209,7 +209,6 @@ export function showDashboard(container, user) {
   }
   updateFriendsPanel();
 
-  // Pie chart breakdown modal
   const chartArea = container.querySelector("#donutChartArea");
   if (chartArea) {
     chartArea.onclick = () => {
@@ -238,8 +237,6 @@ export function showDashboard(container, user) {
     modal.querySelector('.fd-pay-close').onclick =
       modal.onclick = ev => { if(ev.target === modal || ev.target.classList.contains('fd-pay-close')) document.body.removeChild(modal);}
   }
-
-  // Pay/Settle modal
   function showPayModal(friendName, amount) {
     const modal = document.createElement("div");
     modal.className = "fd-pay-modal";
