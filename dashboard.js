@@ -1,6 +1,8 @@
 import { showSpinner, hideSpinner } from './spinner.js';
+import { showPaymentsPanelMain } from './paymentPanel.js';
+import { showManageSpend } from './manageSpend.js';
 
-export async function showDashboard(container, user) {
+export async function showDashboard(container, userContext, mainContentRef) {
   // Demo data for metrics, recent, etc.
   const demo = {
     paidTotal: 342,
@@ -12,8 +14,8 @@ export async function showDashboard(container, user) {
     shares: 22,
     settled: 9,
     payments: [
-      { status: "pending", from_user: "Bala", to_user: user?.username || "User", amount: 15 },
-      { status: "pending", from_user: "Rafseed", to_user: user?.username || "User", amount: 9 }
+      { status: "pending", from_user: "Bala", to_user: userContext?.username || "User", amount: 15 },
+      { status: "pending", from_user: "Rafseed", to_user: userContext?.username || "User", amount: 9 }
     ],
     recent: [
       { type: "received", name: "Bala", amount: 15, date: "2025-09-13 20:55:00" },
@@ -35,9 +37,9 @@ export async function showDashboard(container, user) {
   async function fetchFriendsList() {
     try {
       showSpinner(container);
-      if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function')
+      if (!userContext?.firebaseUser || typeof userContext.firebaseUser.getIdToken !== 'function')
         throw new Error("Not logged in");
-      const token = await user.firebaseUser.getIdToken(true);
+      const token = await userContext.firebaseUser.getIdToken(true);
       const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/settlements/friends', {
         headers: { Authorization: "Bearer " + token }
       });
@@ -57,7 +59,7 @@ export async function showDashboard(container, user) {
   async function sendSettlePayment(toUser, amount) {
     try {
       showSpinner(container);
-      const token = await user.firebaseUser.getIdToken(true);
+      const token = await userContext.firebaseUser.getIdToken(true);
       const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment', {
         method: "POST",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
@@ -201,8 +203,8 @@ export async function showDashboard(container, user) {
         </div>` : ''}
       <div class="fd-title">Group Payments Dashboard</div>
       <div class="fd-btn-row">
-        <button class="fd-btn-main" onclick="alert('Go to friends page')">Friends</button>
-        <button class="fd-btn-main expense" onclick="window.location='/group-splits'">Split Expense</button>
+        <button class="fd-btn-main" id="paymentsBtn">Payments</button>
+        <button class="fd-btn-main expense" id="splitBtn">Split Expense</button>
       </div>
       <div class="fd-piepanel">${donutSVG(owed, owe, net)}</div>
       <div class="fd-net-badge" style="background:${netBG};color:${netColor};">${net >= 0 ? "+" : "-"}${Math.abs(net)} QAR Net Balance</div>
@@ -220,7 +222,7 @@ export async function showDashboard(container, user) {
       <div id="fd-friend-pager"></div>
       <div class="fd-activity-row" style="margin-top:1.5em;">
         <div class="fd-rec-label">Recent Activity</div>
-        <a class="fd-rec-link" href="#" onclick="event.preventDefault();alert('Go to transactions/all friends page')">Transactions</a>
+        <a class="fd-rec-link" id="transactionsLink" href="#">Transactions</a>
       </div>
       <div class="fd-rec-list">
         ${(demo.recent || []).map(ev => `
@@ -248,7 +250,24 @@ export async function showDashboard(container, user) {
     </div>
     `;
 
-    // Friends paginated cards
+    // Top button reroutes
+    container.querySelector('#paymentsBtn').onclick = () => {
+      showPaymentsPanelMain(mainContentRef || container, userContext);
+    };
+    container.querySelector('#splitBtn').onclick = () => {
+      showManageSpend(mainContentRef || container, userContext);
+    };
+
+    // Transactions link reroute
+    const transactionsLink = container.querySelector('#transactionsLink');
+    if (transactionsLink) {
+      transactionsLink.onclick = (e) => {
+        e.preventDefault();
+        showPaymentsPanelMain(mainContentRef || container, userContext);
+      };
+    }
+
+    // Paginated friends section
     const friendsPage = friends.slice(page * FRIENDS_PER_PAGE, page * FRIENDS_PER_PAGE + FRIENDS_PER_PAGE);
     container.querySelector("#fd-friend-list").innerHTML = renderFriendsList(friendsPage);
     container.querySelector("#fd-friend-pager").innerHTML = renderFriendsPager(friends);
@@ -280,7 +299,6 @@ export async function showDashboard(container, user) {
         let idx = Number(card.getAttribute('data-idx'));
         let friend = friendsPage[idx];
         if (btn.textContent === "Settle Up") {
-          // Modal Step 1: Enter amount
           showModal({
             title: "Settle Up Payment",
             content: `Enter amount to pay <b>${escapeHtml(friend.name)}</b>:`,
@@ -299,7 +317,6 @@ export async function showDashboard(container, user) {
                 showModal({ content: "Please enter a valid amount!", okText: "OK", showCancel: false });
                 return;
               }
-              // Modal Step 2: Confirm payment
               showModal({
                 title: "Confirm Payment",
                 content: `Are you sure you want to pay <b>${enteredAmount} QAR</b> to <b>${escapeHtml(friend.name)}</b>?`,
@@ -315,14 +332,13 @@ export async function showDashboard(container, user) {
                   renderDashboard(refreshed);
                 },
                 onCancel: () => {
-                  // Allow to re-edit the amount
                   btn.onclick(ev);
                 }
               });
             }
           });
         } else if (btn.textContent === "Transactions") {
-          showModal({ title: "Transactions", content: `Transactions for ${escapeHtml(friend.name)} coming soon.`, okText: "OK", showCancel: false });
+          showPaymentsPanelMain(mainContentRef || container, userContext, { friendUsername: friend.username });
         }
       };
     });
