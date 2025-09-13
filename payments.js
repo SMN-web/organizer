@@ -247,12 +247,6 @@ export async function showPaymentsPanel(container, user) {
     let lastDate = null;
     const me = backendMe;
 
-    if (!timeline.length) {
-  container.innerHTML = `<div class="paypage-wrap"><div class="paypage-chat">
-    <div class="paypage-empty">No transactions found for this friend.</div>
-  </div></div>`;
-  return;
-}
     timeline.forEach((ev, idx) => {
       const dtObj = parseDBDatetimeAsUTC(ev.last_updated);
       const displayFrom = ev.from_user_name || ev.from_user || '';
@@ -424,14 +418,12 @@ export async function showPaymentsPanel(container, user) {
       });
     };
 
-    container.querySelector('.paypage-btn.transfer').onclick = () => {
-      showTransferPopup(currentFriend.username, CURRENCY, user, async () => {
-        await loadTimeline(currentFriend.username);
-        await loadFriends();
-        renderUserView();
-      });
-    };
-  }
+    const transferBtn = container.querySelector('.paypage-btn.transfer');
+if (transferBtn) {
+  transferBtn.onclick = () => {
+    showTransferPopup(container, user, currentFriend.username);
+  };
+}
 
   function renderMain() {
     if (view === "friends") {
