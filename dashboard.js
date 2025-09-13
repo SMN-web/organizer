@@ -1,5 +1,7 @@
+import { showSpinner, hideSpinner } from './spinner.js';
+
 export async function showDashboard(container, user) {
-  // Demo Data for metrics, recent activity, stats grid, etc.
+  // Demo data for non-API sections
   const demo = {
     paidTotal: 342,
     owedTotal: 119,
@@ -14,23 +16,23 @@ export async function showDashboard(container, user) {
       { status: "pending", from_user: "Rafseed", to_user: user?.username || "User", amount: 9 }
     ],
     recent: [
-      { type: "received", name: "Bala", amount: 15, date: "Today" },
-      { type: "sent", name: "Sreerag", amount: 18, date: "Yesterday" },
-      { type: "settled", name: "Rafseed", amount: 23, date: "2 days ago" }
+      { type: "received", name: "Bala", amount: 15, date: "2025-09-13 20:55:00" },
+      { type: "sent", name: "Sreerag", amount: 18, date: "2025-09-12 13:25:00" },
+      { type: "settled", name: "Rafseed", amount: 23, date: "2025-09-11 11:42:00" }
     ]
   };
 
-  // Utility
   function escapeHtml(str) {
     return String(str).replace(/[<>&"]/g, t => t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
   }
 
+  // Helper for API calls and UI state
   const FRIENDS_PER_PAGE = 5;
   let friends = [];
   let page = 0;
   let openCardIdx = null;
 
-  // API calls using Firebase Auth for token
+  // API: fetch non-settled friends and progress stats
   async function fetchFriendsList() {
     try {
       showSpinner(container);
@@ -43,7 +45,10 @@ export async function showDashboard(container, user) {
       const data = await resp.json();
       hideSpinner(container);
       if (!Array.isArray(data) && data.error) throw new Error(data.error);
-      return Array.isArray(data) ? data : [];
+      // Split into non-settled and settled
+      const outstanding = data.filter(f => f.net !== 0);
+      const settled = data.filter(f => f.net === 0);
+      return { outstanding, settled, all: data };
     } catch (e) {
       hideSpinner(container);
       container.innerHTML = `<div style="color:#d12020;margin:2em;">${e.message || e}</div>`;
@@ -66,7 +71,7 @@ export async function showDashboard(container, user) {
       return result.payment_id;
     } catch (e) {
       hideSpinner(container);
-      showModal && showModal({ content: e.message || e, okText: "OK" }); // Optional modal helper
+      showModal({ content: e.message || e, okText: "OK" });
       throw e;
     }
   }
@@ -92,8 +97,7 @@ export async function showDashboard(container, user) {
       </div>
     `;
   }
-  function renderFriendsList() {
-    const list = friends.slice(page * FRIENDS_PER_PAGE, page * FRIENDS_PER_PAGE + FRIENDS_PER_PAGE);
+  function renderFriendsList(list) {
     return list.map((f, idx) => {
       let isGreen = f.net > 0, isRed = f.net < 0;
       let leftBar = isRed ? "#e53935" : isGreen ? "#43a047" : "#bbb";
@@ -118,8 +122,8 @@ export async function showDashboard(container, user) {
       </div>`;
     }).join("");
   }
-  function renderFriendsPager() {
-    let totalPages = Math.max(1, Math.ceil(friends.length / FRIENDS_PER_PAGE));
+  function renderFriendsPager(list) {
+    let totalPages = Math.max(1, Math.ceil(list.length / FRIENDS_PER_PAGE));
     if (totalPages <= 1) return "";
     return `
     <div class="fd-pager-row">
@@ -130,13 +134,67 @@ export async function showDashboard(container, user) {
     `;
   }
 
-  function renderDashboard() {
-    let owed = friends.filter(f => f.net > 0).reduce((s, f) => s + f.net, 0);
-    let owe = friends.filter(f => f.net < 0).reduce((s, f) => s + Math.abs(f.net), 0);
+  // Modal for confirmation/error
+  function showModal(args) {
+    let modal = document.createElement('div');
+    modal.className = "modal-backdrop";
+    document.body.appendChild(modal);
+    modal.innerHTML = `
+      <div class="modal">
+        <button class="modal-close" aria-label="Close">&times;</button>
+        ${args.title ? `<h3>${args.title}</h3>` : ""}
+        <div style="margin-bottom:1em;">${args.content || ''}</div>
+        ${args.inputType ? `<input id="modal-input" type="${args.inputType}" placeholder="${args.inputPlaceholder||''}" value="${args.inputValue||''}" autofocus>` : ''}
+        <div class="modal-btn-row">
+          ${args.showCancel !== false ? `<button class="modal-btn modal-btn-alt" id="modal-cancel">${args.cancelText||'Cancel'}</button>` : ''}
+          <button class="modal-btn" id="modal-ok">${args.okText||'OK'}</button>
+        </div>
+      </div>`;
+    modal.querySelector('.modal-close').onclick = close;
+    if (args.showCancel !== false) modal.querySelector('#modal-cancel').onclick = () => { close(); args.onCancel && args.onCancel(); };
+    modal.querySelector('#modal-ok').onclick = () => {
+      if (args.inputType) {
+        const v = modal.querySelector('#modal-input').value;
+        close();
+        args.onOk && args.onOk(v);
+      } else {
+        close();
+        args.onOk && args.onOk();
+      }
+    };
+    function close() { document.body.removeChild(modal); }
+    if (args.inputType) modal.querySelector('#modal-input').focus();
+  }
+
+  function parseDBDatetimeAsUTC(dt) {
+    const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
+    if (!m) return new Date(dt);
+    return new Date(Date.UTC(+m[1], m[2]-1, +m[3], +m[4], +m[5], +m[6]));
+  }
+  function getDateLabel(date) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const then = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diff = Math.round((today - then) / (1000*60*60*24));
+    if (diff === 0) return "Today";
+    if (diff === 1) return "Yesterday";
+    if (diff >= 2 && diff < 7) return date.toLocaleDateString(undefined, { weekday: 'long' });
+    const day = String(date.getDate()).padStart(2, '0');
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `${day}-${months[date.getMonth()]}-${String(date.getFullYear()).slice(2)}`;
+  }
+
+  function renderDashboard(friendsResult = { outstanding: [], settled: [], all: [] }) {
+    friends = friendsResult.outstanding;
+    // Settled payments progress indicator
+    const numSettled = friendsResult.settled.length;
+    const numTotal = friendsResult.outstanding.length + numSettled;
+    let owed = friends.filter(f=>f.net>0).reduce((s,f)=>s+f.net,0);
+    let owe = friends.filter(f=>f.net<0).reduce((s,f)=>s+Math.abs(f.net),0);
     let net = owed - owe;
     let netBG = net > 0 ? "#e7fff0" : net < 0 ? "#ffe6e6" : "#ececec";
     let netColor = net > 0 ? "#43a047" : net < 0 ? "#e53935" : "#789";
-    let settledPct = Math.min(100, Math.round(demo.settled / (demo.spends + demo.settled) * 100));
+    let settledPct = numTotal ? Math.round(100*numSettled/numTotal) : 0;
 
     container.innerHTML = `
     <div class="fd-main">
@@ -158,7 +216,7 @@ export async function showDashboard(container, user) {
       </div>
       <div class="fd-progress-wrap">
         <div class="fd-progress-bar"><div class="fd-progress-fill" style="width:${settledPct}%;"></div></div>
-        <div class="fd-progress-text">${demo.settled} of ${demo.spends + demo.settled} spends settled!</div>
+        <div class="fd-progress-text">${numSettled} of ${numTotal} payments settled!</div>
       </div>
       <div class="fd-friends-label">Balance with Friends</div>
       <div id="fd-friend-list"></div>
@@ -177,7 +235,7 @@ export async function showDashboard(container, user) {
                 ev.type === "sent" ? "Sent to <b>" + escapeHtml(ev.name) + "</b>" :
                   "Settled with <b>" + escapeHtml(ev.name) + "</b>"}
               </div>
-              <div class="fd-rc-date">${escapeHtml(ev.date)}</div>
+              <div class="fd-rc-date">${getDateLabel(parseDBDatetimeAsUTC(ev.date))}</div>
             </div>
           </div>
         `).join('')}
@@ -193,11 +251,11 @@ export async function showDashboard(container, user) {
     </div>
     `;
 
-    // Friends cards and paging
-    container.querySelector("#fd-friend-list").innerHTML = renderFriendsList();
-    container.querySelector("#fd-friend-pager").innerHTML = renderFriendsPager();
+    // Paginated friends section (show only outstanding)
+    const friendsPage = friends.slice(page * FRIENDS_PER_PAGE, page * FRIENDS_PER_PAGE + FRIENDS_PER_PAGE);
+    container.querySelector("#fd-friend-list").innerHTML = renderFriendsList(friendsPage);
+    container.querySelector("#fd-friend-pager").innerHTML = renderFriendsPager(friends);
 
-    // Paging logic
     let pagerRow = container.querySelector(".fd-pager-row");
     if (pagerRow) {
       pagerRow.querySelectorAll(".fd-pager-btn").forEach((btn) => {
@@ -205,118 +263,82 @@ export async function showDashboard(container, user) {
           if (btn.disabled) return;
           page += btn.getAttribute("data-pager") === "next" ? 1 : -1;
           openCardIdx = null;
-          renderDashboard();
+          renderDashboard(friendsResult);
         };
       });
     }
-    // Only open/close card for non-button click
+    // Card open/collapse, only if not clicking button
     container.querySelectorAll('.fd-fcard').forEach(card => {
       card.onclick = evt => {
         if (evt.target.closest('.fd-fbtn')) return;
         let idx = Number(card.getAttribute('data-idx'));
         openCardIdx = openCardIdx === idx ? null : idx;
-        renderDashboard();
+        renderDashboard(friendsResult);
       }
     });
+    // Settle up and transactions
     container.querySelectorAll('.fd-fbtn').forEach(btn => {
       btn.onclick = async ev => {
         ev.stopPropagation();
         const card = btn.closest('.fd-fcard');
         let idx = Number(card.getAttribute('data-idx'));
-        let friend = friends[page * FRIENDS_PER_PAGE + idx];
+        let friend = friendsPage[idx];
         if (btn.textContent === "Settle Up") {
-          showPayModal(friend.username, Math.abs(friend.net));
+          showModal({
+            title: "Confirm Payment",
+            content: `Are you sure you want to pay <b>${Math.abs(friend.net)} QAR</b> to <b>${escapeHtml(friend.name)}</b>?`,
+            okText: "Confirm",
+            cancelText: "Edit Amount",
+            inputType: "number",
+            inputPlaceholder: "Amount in QAR",
+            inputValue: Math.abs(friend.net),
+            showCancel: true,
+            onOk: async (enteredAmount) => {
+              if (+enteredAmount > Math.abs(friend.net)) {
+                showModal({ content: "You cannot pay more than you owe!", okText: "OK", showCancel: false });
+                return;
+              }
+              await sendSettlePayment(friend.username, +enteredAmount);
+              showSpinner(container);
+              const refreshed = await fetchFriendsList();
+              page = 0;
+              openCardIdx = null;
+              renderDashboard(refreshed);
+            }
+          });
         } else if (btn.textContent === "Transactions") {
-          alert("Show transactions with " + friend.name);
+          showModal({ title: "Transactions", content: `Transactions for ${escapeHtml(friend.name)} coming soon.`, okText: "OK", showCancel: false });
         }
       };
     });
 
-    // Donut chart modal
+    // Donut chart legend modal
     const chartArea = container.querySelector("#donutChartArea");
     if (chartArea) {
       chartArea.onclick = () => {
-        showPieLegendModal();
+        showModal({
+          title: "Breakdown: Owed vs Owe",
+          content: `
+            <b style="color:#43a047;">Owed (They Owe You):</b><ul style="margin-bottom:1em;">
+            ${friends.filter(f => f.net > 0).map(f => `<li>${escapeHtml(f.name)}: ${f.net} QAR</li>`).join('') || "<li>None</li>"}
+            </ul>
+            <b style="color:#e53935;">Owe (You Owe):</b><ul>
+            ${friends.filter(f => f.net < 0).map(f => `<li>${escapeHtml(f.name)}: ${Math.abs(f.net)} QAR</li>`).join('') || "<li>None</li>"}
+            </ul>
+          `,
+          okText: "Close",
+          showCancel: false
+        });
       };
     }
   }
 
-  function showPieLegendModal() {
-    const modal = document.createElement("div");
-    modal.className = "fd-pay-modal";
-    modal.innerHTML = `
-      <div class="fd-pay-content" style="position:relative;">
-        <button class="fd-pay-close">&times;</button>
-        <h4>Breakdown: Owed vs Owe</h4>
-        <div>
-          <b style="color:#43a047;">Owed (They Owe You):</b>
-          <ul style="margin-bottom:1em;">
-            ${friends.filter(f => f.net > 0).map(f => `<li>${escapeHtml(f.name)}: ${f.net} QAR</li>`).join('') || "<li>None</li>"}
-          </ul>
-          <b style="color:#e53935;">Owe (You Owe):</b>
-          <ul>
-            ${friends.filter(f => f.net < 0).map(f => `<li>${escapeHtml(f.name)}: ${Math.abs(f.net)} QAR</li>`).join('') || "<li>None</li>"}
-          </ul>
-        </div>
-      </div>`;
-    document.body.appendChild(modal);
-    modal.querySelector('.fd-pay-close').onclick =
-      modal.onclick = ev => { if (ev.target === modal || ev.target.classList.contains('fd-pay-close')) document.body.removeChild(modal); };
-  }
-
-  function showPayModal(username, amountMax) {
-    const modal = document.createElement("div");
-    modal.className = "fd-pay-modal";
-    modal.innerHTML = `
-      <div class="fd-pay-content" style="position:relative;">
-        <button class="fd-pay-close">&times;</button>
-        <h4>Settle Up Payment</h4>
-        <input class="fd-pay-input" type="number" min="1" max="${amountMax}" placeholder="Amount in QAR" value="${amountMax}"/>
-        <button class="fd-pay-confirm">Settle Up</button>
-        <div class="fd-pay-error" style="color:#e53935;font-weight:700;margin-top:0.7em;"></div>
-      </div>`;
-    document.body.appendChild(modal);
-
-    const closeHandler = () => document.body.removeChild(modal);
-    modal.querySelector('.fd-pay-close').onclick = closeHandler;
-    modal.onclick = ev => { if (ev.target === modal) closeHandler(); };
-
-    modal.querySelector('.fd-pay-confirm').onclick = async () => {
-      const amount = +modal.querySelector('.fd-pay-input').value;
-      try {
-        await sendSettlePayment(username, amount);
-        modal.querySelector('.fd-pay-confirm').textContent = "Sent!";
-        setTimeout(closeHandler, 900);
-        friends = await fetchFriendsList();
-        renderDashboard();
-      } catch (e) {
-        modal.querySelector('.fd-pay-error').textContent = e.message;
-      }
-    };
-  }
-
-  // Show spinner while loading
+  // Initial spinner/loading state
   container.innerHTML = `<div class="fd-main"><div style="text-align:center;margin:3em auto;font-size:1.28em;color:#2566b2;font-weight:700;">Loading group balances&hellip;</div></div>`;
   try {
-    friends = await fetchFriendsList();
-    renderDashboard();
+    const friendsResult = await fetchFriendsList();
+    renderDashboard(friendsResult);
   } catch (e) {
-    // already handled above
+    // Error display handled above
   }
 }
-
-// Optional: plug in your own showSpinner/hideSpinner/showModal
-function showSpinner(container) {
-  if (!container.__spinner) {
-    container.__spinner = document.createElement("div");
-    container.__spinner.innerHTML = "<div style='text-align:center;margin:2em;font-size:1.21em;color:#176dc4;'>Loading&hellip;</div>";
-    container.appendChild(container.__spinner);
-  }
-}
-function hideSpinner(container) {
-  if (container.__spinner) {
-    container.removeChild(container.__spinner);
-    container.__spinner = null;
-  }
-}
-// You can implement/showModal similarly or use any modal component you prefer
