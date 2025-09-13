@@ -40,7 +40,7 @@
   box-shadow: 0 0 0 #0003, 0 1.5px 1.5px #2566b255 inset;
 }
 .fd-pager-label {font-size:1.09em;font-weight:700;color:#7f97ba;}
-.fd-fcard {position:relative;background:#fff;border-radius:13px;box-shadow:0 1px 8px #146dd012;margin-bottom:0.7em;min-height:52px;display:flex;flex-direction:column;cursor:pointer;}
+.fd-fcard {position:relative;background:#fff;border-radius:13px;box-shadow:0 1px 8px #146dd012;margin-bottom:0.7em;min-height:52px;display:flex;flex-direction:column;cursor:default;}
 .fd-fbtn { font-size:1.06em;font-weight:700;padding:0.61em 1.28em;border:none; border-radius:8px;color:#fff;cursor:pointer; box-shadow:0 1px 6px #176dc410; background:#2566b2;transition:background 0.14s, box-shadow 0.12s, transform 0.09s;}
 .fd-fbtn:active {
   background: #134378 !important;
