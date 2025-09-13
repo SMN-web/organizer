@@ -418,12 +418,11 @@ export async function showPaymentsPanel(container, user) {
       });
     };
 
-    const transferBtn = container.querySelector('.paypage-btn.transfer');
-if (transferBtn) {
-  transferBtn.onclick = () => {
-    showTransferPopup(container, user, currentFriend.username);
-  };
-}
+
+container.querySelector('.paypage-btn.transfer').onclick = () => {
+      showTransferPopup(container, user, currentFriend.username);
+    };
+  }
 
   function renderMain() {
     if (view === "friends") {
