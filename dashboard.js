@@ -37,7 +37,7 @@ export async function showDashboard(container, user) {
       if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function')
         throw new Error("Not logged in");
       const token = await user.firebaseUser.getIdToken(true);
-      const resp = await fetch('/api/settlements/friends', {
+      const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/settlements/friends', {
         headers: { Authorization: "Bearer " + token }
       });
       const data = await resp.json();
@@ -55,7 +55,7 @@ export async function showDashboard(container, user) {
     try {
       showSpinner(container);
       const token = await user.firebaseUser.getIdToken(true);
-      const resp = await fetch('/api/expense_payment', {
+      const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment', {
         method: "POST",
         headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
         body: JSON.stringify({ to_user: toUser, amount, currency: "QAR" })
