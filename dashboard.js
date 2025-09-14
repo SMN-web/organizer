@@ -4,7 +4,7 @@ import { showManageSpend } from './manageSpend.js';
 import { showFriends } from './friends.js';
 
 export async function showDashboard(container, userContext, mainContentRef) {
-  // Utility for robust fetch + JSON error handling
+  // Utility robust JSON fetch
   async function fetchJson(url, opts) {
     const resp = await fetch(url, opts);
     let data;
@@ -40,6 +40,31 @@ export async function showDashboard(container, userContext, mainContentRef) {
     return `${day}-${months[date.getMonth()]}-${String(date.getFullYear()).slice(2)}`;
   }
 
+  // Improved activity label mapping for dashboard
+  function getActivityLabel(ev, me) {
+    if (ev.status === "pending") {
+      if (ev.to_user === me) return "Payment Request Received";
+      if (ev.from_user === me) return "Payment Request Sent";
+    }
+    if (ev.status === "accepted" && !ev.sender) {
+      if (ev.from_user === me) return "Payment Sent";
+      if (ev.to_user === me) return "Payment Received";
+    }
+    if (ev.status === "transfer_settled") {
+      if (ev.sender === me) return "Amount Transferred";
+      if (ev.from_user === me) return "Payment Sent (Transfer)";
+      if (ev.to_user === me) return "Payment Received (Transfer)";
+    }
+    if (ev.status === "rejected") {
+      if (ev.from_user === me) return "Payment Request Rejected";
+      if (ev.to_user === me) return "Payment Rejected";
+    }
+    if (ev.status === "canceled") {
+      return "Payment Canceled";
+    }
+    return "Payment";
+  }
+
   let metrics = {
     paidTotal: 0,
     receivedTotal: 0,
@@ -56,6 +81,7 @@ export async function showDashboard(container, userContext, mainContentRef) {
   let openCardIdx = null;
   const FRIENDS_PER_PAGE = 5;
   let recentActivity = [];
+  let userName = "";
 
   async function fetchMetrics() {
     showSpinner(container);
@@ -94,6 +120,7 @@ export async function showDashboard(container, userContext, mainContentRef) {
       headers: { Authorization: "Bearer " + token }
     });
     hideSpinner(container);
+    userName = data.me || userContext.username;
     if (data.ok === false) {
       recentActivity = [];
     } else {
@@ -214,7 +241,6 @@ export async function showDashboard(container, userContext, mainContentRef) {
     let netBG = net > 0 ? "#e7fff0" : net < 0 ? "#ffe6e6" : "#ececec";
     let netColor = net > 0 ? "#43a047" : net < 0 ? "#e53935" : "#789";
     let settledPct = numTotal ? Math.round(100*numSettled/numTotal) : 0;
-
     container.innerHTML = `
     <div class="fd-main">
       ${metrics.pendingCount > 0 ? `
@@ -246,24 +272,19 @@ export async function showDashboard(container, userContext, mainContentRef) {
         <a class="fd-rec-link" id="transactionsLink" href="#">Transactions</a>
       </div>
       <div class="fd-rec-list">
-        ${recentActivity.map(ev => `
-          <div class="fd-rec-card">
-            <span class="fd-rc-dot ${ev.status || ''}"></span>
-            <div class="fd-rc-details">
-              <div class="fd-rc-amount">${ev.amount} QAR</div>
-              <div class="fd-rc-desc">${
-                ev.direction === "sender" && ev.from_user === userContext.username ? 
-                  `Sent to <b>${escapeHtml(ev.to_user_name)}</b>`
-                : ev.direction === "receiver" && ev.to_user === userContext.username ? 
-                  `Received from <b>${escapeHtml(ev.from_user_name)}</b>`
-                : ev.direction === "sender" && ev.sender === userContext.username ? 
-                  `Transferred for <b>${escapeHtml(ev.from_user_name || ev.to_user_name)}</b>`
-                : "Payment"
-              }</div>
-              <div class="fd-rc-date">${getDateLabel(parseDBDatetimeAsUTC(ev.last_updated))}</div>
+        ${recentActivity.map(ev => {
+          const label = getActivityLabel(ev, userName);
+          return `
+            <div class="fd-rec-card">
+              <span class="fd-rc-dot ${ev.status || ''}"></span>
+              <div class="fd-rc-details">
+                <div class="fd-rc-amount">${ev.amount} QAR</div>
+                <div class="fd-rc-desc">${escapeHtml(label)}</div>
+                <div class="fd-rc-date">${getDateLabel(parseDBDatetimeAsUTC(ev.last_updated))}</div>
+              </div>
             </div>
-          </div>
-        `).join('')}
+          `;
+        }).join('')}
       </div>
       <div class="fd-stats-label">Your Stats</div>
       <div class="fd-stats-grid">
