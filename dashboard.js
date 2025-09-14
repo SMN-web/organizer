@@ -4,6 +4,21 @@ import { showManageSpend } from './manageSpend.js';
 import { showFriends } from './friends.js';
 
 export async function showDashboard(container, userContext, mainContentRef) {
+  // Utility for robust fetch + JSON error handling
+  async function fetchJson(url, opts) {
+    const resp = await fetch(url, opts);
+    let data;
+    try {
+      data = await resp.json();
+    } catch (e) {
+      data = { ok: false, error: "Invalid JSON received." };
+    }
+    if (!resp.ok || (data && data.ok === false)) {
+      return data;
+    }
+    return data;
+  }
+
   function escapeHtml(str) {
     return String(str).replace(/[<>&"]/g, t => t === "<" ? "&lt;" : t === ">" ? "&gt;" : t === "&" ? "&amp;" : "&quot;");
   }
@@ -45,12 +60,11 @@ export async function showDashboard(container, userContext, mainContentRef) {
   async function fetchMetrics() {
     showSpinner(container);
     let token = await userContext.firebaseUser.getIdToken(true);
-    let resp = await fetch('https://da-su.nafil-8895-s.workers.dev/api/dashboard_summary', {
+    let data = await fetchJson('https://da-su.nafil-8895-s.workers.dev/api/dashboard_summary', {
       headers: { Authorization: "Bearer " + token }
     });
-    let data = await resp.json();
     hideSpinner(container);
-    if (!data.ok) throw new Error(data.error || "Failed to load metrics");
+    if (data.ok === false) throw new Error(data.error || "Failed to load metrics");
     metrics.paidTotal = data.paid_total || 0;
     metrics.receivedTotal = data.received_total || 0;
     metrics.spends = data.spends || 0;
@@ -63,12 +77,11 @@ export async function showDashboard(container, userContext, mainContentRef) {
   async function fetchSettlements() {
     showSpinner(container);
     let token = await userContext.firebaseUser.getIdToken(true);
-    let resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/settlements/friends', {
+    let rows = await fetchJson('https://pa-ca.nafil-8895-s.workers.dev/api/settlements/friends', {
       headers: { Authorization: "Bearer " + token }
     });
-    let rows = await resp.json();
     hideSpinner(container);
-    if (!Array.isArray(rows)) throw new Error("Failed to load settlements");
+    if (!Array.isArray(rows)) throw new Error(rows.error || "Failed to load settlements");
     friends = rows.filter(f => f.net !== 0);
     owe = rows.filter(f => f.net < 0).reduce((sum, f) => sum + Math.abs(f.net), 0);
     net = rows.reduce((sum, f) => sum + f.net, 0);
@@ -77,12 +90,15 @@ export async function showDashboard(container, userContext, mainContentRef) {
   async function fetchRecentActivity() {
     showSpinner(container);
     let token = await userContext.firebaseUser.getIdToken(true);
-    let resp = await fetch('https://da-su.nafil-8895-s.workers.dev/api/activity/recent', { // replace with actual endpoint
+    let data = await fetchJson('https://da-su.nafil-8895-s.workers.dev/api/activity/recent', {
       headers: { Authorization: "Bearer " + token }
     });
-    let rows = await resp.json();
     hideSpinner(container);
-    recentActivity = Array.isArray(rows) ? rows : [];
+    if (data.ok === false) {
+      recentActivity = [];
+    } else {
+      recentActivity = Array.isArray(data.recent) ? data.recent : [];
+    }
   }
 
   function donutSVG(owed, owe, net) {
@@ -132,6 +148,7 @@ export async function showDashboard(container, userContext, mainContentRef) {
         </div>`;
     }).join("");
   }
+
   function renderFriendsPager(list) {
     let totalPages = Math.max(1, Math.ceil(list.length / FRIENDS_PER_PAGE));
     if (totalPages <= 1) return "";
@@ -229,16 +246,21 @@ export async function showDashboard(container, userContext, mainContentRef) {
         <a class="fd-rec-link" id="transactionsLink" href="#">Transactions</a>
       </div>
       <div class="fd-rec-list">
-        ${(recentActivity || []).map(ev => `
+        ${recentActivity.map(ev => `
           <div class="fd-rec-card">
-            <span class="fd-rc-dot ${ev.type}"></span>
+            <span class="fd-rc-dot ${ev.status || ''}"></span>
             <div class="fd-rc-details">
               <div class="fd-rc-amount">${ev.amount} QAR</div>
-              <div class="fd-rc-desc">${ev.type === "received" ? "Received from <b>" + escapeHtml(ev.name) + "</b>" :
-                ev.type === "sent" ? "Sent to <b>" + escapeHtml(ev.name) + "</b>" :
-                  "Settled with <b>" + escapeHtml(ev.name) + "</b>"}
-              </div>
-              <div class="fd-rc-date">${getDateLabel(parseDBDatetimeAsUTC(ev.date))}</div>
+              <div class="fd-rc-desc">${
+                ev.direction === "sender" && ev.from_user === userContext.username ? 
+                  `Sent to <b>${escapeHtml(ev.to_user_name)}</b>`
+                : ev.direction === "receiver" && ev.to_user === userContext.username ? 
+                  `Received from <b>${escapeHtml(ev.from_user_name)}</b>`
+                : ev.direction === "sender" && ev.sender === userContext.username ? 
+                  `Transferred for <b>${escapeHtml(ev.from_user_name || ev.to_user_name)}</b>`
+                : "Payment"
+              }</div>
+              <div class="fd-rc-date">${getDateLabel(parseDBDatetimeAsUTC(ev.last_updated))}</div>
             </div>
           </div>
         `).join('')}
