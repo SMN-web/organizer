@@ -1,12 +1,12 @@
 import { showSpinner, hideSpinner } from './spinner.js';
-import { sendPasswordResetEmail } from './firebaseAuth.js'; // Use your Firebase password reset function
+import { getAuth, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
 export async function showUserProfile(container, user) {
   showSpinner(container);
 
   let profile = {};
   try {
-    // Get fresh auth token from the passed-in user object
+    // Ensure Firebase user is valid
     if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function')
       throw new Error("No valid user session found.");
     const token = await user.firebaseUser.getIdToken(true);
@@ -15,8 +15,6 @@ export async function showUserProfile(container, user) {
     });
     if (!resp.ok) throw new Error("Failed to fetch profile");
     profile = await resp.json();
-
-    // Defensive defaults for missing values
     profile.username = profile.username || "";
     profile.name = profile.name || "";
     profile.email = profile.email || "";
@@ -43,35 +41,47 @@ export async function showUserProfile(container, user) {
         <div style="color:#555;margin-top:0.3em;font-size:1em;">${profile.email}</div>
       </div>
       <hr style="border:none;border-top:1px solid #eee;margin:2em 0 1.5em 0;">
-      <div>
-        <a id="changePasswordLink" href="#" style="color:#2268c5;font-weight:600;font-size:1.04em;text-decoration:underline;display:inline-block;margin-bottom:1.5em;">
+      <div id="changePwdRow" style="margin-top:12px;">
+        <a id="changePasswordLink" href="#" style="color:#2268c5;font-weight:600;font-size:1.08em;text-decoration:underline;">
           Change password
         </a>
       </div>
-      <div style="color:#999;">Your full user profile and future settings will be displayed here.</div>
-      <div id="resetMsg" style="margin-top:1em;color:#168c34;font-size:0.98em;font-weight:600;"></div>
+      <div id="resetMsg" style="margin-top:1.2em;font-size:0.99em;font-weight:500;"></div>
+      <div style="color:#999;margin-top:2.9em;">Your full user profile and future settings will be displayed here.</div>
     </div>
   `;
 
-  // Change password logic (uses backend email from profile)
+  // Password reset: on click, send link to profile.email and show message
   const link = container.querySelector('#changePasswordLink');
-  const msg = container.querySelector('#resetMsg');
+  const msgEl = container.querySelector('#resetMsg');
   if (link && profile.email) {
     link.onclick = async (e) => {
       e.preventDefault();
       link.style.pointerEvents = 'none';
-      link.textContent = 'Sending email...';
+      msgEl.style.color = "#666";
+      msgEl.textContent = "Sending reset link...";
+
       try {
-        await sendPasswordResetEmail(profile.email);
-        msg.textContent = 'Password reset email sent!';
-        link.textContent = 'Change password';
-      } catch (err) {
-        msg.textContent = 'Error sending email.';
-        link.textContent = 'Change password';
+        // Use app-wide Firebase Auth instance if defined, else getAuth()
+        const auth = window.firebaseAuth || getAuth();
+        await sendPasswordResetEmail(auth, profile.email);
+        msgEl.style.color = "#27ae60";
+        msgEl.textContent = "Reset link sent! Check your inbox and spam folders.";
+      } catch (error) {
+        msgEl.style.color = "#e74c3c";
+        if (error.code === "auth/user-not-found") {
+          msgEl.textContent = "No account found with this email.";
+        } else if (error.code === "auth/invalid-email") {
+          msgEl.textContent = "Invalid email address.";
+        } else if (error.code === "auth/too-many-requests") {
+          msgEl.textContent = "Too many attempts. Please try again later.";
+        } else {
+          msgEl.textContent = "Error sending reset email: " + (error.message || error.code || error.toString());
+        }
       }
       setTimeout(() => {
-        msg.textContent = '';
-        link.style.pointerEvents = '';
+        msgEl.textContent = "";
+        link.style.pointerEvents = "";
       }, 3300);
     };
   }
