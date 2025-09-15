@@ -15,11 +15,11 @@ export function showCalculatorModal(parentNode, onDone) {
         <button class="calc-btn" data-val="7">7</button>
         <button class="calc-btn" data-val="8">8</button>
         <button class="calc-btn" data-val="9">9</button>
-        <button class="calc-btn" data-val="/">&#247;</button>
+        <button class="calc-btn" data-val="/">÷</button>
         <button class="calc-btn" data-val="4">4</button>
         <button class="calc-btn" data-val="5">5</button>
         <button class="calc-btn" data-val="6">6</button>
-        <button class="calc-btn" data-val="*">&#215;</button>
+        <button class="calc-btn" data-val="*">×</button>
         <button class="calc-btn" data-val="1">1</button>
         <button class="calc-btn" data-val="2">2</button>
         <button class="calc-btn" data-val="3">3</button>
@@ -65,6 +65,7 @@ export function showCalculatorModal(parentNode, onDone) {
             expr = "";
             return;
           }
+          // Evaluate only JS friendly operators
           let res = eval(expr);
           expr = "";
           if (typeof res === "number" && isFinite(res)) {
@@ -79,14 +80,11 @@ export function showCalculatorModal(parentNode, onDone) {
           expr = "";
         }
       } else {
-        // Prevent starting with operator except minus
         if (expr === "" && /^[+*/.]$/.test(v)) return;
 
-        // Prevent two operators/dots in a row
         if (endsWithOperator(expr) && /[+\-*/.]/.test(v)) {
           expr = expr.slice(0, -1) + v;
         } else {
-          // Prevent multiple dots in one number segment
           if (v === ".") {
             let segments = expr.split(/[\+\-\*\/]/);
             let lastSegment = segments[segments.length - 1];
@@ -94,7 +92,11 @@ export function showCalculatorModal(parentNode, onDone) {
           }
           expr += v;
         }
-        updateDisplay(expr);
+        updateDisplay(expr
+          // Show pretty operator in display (optional)
+          .replace(/\//g, "÷")
+          .replace(/\*/g, "×")
+        );
       }
     };
   });
