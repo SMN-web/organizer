@@ -10,7 +10,6 @@ export function showPaymentsPanelMain(container, user) {
     <nav class="section-switch">
       <button data-tab="payments" class="tab-btn active">Payments</button>
       <button data-tab="transfers" class="tab-btn">Transfers</button>
-      <button data-tab="history" class="tab-btn">History</button>
     </nav>
     <div class="panel-content"></div>
   `;
@@ -22,9 +21,7 @@ export function showPaymentsPanelMain(container, user) {
       showPaymentsPanel(panelContent, user);
     } else if (tab === "transfers") {
       showTransfersPanel(panelContent, user);
-    } else if (tab === "history") {
-      showHistoryPanel(panelContent, user);
-    }
+    } 
   }
 
   renderPanel("payments");
