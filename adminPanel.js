@@ -10,7 +10,6 @@ export function showAdminPanel(container, auth) {
     return;
   }
 
-  // ---- Panel UI Rendering ----
   container.innerHTML = `
     <h2 style="margin-bottom:0.7em;letter-spacing:0.01em;">User Admin Panel
       <button id="logoutBtn" style="padding:0.4em 1em;font-weight:bold;float:right;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;box-shadow:0 1px 4px #e74c3c13;">Logout</button>
@@ -84,7 +83,6 @@ export function showAdminPanel(container, auth) {
   startHeartbeat();
   window.addEventListener("hashchange", clearHeartbeat, { once: true });
 
-  // --- UI-animated fetch spinner, rendering
   async function fetchUsersAndRender() {
     let token;
     showSpinner(container);
@@ -179,7 +177,7 @@ export function showAdminPanel(container, auth) {
           }
         };
       });
-      // Pending approvals
+      
       const pendingUsers = users.filter(u => u.adminApproval === "pending");
       document.getElementById('pendingApprovalSection').innerHTML = pendingUsers.length
         ? pendingUsers.map(u => `
