@@ -77,7 +77,7 @@ export async function showHistorySpend(container, user) {
   let data = [];
   try {
     const token = await user.firebaseUser.getIdToken(true);
-    const resp = await fetch('https://cr-me.nafil-8895-s.workers.dev/api/spends/completed', {
+    const resp = await fetch('https://ex-hi.nafil-8895-s.workers.dev/api/spends/completed', {
       headers: { Authorization: 'Bearer ' + token }
     });
     const text = await resp.text();
