@@ -21,6 +21,7 @@ export function showTerms(container) {
         overflow-y: auto;
       }
     </style>
+          <div class="section-top-spacer"></div>
     <h2>Terms and Conditions</h2>
     <p>All activities are solely based on my own interest. Terms and conditions may change without prior notice.</p>
     <div class="terms-section">
