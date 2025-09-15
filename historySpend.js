@@ -70,7 +70,7 @@ function approvalBranchHTML(creator, rows) {
   `;
 }
 
-export async function showHistoryPanel(container, user) {
+export async function showHistorySpend(container, user) {
   showSpinner(container);
   let data = [];
   try {
