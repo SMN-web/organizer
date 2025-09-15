@@ -1,5 +1,3 @@
-
-  // history.js — Completed Group Expense History (read-only, spinner & single accepted pill)
 import { showSpinner, hideSpinner } from './spinner.js';
 
 const CURRENCY = localStorage.getItem('currency') || "QAR";
@@ -72,7 +70,7 @@ function approvalBranchHTML(creator, rows) {
   `;
 }
 
-export async function showHistorySpend(container, user) {
+export async function showHistoryPanel(container, user) {
   showSpinner(container);
   let data = [];
   try {
@@ -90,131 +88,202 @@ export async function showHistorySpend(container, user) {
   }
   hideSpinner(container);
 
-  container.innerHTML = `
-    <div style="font-weight:700;font-size:1.09em;margin-bottom:8px;">Expense History (Completed/Accepted)</div>
-    <div class="history-list"></div>
-  `;
+  let allCreators = [...new Set(data.map(item => item.created_by))].sort();
+  let allParticipants = [...new Set(data.flatMap(item =>
+    (item.splits||[]).map(s => s.name)
+  ))].sort();
+  let allDates = [...new Set(data.map(item => item.date.split(' ')[0]))].sort();
 
-  const listArea = container.querySelector('.history-list');
-  if (!data.length) {
-    listArea.innerHTML = `<div style="color:#666;text-align:center;margin:2em 0 1em 0;font-size:0.98em;">
-      No expense history found.
-    </div>`;
-    return;
-  }
+  let currentSearch = '';
+  let currentDate = '';
+  let currentCreator = '';
+  let currentParticipant = '';
 
-  data.forEach(item => {
-    const pill = `<span class="status-pill accepted" style="background:#e6f4ec;color:#188c3d;padding:3px 13px; border-radius:12px; font-weight:700;">Accepted</span>`;
-    const row = document.createElement("div");
-    row.className = "approval-folder";
-    row.tabIndex = 0;
-    row.style = `
-      display:flex;align-items:flex-start;gap:11px;
-      padding:9px 7px 10px 7px;
-      border-bottom:1px solid #eee;font-size:0.97em;cursor:pointer;transition:background 0.2s;
-    `;
-    row.innerHTML = `
-      <span class="sn" style="min-width:2em;font-weight:600;color:#357;flex-shrink:0;margin-top:6px;">${item.sn}.</span>
-      <div class="approval-main" style="flex:1 1 0;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;row-gap:2px;">
-        <div class="remarks" style="font-weight:600;color:#1b2837;margin-bottom:2.5px;">${escapeHtml(item.remarks || "")}</div>
-        <div class="date" style="color:#566b89;font-size:0.95em;">${formatDisplayDate(item.date || "")}</div>
-        <div class="by" style="color:#209;font-size:0.93em;">created by ${escapeHtml(item.created_by)}</div>
+  renderPanel();
+
+  function renderPanel() {
+    container.innerHTML = `
+      <div style="font-weight:700;font-size:1.09em;margin-bottom:8px;">Expense History (Completed/Accepted)</div>
+      <div style="margin-bottom:7px;display:flex;flex-wrap:wrap;gap:7px;align-items:center;">
+        <input type="text" id="searchBox" placeholder="Search remark..." style="flex:1 1 120px;padding:7px 9px;border:1px solid #d0d8e2;border-radius:7px;font-size:1em;">
+        <input type="date" id="dateFilter" style="padding:7px 9px;border:1px solid #d0d8e2;border-radius:7px;font-size:1em;min-width:128px;">
+        <select id="creatorFilter" style="padding:7px 9px;border:1px solid #d0d8e2;border-radius:7px;font-size:1em;">
+          <option value="">Any Creator</option>
+          ${allCreators.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('')}
+        </select>
+        <select id="participantFilter" style="padding:7px 9px;border:1px solid #d0d8e2;border-radius:7px;font-size:1em;">
+          <option value="">Any Participant</option>
+          ${allParticipants.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('')}
+        </select>
       </div>
-      ${pill}
+      <div class="history-list"></div>
     `;
-    row.onclick = () => showHistoryDetails(container, item, data);
-    row.onmouseover = () => row.style.backgroundColor = '#f8f9fa';
-    row.onmouseout = () => row.style.backgroundColor = '';
-    listArea.appendChild(row);
-  });
-}
+    const listArea = container.querySelector('.history-list');
+    const searchBox = container.querySelector('#searchBox');
+    const dateFilter = container.querySelector('#dateFilter');
+    const creatorFilter = container.querySelector('#creatorFilter');
+    const participantFilter = container.querySelector('#participantFilter');
 
-function showHistoryDetails(container, item, listData) {
-  container.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <button id="backBtn" style="background:none;border:1px solid #ddd;border-radius:7px;padding:6px 14px;cursor:pointer;display:flex;align-items:center;gap:7px;font-size:0.96em;">← Back</button>
-      <h3 style="margin:0;font-weight:600;font-size:1.07em;color:#1b2837;">Expense Details</h3>
-      <div></div>
-    </div>
-    <div id="detailArea"></div>
-  `;
-  container.querySelector('#backBtn').onclick = function() {
-    showHistoryPanel(container, { firebaseUser: { getIdToken: async()=>localStorage.getItem('token') } });
-  };
-  const detailArea = container.querySelector('#detailArea');
-  const partList = (item.involvedStatus || []).map(p => ({
-    name: p.name,
-    timestamp: p.timestamp
-  }));
+    // Set filters
+    searchBox.value = currentSearch;
+    dateFilter.value = currentDate;
+    creatorFilter.value = currentCreator;
+    participantFilter.value = currentParticipant;
 
-  detailArea.innerHTML = `
-    <div style="margin-bottom:12px;">
-      <div style="font-weight:700;font-size:1em;color:#1b2837;">${escapeHtml(item.remarks)}</div>
-      <div style="color:#566b89;font-size:0.97em;">${formatDisplayDate(item.date)}</div>
-      <div style="color:#209;font-size:0.93em;margin-bottom:4px;">created by ${escapeHtml(item.created_by)}</div>
-      <div style="font-size:0.99em;color:#222;margin-bottom:2px;">Total: <span style="font-weight:700;">${item.total_amount} ${CURRENCY}</span></div>
-      <div style="color:#888;font-size:0.96em; margin-bottom:3px;">Status last updated: <b>${timeAgo(item.status_at)}</b></div>
-    </div>
-    <div style="font-weight:700;margin:10px 0 5px 0;color:#164fa4;letter-spacing:.2px;">Paid/Shares</div>
-    <table style="border-collapse:collapse;width:auto;margin-bottom:9px;">
-      ${(item.splits||[]).map(s => `
-        <tr>
-          <td style="padding:2px 8px 2px 0; color:#221;font-weight:600;min-width:5em;">${escapeHtml(s.name||"")}</td>
-          <td style="padding:2px 8px; color:#222;">paid <span style="font-weight:700;color:#222">${s.paid} ${CURRENCY}</span></td>
-          <td style="padding:2px 5px; color:#567;">share <span style="font-weight:700;color:#222">${s.share} ${CURRENCY}</span></td>
-        </tr>
-      `).join('')}
-    </table>
-    <div style="font-weight:700;margin:10px 0 5px 0;color:#23875e;letter-spacing:.2px;">Settlements</div>
-    <table style="border-collapse:collapse;margin-bottom:8px;">
-      ${(item.settlements||[]).length
-        ? item.settlements.map(st => `
-          <tr>
-            <td style="padding:2px 8px 2px 0; color:#555;min-width:8em;text-align:right;">
-              ${escapeHtml(st.from||"")}
-            </td>
-            <td style="padding:2px 2px; color:#888;width:24px;text-align:center;">
-              <span style="font-size:1.12em;">&#8594;</span>
-            </td>
-            <td style="padding:2px 9px 2px 0; color:#333;">
-              ${escapeHtml(st.to||"")}: <span style="font-weight:700;color:#222">${st.amount} ${CURRENCY}</span>
-            </td>
-          </tr>
-        `).join('')
-        : '<tr><td>No settlements needed</td></tr>'}
-    </table>
-    <div style="border-top:1px solid #e8eaed;margin-top:10px;padding-top:8px; margin-bottom:9px;">
-      <div style="font-size:0.96em;color:#556;margin-bottom:6px;font-weight:700;">Participants approvals:</div>
-      ${approvalBranchHTML(item.created_by, partList)}
-    </div>
-  `;
-  addHistoryPanelCSS();
-}
-
-function addHistoryPanelCSS() {
-  const cssId = "history-panel-css";
-  if (!document.getElementById(cssId)) {
-    const style = document.createElement("style");
-    style.id = cssId;
-    style.textContent = `
-      .status-pill {
-        min-width: 82px;
-        margin-left: 7px;
-        border-radius: 11px;
-        padding: 2px 8px;
-        font-weight: 600;
-        text-align: center;
-        background: #e6f4ec;
-        color: #188c3d;
-        height: fit-content;
-        flex-shrink: 0;
-        font-size: 0.97em;
+    function filterData() {
+      let filtered = data;
+      if (searchBox.value.trim()) {
+        filtered = filtered.filter(item => (item.remarks||'').toLowerCase().includes(searchBox.value.trim().toLowerCase()));
       }
-      mark { background: #ffeb3b !important; padding: 1px 2px !important; border-radius: 2px !important; }
-      .approval-folder { font-size: 0.97em; }
-      .approval-main { font-size: 0.96em; }
+      if (dateFilter.value) {
+        filtered = filtered.filter(item => item.date.split(' ')[0] === dateFilter.value);
+      }
+      if (creatorFilter.value) {
+        filtered = filtered.filter(item => item.created_by === creatorFilter.value);
+      }
+      if (participantFilter.value) {
+        filtered = filtered.filter(item =>
+          (item.splits||[]).some(s => s.name === participantFilter.value)
+        );
+      }
+      renderList(filtered);
+    }
+
+    searchBox.oninput = () => { currentSearch = searchBox.value; filterData(); };
+    dateFilter.onchange = () => { currentDate = dateFilter.value; filterData(); };
+    creatorFilter.onchange = () => { currentCreator = creatorFilter.value; filterData(); };
+    participantFilter.onchange = () => { currentParticipant = participantFilter.value; filterData(); };
+
+    filterData();
+  }
+
+  function renderList(filtered) {
+    const listArea = container.querySelector('.history-list');
+    listArea.innerHTML = '';
+    if (!filtered.length) {
+      listArea.innerHTML = `<div style="color:#666;text-align:center;margin:2em 0 1em 0;font-size:0.98em;">
+        No expense history found.
+      </div>`;
+      return;
+    }
+    filtered.forEach(item => {
+      const pill = `<span class="status-pill accepted" style="background:#e6f4ec;color:#188c3d;padding:3px 13px; border-radius:12px; font-weight:700;">Accepted</span>`;
+      const row = document.createElement("div");
+      row.className = "approval-folder";
+      row.tabIndex = 0;
+      row.style = `
+        display:flex;align-items:flex-start;gap:11px;
+        padding:9px 7px 10px 7px;
+        border-bottom:1px solid #eee;font-size:0.97em;cursor:pointer;transition:background 0.2s;
+      `;
+      row.innerHTML = `
+        <span class="sn" style="min-width:2em;font-weight:600;color:#357;flex-shrink:0;margin-top:6px;">${item.sn}.</span>
+        <div class="approval-main" style="flex:1 1 0;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;row-gap:2px;">
+          <div class="remarks" style="font-weight:600;color:#1b2837;margin-bottom:2.5px;">${escapeHtml(item.remarks || "")}</div>
+          <div class="date" style="color:#566b89;font-size:0.95em;">${formatDisplayDate(item.date || "")}</div>
+          <div class="by" style="color:#209;font-size:0.93em;">${showCreatorName(item.created_by, user)}</div>
+        </div>
+        ${pill}
+      `;
+      row.onclick = () => showHistoryDetails(container, user, item, data);
+      row.onmouseover = () => row.style.backgroundColor = '#f8f9fa';
+      row.onmouseout = () => row.style.backgroundColor = '';
+      listArea.appendChild(row);
+    });
+  }
+
+  function showCreatorName(name, user) {
+    const displayName = user?.firebaseUser?.displayName || user?.name || user?.firebaseUser?.email;
+    if (name === displayName) return "created by me";
+    return "created by " + escapeHtml(name);
+  }
+
+  function showHistoryDetails(container, user, item, allData) {
+    container.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <button id="backBtn" style="background:none;border:1px solid #ddd;border-radius:7px;padding:6px 14px;cursor:pointer;display:flex;align-items:center;gap:7px;font-size:0.96em;">← Back</button>
+        <h3 style="margin:0;font-weight:600;font-size:1.07em;color:#1b2837;">Expense Details</h3>
+        <div></div>
+      </div>
+      <div id="detailArea"></div>
     `;
-    document.head.appendChild(style);
+    container.querySelector('#backBtn').onclick = function() {
+      renderPanel();
+    };
+    const detailArea = container.querySelector('#detailArea');
+    const partList = (item.involvedStatus || []).map(p => ({
+      name: p.name,
+      timestamp: p.timestamp
+    }));
+
+    detailArea.innerHTML = `
+      <div style="margin-bottom:12px;">
+        <div style="font-weight:700;font-size:1em;color:#1b2837;">${escapeHtml(item.remarks)}</div>
+        <div style="color:#566b89;font-size:0.97em;">${formatDisplayDate(item.date)}</div>
+        <div style="color:#209;font-size:0.93em;margin-bottom:4px;">${showCreatorName(item.created_by, user)}</div>
+        <div style="font-size:0.99em;color:#222;margin-bottom:2px;">Total: <span style="font-weight:700;">${item.total_amount} ${CURRENCY}</span></div>
+        <div style="color:#888;font-size:0.96em; margin-bottom:3px;">Status last updated: <b>${timeAgo(item.status_at)}</b></div>
+      </div>
+      <div style="font-weight:700;margin:10px 0 5px 0;color:#164fa4;letter-spacing:.2px;">Paid/Shares</div>
+      <table style="border-collapse:collapse;width:auto;margin-bottom:9px;">
+        ${(item.splits||[]).map(s => `
+          <tr>
+            <td style="padding:2px 8px 2px 0; color:#221;font-weight:600;min-width:5em;">${escapeHtml(s.name||"")}</td>
+            <td style="padding:2px 8px; color:#222;">paid <span style="font-weight:700;color:#222">${s.paid} ${CURRENCY}</span></td>
+            <td style="padding:2px 5px; color:#567;">share <span style="font-weight:700;color:#222">${s.share} ${CURRENCY}</span></td>
+          </tr>
+        `).join('')}
+      </table>
+      <div style="font-weight:700;margin:10px 0 5px 0;color:#23875e;letter-spacing:.2px;">Settlements</div>
+      <table style="border-collapse:collapse;margin-bottom:8px;">
+        ${(item.settlements||[]).length
+          ? item.settlements.map(st => `
+            <tr>
+              <td style="padding:2px 8px 2px 0; color:#555;min-width:8em;text-align:right;">
+                ${escapeHtml(st.from||"")}
+              </td>
+              <td style="padding:2px 2px; color:#888;width:24px;text-align:center;">
+                <span style="font-size:1.12em;">&#8594;</span>
+              </td>
+              <td style="padding:2px 9px 2px 0; color:#333;">
+                ${escapeHtml(st.to||"")}: <span style="font-weight:700;color:#222">${st.amount} ${CURRENCY}</span>
+              </td>
+            </tr>
+          `).join('')
+          : '<tr><td>No settlements needed</td></tr>'}
+      </table>
+      <div style="border-top:1px solid #e8eaed;margin-top:10px;padding-top:8px; margin-bottom:9px;">
+        <div style="font-size:0.96em;color:#556;margin-bottom:6px;font-weight:700;">Participants approvals:</div>
+        ${approvalBranchHTML(item.created_by, partList)}
+      </div>
+    `;
+    addHistoryPanelCSS();
+  }
+
+  function addHistoryPanelCSS() {
+    const cssId = "history-panel-css";
+    if (!document.getElementById(cssId)) {
+      const style = document.createElement("style");
+      style.id = cssId;
+      style.textContent = `
+        .status-pill {
+          min-width: 82px;
+          margin-left: 7px;
+          border-radius: 11px;
+          padding: 2px 8px;
+          font-weight: 600;
+          text-align: center;
+          background: #e6f4ec;
+          color: #188c3d;
+          height: fit-content;
+          flex-shrink: 0;
+          font-size: 0.97em;
+        }
+        mark { background: #ffeb3b !important; padding: 1px 2px !important; border-radius: 2px !important; }
+        .approval-folder { font-size: 0.97em; }
+        .approval-main { font-size: 0.96em; }
+      `;
+      document.head.appendChild(style);
+    }
   }
 }
-
