@@ -16,7 +16,7 @@ export function showTerms(container) {
       </li>
       <li><strong>Data & Privacy</strong>
         <ul>
-          <li>We use Firebase Authentication for sign-in and Firestore for data storage.</li>
+          <li>We use Firebase Authentication for sign-in and cloudflare D1 database for data storage.</li>
           <li>Some requests are processed through Cloudflare Workers for speed and security.</li>
           <li>We do not sell, trade, or share your data with third parties.</li>
           <li>While we use secure platforms, no system is 100% risk-free.</li>
