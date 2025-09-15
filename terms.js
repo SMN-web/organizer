@@ -1,5 +1,21 @@
 export function showTerms(container) {
   container.innerHTML = `
+    <style>
+      p, li {
+        margin-bottom: 1em;
+      }
+      ol {
+        padding-left: 20px;
+      }
+      ul {
+        padding-left: 20px;
+        margin-bottom: 1em;
+      }
+      h2, h3 {
+        margin-top: 1em;
+        margin-bottom: 0.5em;
+      }
+    </style>
     <h2>Terms and Conditions</h2>
     <p>All activities are solely based on my own interest. Terms and conditions may change without prior notice.</p>
     <h3>Terms & Conditions</h3>
@@ -16,7 +32,7 @@ export function showTerms(container) {
       </li>
       <li><strong>Data & Privacy</strong>
         <ul>
-          <li>We use Firebase Authentication for sign-in and cloudflare D1 database for data storage.</li>
+          <li>We use Firebase Authentication for sign-in and Firestore for data storage.</li>
           <li>Some requests are processed through Cloudflare Workers for speed and security.</li>
           <li>We do not sell, trade, or share your data with third parties.</li>
           <li>While we use secure platforms, no system is 100% risk-free.</li>
