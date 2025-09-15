@@ -36,27 +36,65 @@ export function showCalculatorModal(parentNode, onDone) {
 
   let display = overlay.querySelector('#calcDisplay');
   let expr = "";
+
   function updateDisplay(val) {
     display.textContent = val;
     display.classList.add('anim');
     setTimeout(() => display.classList.remove('anim'), 120);
   }
 
+  function endsWithOperator(s) {
+    return /[+\-*/.]$/.test(s);
+  }
+
   overlay.querySelectorAll('.calc-btn').forEach(btn => {
     btn.onclick = () => {
       const v = btn.dataset.val;
+
       if (v === "C") {
-        expr = ""; updateDisplay("0");
+        expr = "";
+        updateDisplay("0");
       } else if (btn.classList.contains('equals-btn')) {
         try {
-          let jsExpr = expr.replace(/÷/g,"/").replace(/×/g,"*").replace(/−/g,"-");
-          let res = eval(jsExpr);
+          if (expr === "") {
+            updateDisplay("0");
+            return;
+          }
+          if (endsWithOperator(expr)) {
+            updateDisplay("Error");
+            expr = "";
+            return;
+          }
+          let res = eval(expr);
           expr = "";
-          updateDisplay(res !== undefined ? parseFloat(res).toFixed(2) : "0");
-          if (onDone && !isNaN(res)) onDone(res);
-        } catch { updateDisplay("Error"); expr=""; }
+          if (typeof res === "number" && isFinite(res)) {
+            const displayVal = Number.isInteger(res) ? res.toString() : res.toFixed(8).replace(/\.?0+$/, "");
+            updateDisplay(displayVal);
+            if (onDone && !isNaN(res)) onDone(res);
+          } else {
+            updateDisplay("Error");
+          }
+        } catch {
+          updateDisplay("Error");
+          expr = "";
+        }
       } else {
-        expr += v; updateDisplay(expr);
+        // Prevent starting with operator except minus
+        if (expr === "" && /^[+*/.]$/.test(v)) return;
+
+        // Prevent two operators/dots in a row
+        if (endsWithOperator(expr) && /[+\-*/.]/.test(v)) {
+          expr = expr.slice(0, -1) + v;
+        } else {
+          // Prevent multiple dots in one number segment
+          if (v === ".") {
+            let segments = expr.split(/[\+\-\*\/]/);
+            let lastSegment = segments[segments.length - 1];
+            if (lastSegment.includes(".")) return;
+          }
+          expr += v;
+        }
+        updateDisplay(expr);
       }
     };
   });
