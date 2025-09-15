@@ -43,7 +43,21 @@ body, html { box-sizing: border-box; min-height:100vh; margin:0; padding:0; }
 .close-calc-btn { background: none; border: none; color: #b33; font-size: 1.5em; cursor: pointer; }
 .calculator-display { width: 98%; font-size: 1.37em; padding: 11px 1em 11px 0.7em; border-radius: 8px; border: 1.2px solid #c7cddb; background: #f7fafd; text-align: right; margin-bottom: 18px; font-family: 'Segoe UI', sans-serif; }
 .calculator-buttons { display: grid; gap: 8px 10px; grid-template-columns: repeat(4,1fr); margin: 1.17em 0 0.6em 0; justify-items: center; }
-.calc-btn { border-radius: 9px; border: none; font-size: 1.19em; font-weight: 600; padding: 1em 0; background:#edf2f6; color:#233d68; cursor: pointer; box-shadow: 0 2px 4px -3px #aac2f833; transition: background .11s, color .12s;}
+.calc-btn {
+  border-radius: 9px;
+  border: none;
+  font-size: 1.35em;        /* Larger font */
+  font-weight: 600;
+  padding: 0.85em 0.8em;    /* More horizontal padding, less vertical */
+  background: #edf2f6;
+  color: #233d68;
+  cursor: pointer;
+  box-shadow: 0 2px 4px -3px #aac2f833;
+  transition: background .11s, color .12s;
+  min-width: 38px;          /* Ensures buttons have width */
+  min-height: 42px;         /* Ensures buttons have height */
+}
+
 .calc-btn:active, .calc-btn:focus { background: #dae6f5; color:#2056a1;}
 .calc-btn.op-red { background: #fbeaea; color: #d80b0b;}
 .calc-btn.op-lilac { background: #f0eefd; color: #6c61b0; }
