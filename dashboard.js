@@ -293,7 +293,6 @@ export async function showDashboard(container, userContext, mainContentRef) {
         <div class="fd-sg-card"><div class="fd-sg-label">Top Spend</div><div class="fd-sg-value">${metrics.topSpend}</div></div>
         <div class="fd-sg-card"><div class="fd-sg-label">Settled</div><div class="fd-sg-value">${metrics.settledCount}</div></div>
       </div>
-      <div class="fd-footer" style="margin-bottom:2em;"><em>Connect your API for live analytics and history.</em></div>
     </div>
     `;
 
