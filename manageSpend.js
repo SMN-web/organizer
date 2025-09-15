@@ -16,7 +16,7 @@ export function showManageSpend(contentContainer, user) {
         <button data-section="approval" class="tab-btn">
           Expense Approvals <span class="approval-unread-count" style="display:none;background:#e53935;color:#fff;padding:2px 7px;border-radius:11px;font-size:.95em;margin-left:6px"></span>
         </button>
-        <button data-section="history" class="tab-btn">History</button>
+        <button data-section="history" class="tab-btn">Completed</button>
       </nav>
       <div class="section-content"></div>
       <button class="fab-calculator" title="Calculator">+</button>
