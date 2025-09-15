@@ -1,22 +1,29 @@
 import { showSpinner, hideSpinner } from './spinner.js';
-import { sendPasswordResetEmail } from './firebaseAuth.js'; // import your actual Firebase password reset method
+import { sendPasswordResetEmail } from './firebaseAuth.js'; // Use your Firebase password reset function
 
 export async function showUserProfile(container, user) {
   showSpinner(container);
 
   let profile = {};
   try {
-    // Get token, fetch profile from backend endpoint
+    // Get fresh auth token from the passed-in user object
+    if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function')
+      throw new Error("No valid user session found.");
     const token = await user.firebaseUser.getIdToken(true);
     const resp = await fetch("https://us-pr.nafil-8895-s.workers.dev/api/userpanel", {
       headers: { Authorization: "Bearer " + token }
     });
     if (!resp.ok) throw new Error("Failed to fetch profile");
     profile = await resp.json();
-    if (!profile.email) throw new Error("No user profile details found.");
+
+    // Defensive defaults for missing values
+    profile.username = profile.username || "";
+    profile.name = profile.name || "";
+    profile.email = profile.email || "";
+    if (!profile.email) throw new Error("No email returned from backend.");
   } catch (e) {
     hideSpinner(container);
-    container.innerHTML = `<div style="padding:2em;text-align:center;color:#c22;">
+    container.innerHTML = `<div style="padding:2.3em;text-align:center;color:#c22;">
       Could not load profile: ${e.message || e}
     </div>`;
     return;
@@ -27,13 +34,13 @@ export async function showUserProfile(container, user) {
     <div style="padding:2.5em 1.2em;text-align:center;">
       <div style="display:flex;flex-direction:column;align-items:center;">
         <span style="background:#e1e6ef;color:#355;font-weight:700;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;width:66px;height:66px;font-size:2em;margin-bottom:0.7em;">
-          ${(profile.name && (profile.name.match(/[A-Z]/gi)||[]).join('').toUpperCase().slice(0,2)) || "??"}
+          ${(profile.name.match(/[A-Z]/gi)||[]).join('').toUpperCase().slice(0,2) || "??"}
         </span>
         <div style="font-size:1em;color:#444;margin-bottom:0.7em;">
-          <b>Username:</b> <span style="font-family:monospace;color:#246;">${profile.username || '(not set)'}</span>
+          <b>Username:</b> <span style="font-family:monospace;color:#246;">${profile.username}</span>
         </div>
-        <div style="font-size:1.25em;font-weight:600;">${profile.name || '(name not set)'}</div>
-        <div style="color:#555;margin-top:0.3em;font-size:1em;">${profile.email || ''}</div>
+        <div style="font-size:1.25em;font-weight:600;">${profile.name}</div>
+        <div style="color:#555;margin-top:0.3em;font-size:1em;">${profile.email}</div>
       </div>
       <hr style="border:none;border-top:1px solid #eee;margin:2em 0 1.5em 0;">
       <div>
@@ -46,7 +53,7 @@ export async function showUserProfile(container, user) {
     </div>
   `;
 
-  // Handle change password click
+  // Change password logic (uses backend email from profile)
   const link = container.querySelector('#changePasswordLink');
   const msg = container.querySelector('#resetMsg');
   if (link && profile.email) {
