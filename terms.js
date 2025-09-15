@@ -74,7 +74,8 @@ export function showTerms(container) {
     onmouseout="this.style.backgroundColor='#007bff';"
     >Back to Sign Up</button>
   `;
- container.scrollTop = 0; document.getElementById('backSignup').onclick = () => {
+ container.scrollTop = 0; 
+document.getElementById('backSignup').onclick = () => {
     window.location.hash = '#signup';
   };
 }
