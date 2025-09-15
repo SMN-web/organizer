@@ -1,6 +1,5 @@
 import { 
   getAuth,
-  fetchSignInMethodsForEmail,
   sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
 
@@ -27,28 +26,36 @@ export function showForgot(container) {
     e.preventDefault();
     msgEl.style.color = "#666";
     msgEl.textContent = "Sending reset link...";
-    // Always lowercase the email for max reliability!
+
+    // Normalize email input for reliability
     const email = emailInput.value.trim().toLowerCase();
+
     if (!/^[^@\s]+@[^@\s]+\.[a-zA-Z]{2,}$/.test(email)) {
       msgEl.style.color = "#e74c3c";
       msgEl.textContent = "Please enter a valid email address.";
       return;
     }
+
     try {
+      // Use the pre-initialized auth instance from window.firebaseAuth if available
       const auth = window.firebaseAuth || getAuth();
-      const methods = await fetchSignInMethodsForEmail(auth, email);
-      if (!methods || methods.length === 0) {
-        // For testing, show error (remove/change message for production privacy)
-        msgEl.style.color = "#e74c3c";
-        msgEl.textContent = "Error: No user found for this email. Email case or typo?";
-        return;
-      }
       await sendPasswordResetEmail(auth, email);
       msgEl.style.color = "#27ae60";
       msgEl.textContent = "Reset link sent! Check your inbox and spam folders.";
     } catch (error) {
+      // Show Firebase error code or message directly
       msgEl.style.color = "#e74c3c";
-      msgEl.textContent = "Firebase error: " + (error.code || error.message || error.toString());
+
+      // Friendly error messages for common cases
+      if (error.code === "auth/user-not-found") {
+        msgEl.textContent = "No account found with this email.";
+      } else if (error.code === "auth/invalid-email") {
+        msgEl.textContent = "Invalid email address.";
+      } else if (error.code === "auth/too-many-requests") {
+        msgEl.textContent = "Too many attempts. Please try again later.";
+      } else {
+        msgEl.textContent = "Error sending reset email: " + (error.message || error.code || error.toString());
+      }
     }
   };
 }
