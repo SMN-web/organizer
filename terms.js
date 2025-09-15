@@ -2,11 +2,11 @@ export function showTerms(container) {
   container.innerHTML = `
     <style>
       .terms-section {
-        margin-bottom: 1.5em; /* one line space between sections */
+        margin-bottom: 1.5em;
       }
       .terms-section-title {
         font-weight: bold;
-        margin-bottom: 0.5em; /* a bit of space below section title */
+        margin-bottom: 0.5em;
       }
       .terms-list {
         margin: 0.5em 0 0.5em 1.4em;
@@ -14,6 +14,11 @@ export function showTerms(container) {
       }
       p {
         margin: 0 0 0.5em 0;
+      }
+      /* Make the container vertically scrollable if needed */
+      :host, #termsContainer, .scrollable-terms {
+        max-height: 80vh;
+        overflow-y: auto;
       }
     </style>
     <h2>Terms and Conditions</h2>
@@ -74,8 +79,9 @@ export function showTerms(container) {
     onmouseout="this.style.backgroundColor='#007bff';"
     >Back to Sign Up</button>
   `;
- container.scrollTop = 0; 
-document.getElementById('backSignup').onclick = () => {
+  // Ensure scroll position is at the top when displayed
+  container.scrollTop = 0;
+  document.getElementById('backSignup').onclick = () => {
     window.location.hash = '#signup';
   };
 }
