@@ -26,8 +26,10 @@ export function showCalculatorModal(parentNode, onDone) {
         <button class="calc-btn" data-val="-">−</button>
         <button class="calc-btn" data-val="0">0</button>
         <button class="calc-btn" data-val=".">.</button>
-        <button class="calc-btn clear-btn" data-val="C">C</button>
+        <button class="calc-btn" data-val="C">C</button>
         <button class="calc-btn" data-val="+">+</button>
+        <button class="calc-btn" data-val="(">(</button>
+        <button class="calc-btn" data-val=")">)</button>
       </div>
       <button class="calc-btn equals-btn" id="equalsBtn">=</button>
     </div>
@@ -50,7 +52,6 @@ export function showCalculatorModal(parentNode, onDone) {
   overlay.querySelectorAll('.calc-btn').forEach(btn => {
     btn.onclick = () => {
       const v = btn.dataset.val;
-
       if (v === "C") {
         expr = "";
         updateDisplay("0");
@@ -60,23 +61,37 @@ export function showCalculatorModal(parentNode, onDone) {
             updateDisplay("0");
             return;
           }
-          if (endsWithOperator(expr)) {
-            updateDisplay("Error");
+          const oBrackets = (expr.match(/\(/g)||[]).length;
+          const cBrackets = (expr.match(/\)/g)||[]).length;
+          if (oBrackets > cBrackets) {
+            if (oBrackets - cBrackets === 1) {
+              updateDisplay("Close the bracket before calculating");
+            } else {
+              updateDisplay(`Please close all opened brackets (${oBrackets - cBrackets} unclosed) before calculating`);
+            }
+            return;
+          }
+          if (cBrackets > oBrackets) {
+            updateDisplay("Bracket mismatch detected");
             expr = "";
             return;
           }
-          // Evaluate only JS friendly operators
+          if (endsWithOperator(expr)) {
+            updateDisplay("Error: Expression ends with an operator");
+            expr = "";
+            return;
+          }
           let res = eval(expr);
           expr = "";
           if (typeof res === "number" && isFinite(res)) {
             const displayVal = Number.isInteger(res) ? res.toString() : res.toFixed(8).replace(/\.?0+$/, "");
-            updateDisplay(displayVal);
+            updateDisplay(displayVal.replace(/\//g, "÷").replace(/\*/g, "×"));
             if (onDone && !isNaN(res)) onDone(res);
           } else {
-            updateDisplay("Error");
+            updateDisplay("Calculation error");
           }
         } catch {
-          updateDisplay("Error");
+          updateDisplay("Calculation error");
           expr = "";
         }
       } else {
@@ -90,13 +105,15 @@ export function showCalculatorModal(parentNode, onDone) {
             let lastSegment = segments[segments.length - 1];
             if (lastSegment.includes(".")) return;
           }
+          // Prevent closing bracket if none opened
+          if (v === ")") {
+            const oBrackets = (expr.match(/\(/g)||[]).length;
+            const cBrackets = (expr.match(/\)/g)||[]).length;
+            if (oBrackets <= cBrackets) return;
+          }
           expr += v;
         }
-        updateDisplay(expr
-          // Show pretty operator in display (optional)
-          .replace(/\//g, "÷")
-          .replace(/\*/g, "×")
-        );
+        updateDisplay(expr.replace(/\//g, "÷").replace(/\*/g, "×"));
       }
     };
   });
