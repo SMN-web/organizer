@@ -1,7 +1,9 @@
 export function showCalculatorModal(parentNode, onDone) {
+  // remove old modal if exists
   const prev = parentNode.querySelector('.calculator-modal-overlay');
   if (prev) prev.remove();
 
+  // build overlay + modal
   const overlay = document.createElement('div');
   overlay.className = 'calculator-modal-overlay';
   overlay.innerHTML = `
@@ -12,136 +14,107 @@ export function showCalculatorModal(parentNode, onDone) {
       </div>
       <div class="calculator-display" id="calcDisplay">0</div>
       <div class="calculator-buttons">
-        <button class="calc-btn" data-val="7">7</button>
-        <button class="calc-btn" data-val="8">8</button>
-        <button class="calc-btn" data-val="9">9</button>
-        <button class="calc-btn" data-val="/">÷</button>
-        <button class="calc-btn" data-val="4">4</button>
-        <button class="calc-btn" data-val="5">5</button>
-        <button class="calc-btn" data-val="6">6</button>
-        <button class="calc-btn" data-val="*">×</button>
-        <button class="calc-btn" data-val="1">1</button>
-        <button class="calc-btn" data-val="2">2</button>
-        <button class="calc-btn" data-val="3">3</button>
-        <button class="calc-btn" data-val="-">−</button>
-        <button class="calc-btn" data-val="0">0</button>
-        <button class="calc-btn" data-val=".">.</button>
-        <button class="calc-btn" data-val="C">C</button>
-        <button class="calc-btn" data-val="+">+</button>
-        <button class="calc-btn" data-val="(">(</button>
-        <button class="calc-btn" data-val=")">)</button>
+        ${[7,8,9,"/",4,5,6,"*",1,2,3,"-",0,".","C","+", "(",")"]
+          .map(val => {
+            let text = val;
+            if (val === "/") text = "÷";
+            if (val === "*") text = "×";
+            if (val === "-") text = "−";
+            return `<button class="calc-btn" data-val="${val}">${text}</button>`;
+          }).join("")}
       </div>
       <button class="calc-btn equals-btn" id="equalsBtn">=</button>
     </div>
   `;
   parentNode.appendChild(overlay);
 
-  let display = overlay.querySelector('#calcDisplay');
-  let expr = "";
-  let lastExpr = "";
+  // elements
+  const display = overlay.querySelector('#calcDisplay');
+  const closeBtn = overlay.querySelector('.close-calc-btn');
 
-  function updateDisplay(val) {
+  // state
+  let expression = "";      // raw safe expression
+  let lastExpression = "";  // for repeated =
+  
+  // helpers
+  const formatForDisplay = s => s.replace(/\//g,"÷").replace(/\*/g,"×");
+  const endsWithOperator = s => /[+\-*/.]$/.test(s);
+  const updateDisplay = val => {
     display.textContent = val;
     display.classList.add('anim');
-    setTimeout(() => display.classList.remove('anim'), 120);
+    setTimeout(()=> display.classList.remove('anim'),120);
+  };
+
+  // handle calculation safely
+  function calculate() {
+    if (!expression) return "0";
+    try {
+      // bracket validation
+      const oB = (expression.match(/\(/g)||[]).length;
+      const cB = (expression.match(/\)/g)||[]).length;
+      if (oB !== cB) return "Bracket mismatch";
+
+      if (endsWithOperator(expression)) return "Invalid end";
+
+      // safe eval using Function constructor
+      const res = Function("return " + expression)();
+      if (typeof res !== "number" || !isFinite(res)) return "Error";
+
+      // keep expression for chaining
+      lastExpression = expression;
+      expression = res.toString();
+
+      // format decimals
+      return Number.isInteger(res) ? res.toString() : res.toFixed(8).replace(/\.?0+$/,"");
+    } catch {
+      return "Error";
+    }
   }
 
-  function endsWithOperator(s) {
-    return /[+\-*/.]$/.test(s);
-  }
-
-  function formatForDisplay(s) {
-    return s.replace(/\//g, "÷").replace(/\*/g, "×");
-  }
-
+  // handle button clicks
   overlay.querySelectorAll('.calc-btn').forEach(btn => {
     btn.onclick = () => {
       const v = btn.dataset.val;
 
       if (v === "C") {
-        expr = "";
-        lastExpr = "";
+        expression = "";
+        lastExpression = "";
         updateDisplay("0");
         return;
       }
 
-      if (btn.classList.contains('equals-btn')) {
-        try {
-          if (expr === "" && lastExpr === "") {
-            updateDisplay("0");
-            return;
-          }
-
-          // If expr is empty but lastExpr exists → repeat
-          if (expr === "" && lastExpr !== "") {
-            expr = lastExpr;
-          }
-
-          // Bracket validation
-          const oBrackets = (expr.match(/\(/g)||[]).length;
-          const cBrackets = (expr.match(/\)/g)||[]).length;
-          if (oBrackets !== cBrackets) {
-            updateDisplay("Bracket mismatch");
-            return;
-          }
-
-          if (endsWithOperator(expr)) {
-            updateDisplay("Expression ends with operator");
-            return;
-          }
-
-          // Actual evaluation
-          let res = eval(expr);
-
-          if (typeof res === "number" && isFinite(res)) {
-            lastExpr = expr;  // save for repeat "="
-            expr = res.toString();  // keep as new base
-            const displayVal = Number.isInteger(res)
-              ? res.toString()
-              : res.toFixed(8).replace(/\.?0+$/, "");
-            updateDisplay(formatForDisplay(displayVal));
-            if (onDone && !isNaN(res)) onDone(res);
-          } else {
-            updateDisplay("Calculation error");
-            expr = "";
-          }
-        } catch {
-          updateDisplay("Calculation error");
-          expr = "";
-        }
+      if (btn.classList.contains("equals-btn")) {
+        if (!expression && lastExpression) expression = lastExpression;
+        const result = calculate();
+        updateDisplay(formatForDisplay(result));
+        if (!isNaN(result) && onDone) onDone(Number(result));
         return;
       }
 
-      // Prevent invalid starts
-      if (expr === "" && /^[+*/.]$/.test(v)) return;
-
-      // Prevent consecutive operators
-      if (endsWithOperator(expr) && /[+\-*/.]/.test(v)) {
-        expr = expr.slice(0, -1) + v;
+      // rules for building expression
+      if (expression === "" && /^[+*/.]$/.test(v)) return;
+      if (endsWithOperator(expression) && /[+\-*/.]/.test(v)) {
+        expression = expression.slice(0,-1) + v;
       } else {
-        // Decimal handling
         if (v === ".") {
-          let segments = expr.split(/[\+\-\*\/]/);
-          let lastSegment = segments[segments.length - 1];
-          if (lastSegment.includes(".")) return;
+          const parts = expression.split(/[\+\-\*\/]/);
+          if (parts[parts.length-1].includes(".")) return;
         }
-        // Bracket safety
         if (v === ")") {
-          const oBrackets = (expr.match(/\(/g)||[]).length;
-          const cBrackets = (expr.match(/\)/g)||[]).length;
-          if (oBrackets <= cBrackets) return;
+          const oB = (expression.match(/\(/g)||[]).length;
+          const cB = (expression.match(/\)/g)||[]).length;
+          if (oB <= cB) return;
         }
-        expr += v;
+        expression += v;
       }
 
-      updateDisplay(formatForDisplay(expr));
+      updateDisplay(formatForDisplay(expression));
     };
   });
 
-  overlay.querySelector('.close-calc-btn').onclick = () => overlay.remove();
+  // closing
+  closeBtn.onclick = () => overlay.remove();
   overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
 
-  setTimeout(() => {
-    overlay.querySelector('.calculator-modal').classList.remove('animate-calculator');
-  }, 400);
+  setTimeout(()=> overlay.querySelector('.calculator-modal').classList.remove('animate-calculator'),400);
 }
