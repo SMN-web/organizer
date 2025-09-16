@@ -38,8 +38,7 @@ export function showCalculatorModal(parentNode, onDone) {
 
   let display = overlay.querySelector('#calcDisplay');
   let expr = "";
-  let lastExpr = "";   // store last expression for repeated "="
-  let lastOp = "";     // store last operator & value
+  let lastExpr = "";
 
   function updateDisplay(val) {
     display.textContent = val;
@@ -62,40 +61,41 @@ export function showCalculatorModal(parentNode, onDone) {
       if (v === "C") {
         expr = "";
         lastExpr = "";
-        lastOp = "";
         updateDisplay("0");
         return;
       }
 
       if (btn.classList.contains('equals-btn')) {
         try {
+          if (expr === "" && lastExpr === "") {
+            updateDisplay("0");
+            return;
+          }
+
+          // If expr is empty but lastExpr exists → repeat
           if (expr === "" && lastExpr !== "") {
-            // repeat last calculation
             expr = lastExpr;
           }
 
+          // Bracket validation
           const oBrackets = (expr.match(/\(/g)||[]).length;
           const cBrackets = (expr.match(/\)/g)||[]).length;
-          if (oBrackets > cBrackets) {
-            updateDisplay("Close all brackets");
-            return;
-          }
-          if (cBrackets > oBrackets) {
+          if (oBrackets !== cBrackets) {
             updateDisplay("Bracket mismatch");
-            expr = "";
-            return;
-          }
-          if (endsWithOperator(expr)) {
-            updateDisplay("Error: Expression ends with operator");
-            expr = "";
             return;
           }
 
+          if (endsWithOperator(expr)) {
+            updateDisplay("Expression ends with operator");
+            return;
+          }
+
+          // Actual evaluation
           let res = eval(expr);
+
           if (typeof res === "number" && isFinite(res)) {
-            // Save last operation for repeat "="
-            lastExpr = expr;
-            expr = res.toString();
+            lastExpr = expr;  // save for repeat "="
+            expr = res.toString();  // keep as new base
             const displayVal = Number.isInteger(res)
               ? res.toString()
               : res.toFixed(8).replace(/\.?0+$/, "");
@@ -112,18 +112,20 @@ export function showCalculatorModal(parentNode, onDone) {
         return;
       }
 
-      // prevent invalid first characters
+      // Prevent invalid starts
       if (expr === "" && /^[+*/.]$/.test(v)) return;
 
-      // prevent double operators
+      // Prevent consecutive operators
       if (endsWithOperator(expr) && /[+\-*/.]/.test(v)) {
         expr = expr.slice(0, -1) + v;
       } else {
+        // Decimal handling
         if (v === ".") {
           let segments = expr.split(/[\+\-\*\/]/);
           let lastSegment = segments[segments.length - 1];
           if (lastSegment.includes(".")) return;
         }
+        // Bracket safety
         if (v === ")") {
           const oBrackets = (expr.match(/\(/g)||[]).length;
           const cBrackets = (expr.match(/\)/g)||[]).length;
@@ -131,6 +133,7 @@ export function showCalculatorModal(parentNode, onDone) {
         }
         expr += v;
       }
+
       updateDisplay(formatForDisplay(expr));
     };
   });
