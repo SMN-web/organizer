@@ -38,6 +38,8 @@ export function showCalculatorModal(parentNode, onDone) {
 
   let display = overlay.querySelector('#calcDisplay');
   let expr = "";
+  let lastExpr = "";   // store last expression for repeated "="
+  let lastOp = "";     // store last operator & value
 
   function updateDisplay(val) {
     display.textContent = val;
@@ -49,72 +51,87 @@ export function showCalculatorModal(parentNode, onDone) {
     return /[+\-*/.]$/.test(s);
   }
 
+  function formatForDisplay(s) {
+    return s.replace(/\//g, "÷").replace(/\*/g, "×");
+  }
+
   overlay.querySelectorAll('.calc-btn').forEach(btn => {
     btn.onclick = () => {
       const v = btn.dataset.val;
+
       if (v === "C") {
         expr = "";
+        lastExpr = "";
+        lastOp = "";
         updateDisplay("0");
-      } else if (btn.classList.contains('equals-btn')) {
+        return;
+      }
+
+      if (btn.classList.contains('equals-btn')) {
         try {
-          if (expr === "") {
-            updateDisplay("0");
-            return;
+          if (expr === "" && lastExpr !== "") {
+            // repeat last calculation
+            expr = lastExpr;
           }
+
           const oBrackets = (expr.match(/\(/g)||[]).length;
           const cBrackets = (expr.match(/\)/g)||[]).length;
           if (oBrackets > cBrackets) {
-            if (oBrackets - cBrackets === 1) {
-              updateDisplay("Close the bracket before calculating");
-            } else {
-              updateDisplay(`Please close all opened brackets (${oBrackets - cBrackets} unclosed) before calculating`);
-            }
+            updateDisplay("Close all brackets");
             return;
           }
           if (cBrackets > oBrackets) {
-            updateDisplay("Bracket mismatch detected");
+            updateDisplay("Bracket mismatch");
             expr = "";
             return;
           }
           if (endsWithOperator(expr)) {
-            updateDisplay("Error: Expression ends with an operator");
+            updateDisplay("Error: Expression ends with operator");
             expr = "";
             return;
           }
+
           let res = eval(expr);
-          expr = "";
           if (typeof res === "number" && isFinite(res)) {
-            const displayVal = Number.isInteger(res) ? res.toString() : res.toFixed(8).replace(/\.?0+$/, "");
-            updateDisplay(displayVal.replace(/\//g, "÷").replace(/\*/g, "×"));
+            // Save last operation for repeat "="
+            lastExpr = expr;
+            expr = res.toString();
+            const displayVal = Number.isInteger(res)
+              ? res.toString()
+              : res.toFixed(8).replace(/\.?0+$/, "");
+            updateDisplay(formatForDisplay(displayVal));
             if (onDone && !isNaN(res)) onDone(res);
           } else {
             updateDisplay("Calculation error");
+            expr = "";
           }
         } catch {
           updateDisplay("Calculation error");
           expr = "";
         }
-      } else {
-        if (expr === "" && /^[+*/.]$/.test(v)) return;
-
-        if (endsWithOperator(expr) && /[+\-*/.]/.test(v)) {
-          expr = expr.slice(0, -1) + v;
-        } else {
-          if (v === ".") {
-            let segments = expr.split(/[\+\-\*\/]/);
-            let lastSegment = segments[segments.length - 1];
-            if (lastSegment.includes(".")) return;
-          }
-          // Prevent closing bracket if none opened
-          if (v === ")") {
-            const oBrackets = (expr.match(/\(/g)||[]).length;
-            const cBrackets = (expr.match(/\)/g)||[]).length;
-            if (oBrackets <= cBrackets) return;
-          }
-          expr += v;
-        }
-        updateDisplay(expr.replace(/\//g, "÷").replace(/\*/g, "×"));
+        return;
       }
+
+      // prevent invalid first characters
+      if (expr === "" && /^[+*/.]$/.test(v)) return;
+
+      // prevent double operators
+      if (endsWithOperator(expr) && /[+\-*/.]/.test(v)) {
+        expr = expr.slice(0, -1) + v;
+      } else {
+        if (v === ".") {
+          let segments = expr.split(/[\+\-\*\/]/);
+          let lastSegment = segments[segments.length - 1];
+          if (lastSegment.includes(".")) return;
+        }
+        if (v === ")") {
+          const oBrackets = (expr.match(/\(/g)||[]).length;
+          const cBrackets = (expr.match(/\)/g)||[]).length;
+          if (oBrackets <= cBrackets) return;
+        }
+        expr += v;
+      }
+      updateDisplay(formatForDisplay(expr));
     };
   });
 
