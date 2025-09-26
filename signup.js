@@ -306,9 +306,7 @@ export function showSignup(container) {
           userId: cred.user.uid,
           username: usernameVal,
           email: emailVal,
-          name: nameVal,
-          adminApproval: "pending",
-          role: "user"
+          name: nameVal
         })
       });
 
