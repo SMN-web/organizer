@@ -33,7 +33,7 @@ function showModal({title, content, inputType, inputPlaceholder, inputValue, onO
 }
 
 function parseDBDatetimeAsUTC(dt) {
-  const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/.exec(dt);
+  const m = /^(d{4})-(d{2})-(d{2}) (d{2}):(d{2}):(d{2})$/.exec(dt);
   if (!m) return new Date(dt);
   return new Date(Date.UTC(+m[1], m[2]-1, +m[3], +m[4], +m[5], +m[6]));
 }
@@ -54,10 +54,9 @@ function getTimeLocalAMPM(date) {
 }
 
 export async function showPaymentsPanel(container, user) {
- let selectedFriend = window.selectedFriendForPayments || null;
-  window.selectedFriendForPayments = null;  // Clear after use
+  let selectedFriend = window.selectedFriendForPayments || null;
+  window.selectedFriendForPayments = null;
 
-  
   const FILTERS = [
     { value: "all", label: "All" },
     { value: "owed", label: "Owed" },
@@ -72,15 +71,19 @@ export async function showPaymentsPanel(container, user) {
   let backendMe = null;
   let timeline = [];
   let errMsg = "";
-  const CURRENCY = localStorage.getItem('currency') || "QAR";
+
+  // This will hold the currently selected currency if multiple available for user
+  let selectedCurrency = null;
 
   await loadFriends();
 
   if (selectedFriend) {
-    currentFriend = friends.find(f => f.username === selectedFriend);
-    if (currentFriend) {
+    const matchedFriends = friends.filter(f => f.username === selectedFriend.username && (!selectedFriend.currency || f.currency === selectedFriend.currency));
+    if (matchedFriends.length > 0) {
+      currentFriend = matchedFriends[0];
       view = "user";
-      await loadTimeline(currentFriend.username);
+      selectedCurrency = currentFriend.currency;
+      await loadTimeline(currentFriend.username, currentFriend.currency);
       renderUserView();
       return;
     }
@@ -109,13 +112,14 @@ export async function showPaymentsPanel(container, user) {
     }
   }
 
-  async function loadTimeline(friendUsername) {
+  async function loadTimeline(friendUsername, currency) {
     showSpinner(container);
     timeline = [];
     backendMe = null;
     try {
       const token = await user.firebaseUser.getIdToken(true);
-      const url = `https://pa-ca.nafil-8895-s.workers.dev/api/transactions?friend=${encodeURIComponent(friendUsername)}`;
+      // Pass currency as query param to filter timeline by currency
+      const url = `https://pa-ca.nafil-8895-s.workers.dev/api/transactions?friend=${encodeURIComponent(friendUsername)}&currency=${encodeURIComponent(currency)}`;
       const resp = await fetch(url, { headers: { Authorization: "Bearer " + token } });
       let data;
       try {
@@ -142,7 +146,7 @@ export async function showPaymentsPanel(container, user) {
       const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment', {
         method: "POST",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ to_user: toUsername, amount, currency: CURRENCY })
+        body: JSON.stringify({ to_user: toUsername, amount, currency: selectedCurrency || "QAR" })
       });
       const result = await resp.json();
       if (!result.ok && result.error) {
@@ -152,13 +156,13 @@ export async function showPaymentsPanel(container, user) {
       }
       showModal({
         title: "Payment Sent",
-        content: `Payment of ${amount} QAR sent to ${currentFriend.name}.`,
+        content: `Payment of ${amount} ${selectedCurrency || "QAR"} sent to ${currentFriend.name}.`,
         okText: "OK",
         showCancel: false,
         onOk: async () => {
-          await loadTimeline(currentFriend.username);
+          await loadTimeline(currentFriend.username, selectedCurrency);
           await loadFriends();
-          const updated = friends.find(f => f.username === currentFriend.username);
+          const updated = friends.find(f => f.username === currentFriend.username && f.currency === selectedCurrency);
           if (updated) currentFriend = updated;
           renderUserView();
         }
@@ -201,9 +205,9 @@ export async function showPaymentsPanel(container, user) {
       okText: "OK",
       showCancel: false,
       onOk: async () => {
-        await loadTimeline(currentFriend.username);
+        await loadTimeline(currentFriend.username, selectedCurrency);
         await loadFriends();
-        const updated = friends.find(f => f.username === currentFriend.username);
+        const updated = friends.find(f => f.username === currentFriend.username && f.currency === selectedCurrency);
         if (updated) currentFriend = updated;
         renderUserView();
       }
@@ -212,7 +216,7 @@ export async function showPaymentsPanel(container, user) {
 
   function netPill(net) {
     if (net === 0) return `<span class="net-pill settled">Settled</span>`;
-    return `<span class="net-pill ${net > 0 ? "plus" : "minus"}">${Math.abs(net)} ${CURRENCY}</span>`;
+    return `<span class="net-pill ${net > 0 ? "plus" : "minus"}">${Math.abs(net)} ${selectedCurrency || "QAR"}</span>`;
   }
 
   function filteredFriends() {
@@ -236,6 +240,7 @@ export async function showPaymentsPanel(container, user) {
           <div class="paypage-friend-row" data-idx="${i}">
             <span class="paypage-avatar">${(f.name||"").substring(0,2).toUpperCase()}</span>
             <span class="paypage-friend-name">${f.name}</span>
+            <span class="paypage-friend-currency">${f.currency}</span>
             ${netPill(f.net)}
             <span class="paypage-right-arrow">&#8250;</span>
           </div>
@@ -243,8 +248,9 @@ export async function showPaymentsPanel(container, user) {
     el.querySelectorAll('.paypage-friend-row').forEach(row =>
       row.onclick = async () => {
         currentFriend = flist[Number(row.dataset.idx)];
+        selectedCurrency = currentFriend.currency;
         view = "user";
-        await loadTimeline(currentFriend.username);
+        await loadTimeline(currentFriend.username, selectedCurrency);
         renderUserView();
       }
     );
@@ -284,7 +290,7 @@ export async function showPaymentsPanel(container, user) {
           bubbleSide = "bubble-left";
           heading = `Payment received from <b>${displayFrom}</b> (on behalf of ${displaySender})`;
         } else {
-          heading = "Transfer"; // Should never hit
+          heading = "Transfer"; 
         }
       } else if (ev.from_user === me) {
         bubbleSide = "bubble-right";
@@ -317,7 +323,7 @@ export async function showPaymentsPanel(container, user) {
           <div class="paypage-bubble ${bubbleExtra} ${bubbleSide === "bubble-right" ? "bubble-send" : ""}">
             <div class="bubble-title">${heading}</div>
             <div class="bubble-amount-row">
-              <span class="bubble-amount">${ev.amount} ${ev.currency || CURRENCY}</span>
+              <span class="bubble-amount">${ev.amount} ${ev.currency || selectedCurrency || "QAR"}</span>
               ${statusPill}
             </div>
             <div class="bubble-meta">
@@ -336,6 +342,7 @@ export async function showPaymentsPanel(container, user) {
           <button class="paypage-back" style="font-size:1.5em;font-weight:800;padding:0 7px 0 0;">&#8592;</button>
           <span class="paypage-avatar user">${(currentFriend.name||"").substring(0,2).toUpperCase()}</span>
           <span class="paypage-username user">${currentFriend.name}</span>
+          <span class="paypage-friend-currency">${currentFriend.currency}</span>
           ${netPill(currentFriend.net)}
           <button class="paypage-menu-3dots" style="margin-left:auto;padding:0 12px 0 0;font-size:2em;background:none;border:none;cursor:pointer;">&#x22ee;</button>
           <div class="paypage-menu-dropdown" style="display:none;position:absolute;right:0;"></div>
@@ -349,14 +356,12 @@ export async function showPaymentsPanel(container, user) {
       </div>
     `;
 
-    // All event handlers, for full UI/UX:
     container.querySelector('.paypage-back').onclick = async () => {
       await loadFriends();
       view = "friends";
       renderMain();
     };
 
-    // Three dots menu (profile dropdown/open user actions)
     container.querySelector('.paypage-menu-3dots').onclick = e => {
       e.stopPropagation();
       const menu = container.querySelector('.paypage-menu-dropdown');
@@ -368,9 +373,9 @@ export async function showPaymentsPanel(container, user) {
       `;
       document.addEventListener('click', () => { menu.style.display = 'none'; }, { once: true });
       menu.querySelector('#profile-view').onclick = () => showModal({title:"Profile",content:`Name: ${currentFriend.name}<br>Username: ${currentFriend.username}`,okText:"Close"});
-      // Add other menu actions as needed
     };
- container.querySelectorAll('.bubble-cancel').forEach(btn =>
+
+    container.querySelectorAll('.bubble-cancel').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
         const paymentId = timeline[idx].payment_id;
@@ -384,6 +389,7 @@ export async function showPaymentsPanel(container, user) {
         });
       }
     );
+
     container.querySelectorAll('.bubble-accept').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
@@ -398,6 +404,7 @@ export async function showPaymentsPanel(container, user) {
         });
       }
     );
+
     container.querySelectorAll('.bubble-reject').forEach(btn =>
       btn.onclick = async () => {
         const idx = Number(btn.dataset.idx);
@@ -413,7 +420,6 @@ export async function showPaymentsPanel(container, user) {
       }
     );
 
-    // Actions bar buttons
     container.querySelector('.paypage-btn.pay').onclick = () => {
       showModal({
         title: "Send Payment",
@@ -428,8 +434,7 @@ export async function showPaymentsPanel(container, user) {
       });
     };
 
-
-container.querySelector('.paypage-btn.transfer').onclick = () => {
+    container.querySelector('.paypage-btn.transfer').onclick = () => {
       showTransferPopup(container, user, currentFriend.username);
     };
   }
