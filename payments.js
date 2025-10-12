@@ -1,7 +1,7 @@
 import { showSpinner, hideSpinner } from './spinner.js';
 import { showTransferPopup } from './transfer.js';
 
-function showModal({ title, content, inputType, inputPlaceholder, inputValue, onOk, onCancel, okText = "OK", cancelText = "Cancel", showCancel = true }) {
+function showModal({title, content, inputType, inputPlaceholder, inputValue, onOk, onCancel, okText="OK", cancelText="Cancel", showCancel=true}) {
   let modal = document.createElement('div');
   modal.className = "modal-backdrop";
   document.body.appendChild(modal);
@@ -10,7 +10,7 @@ function showModal({ title, content, inputType, inputPlaceholder, inputValue, on
       <button class="modal-close" aria-label="Close">&times;</button>
       ${title ? `<h3>${title}</h3>` : ""}
       <div style="margin-bottom:1em;">${content || ''}</div>
-      ${inputType ? `<input id="modal-input" type="${inputType}" placeholder="${inputPlaceholder || ''}" value="${inputValue || ''}" autofocus>` : ''}
+      ${inputType ? `<input id="modal-input" type="${inputType}" placeholder="${inputPlaceholder||''}" value="${inputValue||''}" autofocus>` : ''}
       <div class="modal-btn-row">
         ${showCancel ? `<button class="modal-btn modal-btn-alt" id="modal-cancel">${cancelText}</button>` : ''}
         <button class="modal-btn" id="modal-ok">${okText}</button>
@@ -35,15 +35,13 @@ function showModal({ title, content, inputType, inputPlaceholder, inputValue, on
 function parseDBDatetimeAsUTC(dt) {
   const m = /^(d{4})-(d{2})-(d{2}) (d{2}):(d{2}):(d{2})$/.exec(dt);
   if (!m) return new Date(dt);
-  return new Date(Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]));
+  return new Date(Date.UTC(+m[1], m[2]-1, +m[3], +m[4], +m[5], +m[6]));
 }
-
 function getTimeLocalAMPM(date) {
   return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 export async function showPaymentsPanel(container, user) {
-
   const FILTERS = [
     { value: "all", label: "All" },
     { value: "owed", label: "Owed" },
@@ -56,7 +54,7 @@ export async function showPaymentsPanel(container, user) {
   let filter = "all";
   let friends = [];
   let currencies = [];
-  let selectedCurrency = ""; // Filter by currency
+  let selectedCurrency = "";
   let currentFriend = null;
   let backendMe = null;
   let timeline = [];
@@ -64,17 +62,8 @@ export async function showPaymentsPanel(container, user) {
 
   await loadFriends();
 
-  function groupFriendCurrencies() {
-    let res = {};
-    friends.forEach(f => {
-      if (!res[f.username]) res[f.username] = [];
-      res[f.username].push(f.currency);
-    });
-    return res;
-  }
-
-  if (friends.length === 0) {
-    container.innerHTML = `<div style="margin:2em;">No friends data.</div>`;
+  if (!friends || !Array.isArray(friends) || friends.length === 0) {
+    container.innerHTML = `<div style="margin:2em;">No friends data or failed to load data.</div>`;
     return;
   }
 
@@ -97,7 +86,7 @@ export async function showPaymentsPanel(container, user) {
     }
     hideSpinner(container);
     if (errMsg) {
-      container.innerHTML = `<div style="color:#d12020;margin:2em;">${errMsg}</div>`;
+      container.innerHTML = `<div style="color:#d12020;margin:2em;">Failed: ${errMsg}</div>`;
       throw new Error(errMsg);
     }
   }
@@ -127,11 +116,14 @@ export async function showPaymentsPanel(container, user) {
   }
 
   function filteredFriends() {
-    return friends.filter(f =>
+    let filtered = friends.filter(f =>
       (searchTerm === "" || (f.name || "").toLowerCase().includes(searchTerm.toLowerCase()))
       && (filter === 'all' || (filter === "owed" && f.net < 0) || (filter === "get" && f.net > 0) || (filter === "settled" && f.net === 0))
-      && (!selectedCurrency || f.currency === selectedCurrency)
     );
+    if (selectedCurrency) {
+      filtered = filtered.filter(f => f.currency === selectedCurrency);
+    }
+    return filtered;
   }
 
   function updateFriendList() {
@@ -326,7 +318,7 @@ export async function showPaymentsPanel(container, user) {
           await paymentAction(paymentId, "cancel");
         }
       });
-    }));
+    });
 
     container.querySelectorAll('.bubble-accept').forEach(btn => btn.onclick = async () => {
       const idx = Number(btn.dataset.idx);
@@ -339,7 +331,7 @@ export async function showPaymentsPanel(container, user) {
           await paymentAction(paymentId, "accept");
         }
       });
-    }));
+    });
 
     container.querySelectorAll('.bubble-reject').forEach(btn => btn.onclick = async () => {
       const idx = Number(btn.dataset.idx);
@@ -352,7 +344,7 @@ export async function showPaymentsPanel(container, user) {
           await paymentAction(paymentId, "reject");
         }
       });
-    }));
+    });
 
     container.querySelector('.paypage-btn.pay').onclick = () => {
       showModal({
@@ -447,5 +439,4 @@ export async function showPaymentsPanel(container, user) {
       }
     });
   }
-
 }
