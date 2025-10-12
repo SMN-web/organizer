@@ -78,9 +78,8 @@ export async function showPaymentsPanel(container, user) {
       if (!user?.firebaseUser || typeof user.firebaseUser.getIdToken !== 'function') throw new Error("Not logged in");
       const token = await user.firebaseUser.getIdToken(true);
       const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/settlements/friends', { headers: { Authorization: "Bearer " + token } });
-      const data = await resp.json();
-      friends = Array.isArray(data) ? data : [];
-      if (!Array.isArray(data) && data.error) errMsg = data.error;
+      friends = await resp.json();
+      if (!Array.isArray(friends) && friends.error) errMsg = friends.error;
     } catch (e) {
       errMsg = e.message || e;
     }
@@ -255,7 +254,7 @@ export async function showPaymentsPanel(container, user) {
           <div class="paypage-bubble ${bubbleExtra} ${bubbleSide === "bubble-right" ? "bubble-send" : ""}">
             <div class="bubble-title">${heading}</div>
             <div class="bubble-amount-row">
-              <span class="bubble-amount">${ev.amount} ${ev.currency || selectedCurrency || "QAR"}</span>
+              <span class="bubble-amount">${ev.amount} ${ev.currency || currentFriend.currency || "QAR"}</span>
               ${statusPill}
             </div>
             <div class="bubble-meta">
@@ -310,43 +309,26 @@ export async function showPaymentsPanel(container, user) {
     container.querySelectorAll('.bubble-cancel').forEach(btn => btn.onclick = async () => {
       const idx = Number(btn.dataset.idx);
       const paymentId = timeline[idx].payment_id;
-      showModal({
-        title: "Cancel Payment",
-        content: "Are you sure you want to cancel this payment?",
-        okText: "Yes", cancelText: "No",
-        onOk: async () => {
-          await paymentAction(paymentId, "cancel");
-        }
-      });
+      await paymentAction(paymentId, "cancel", currentFriend.currency);
     });
 
     container.querySelectorAll('.bubble-accept').forEach(btn => btn.onclick = async () => {
       const idx = Number(btn.dataset.idx);
       const paymentId = timeline[idx].payment_id;
-      showModal({
-        title: "Accept Payment",
-        content: "Do you want to accept this payment?",
-        okText: "Yes", cancelText: "No",
-        onOk: async () => {
-          await paymentAction(paymentId, "accept");
-        }
-      });
+      await paymentAction(paymentId, "accept", currentFriend.currency);
     });
 
     container.querySelectorAll('.bubble-reject').forEach(btn => btn.onclick = async () => {
       const idx = Number(btn.dataset.idx);
       const paymentId = timeline[idx].payment_id;
-      showModal({
-        title: "Reject Payment",
-        content: "Do you want to reject this payment?",
-        okText: "Yes", cancelText: "No",
-        onOk: async () => {
-          await paymentAction(paymentId, "reject");
-        }
-      });
+      await paymentAction(paymentId, "reject", currentFriend.currency);
     });
 
     container.querySelector('.paypage-btn.pay').onclick = () => {
+      if (!currentFriend.currency) {
+        showModal({ content: "Currency is a mandatory value for sending payment.", okText: "OK", showCancel: false });
+        return;
+      }
       showModal({
         title: "Send Payment",
         inputType: "number",
@@ -366,6 +348,10 @@ export async function showPaymentsPanel(container, user) {
   }
 
   async function sendPayment(toUsername, amount, currency) {
+    if (!currency) {
+      showModal({ content: "Currency is a mandatory value.", okText: "OK", showCancel: false });
+      return;
+    }
     showSpinner(container);
     try {
       const token = await user.firebaseUser.getIdToken(true);
@@ -400,7 +386,11 @@ export async function showPaymentsPanel(container, user) {
     hideSpinner(container);
   }
 
-  async function paymentAction(payment_id, action) {
+  async function paymentAction(payment_id, action, currency) {
+    if (!currency) {
+      showModal({ content: "Currency is a mandatory value.", okText: "OK", showCancel: false });
+      return;
+    }
     showSpinner(container);
     let ok = false, err = "";
     try {
@@ -408,7 +398,7 @@ export async function showPaymentsPanel(container, user) {
       const resp = await fetch('https://pa-ca.nafil-8895-s.workers.dev/api/expense_payment_action', {
         method: "POST",
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify({ payment_id, action })
+        body: JSON.stringify({ payment_id, action, currency })
       });
       const result = await resp.json();
       if (!result.ok) err = result.error;
